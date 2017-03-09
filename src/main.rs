@@ -27,7 +27,14 @@ fn main() {
                 let args : Vec<&str> = line.trim().split(' ').collect();
                 match Command::new(args[0]).args(&(args[1..])).output() {
                     Ok(output) => {
-                        print!("{}", String::from_utf8(output.stdout).unwrap());
+                        let err = String::from_utf8_lossy(&output.stderr);
+                        if err != "" {
+                            print!("{}", err);
+                        }
+                        let out = String::from_utf8_lossy(&output.stdout);
+                        if out != "" {
+                            print!("{}", out);
+                        }
                     },
                     Err(e) => {
                         println!("{:?}", e);
