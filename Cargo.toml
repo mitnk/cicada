@@ -6,3 +6,4 @@ authors = ["Hugo Wang <w@mitnk.com>"]
 [dependencies]
 rustyline = "1.0.0"
 ansi_term = "0.9"
+shlex = "0.1.0"

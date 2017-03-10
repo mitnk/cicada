@@ -1,5 +1,6 @@
 extern crate ansi_term;
 extern crate rustyline;
+extern crate shlex;
 
 use std::env;
 use std::process::Command;
@@ -15,8 +16,8 @@ fn main() {
     let mut rl = Editor::<()>::new();
     let user = env::var("USER").unwrap();
     let mut proc_status_ok = true;
+    let mut prompt;
     loop {
-        let prompt;
         if proc_status_ok {
             prompt = format!("{}@{} ",
                              Green.paint(user.to_string()),
@@ -26,6 +27,7 @@ fn main() {
                              Red.paint(user.to_string()),
                              Red.paint("RUSH: ~$"));
         }
+
         let cmd = rl.readline(prompt.as_str());
         match cmd {
             Ok(line) => {
@@ -36,24 +38,19 @@ fn main() {
                     continue;
                 }
                 rl.add_history_entry(&line);
-                let args : Vec<&str> = line.trim().split(' ').collect();
-                match Command::new(args[0]).args(&(args[1..])).output() {
-                    Ok(output) => {
-                        proc_status_ok = output.status.success();
-                        let err = String::from_utf8_lossy(&output.stderr);
-                        if err != "" {
-                            print!("{}", err);
-                        }
-                        let out = String::from_utf8_lossy(&output.stdout);
-                        if out != "" {
-                            print!("{}", out);
-                        }
-                    },
+
+                let args = shlex::split(line.trim()).unwrap();
+                let mut child;
+                match Command::new(&args[0]).args(&(args[1..])).spawn() {
+                    Ok(x) => child = x,
                     Err(e) => {
                         proc_status_ok = false;
                         println!("{:?}", e);
+                        continue
                     }
                 }
+                let ecode = child.wait().expect("failed to wait");
+                proc_status_ok = ecode.success();
             },
             Err(ReadlineError::Interrupted) => {
                 // Ctrl-C
