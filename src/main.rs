@@ -7,11 +7,14 @@ extern crate errno;
 use std::env;
 use std::os::unix::process::CommandExt;
 use std::process::Command;
+use std::thread;
+use std::time::Duration;
 
 use ansi_term::Colour::Red;
 use ansi_term::Colour::Green;
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
+
 
 mod jobs;
 mod tools;
@@ -44,6 +47,7 @@ fn main() {
                 rl.add_history_entry(&line);
 
                 let args = shlex::split(line.trim()).unwrap();
+                tools::rlog(format!("run {:?}\n", args));
                 let mut child;
                 match Command::new(&args[0]).args(&(args[1..]))
                     .before_exec(
@@ -65,17 +69,19 @@ fn main() {
                 }
                 unsafe {
                     let pid = child.id() as i32;
-                    tools::rlog(format!("try give term to {}\n", pid));
-                    jobs::give_terminal_to(pid);
-                    tools::rlog(format!("waiting pid {}\n", pid));
+                    let gid = libc::getpgid(pid);
+                    thread::sleep(Duration::from_millis(1));
+                    tools::rlog(format!("try give term to {}\n", gid));
+                    jobs::give_terminal_to(gid);
+                    tools::rlog(format!("waiting pid {}\n", gid));
                 }
                 let ecode = child.wait().unwrap();
                 proc_status_ok = ecode.success();
                 tools::rlog(format!("done. ok: {}\n", proc_status_ok));
                 unsafe {
-                    let pid = libc::getpid();
-                    tools::rlog(format!("try give term to {}\n", pid));
-                    jobs::give_terminal_to(pid);
+                    let gid = libc::getpgid(0);
+                    tools::rlog(format!("try give term to {}\n", gid));
+                    jobs::give_terminal_to(gid);
                 }
             },
             Err(ReadlineError::Interrupted) => {
