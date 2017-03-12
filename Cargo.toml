@@ -7,3 +7,5 @@ authors = ["Hugo Wang <w@mitnk.com>"]
 rustyline = "1.0.0"
 ansi_term = "0.9"
 shlex = "0.1.0"
+libc = "0.2.0"
+errno = "*"
