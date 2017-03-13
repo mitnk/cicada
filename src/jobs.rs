@@ -1,11 +1,12 @@
 use errno::errno;
 use libc;
 pub use tools::rlog;
+use std::mem;
 
 
 pub unsafe fn give_terminal_to(pid: i32) {
-    let mut mask: libc::sigset_t = 0;
-    let mut old_mask: libc::sigset_t = 0;
+    let mut mask: libc::sigset_t = mem::zeroed();
+    let mut old_mask: libc::sigset_t = mem::zeroed();
 
     libc::sigemptyset(&mut mask);
     libc::sigaddset(&mut mask, libc::SIGTSTP);
