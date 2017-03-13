@@ -26,6 +26,14 @@ fn main() {
 
     let user = env::var("USER").unwrap();
     let home = env::var("HOME").unwrap();
+    let env_path = env::var("PATH").unwrap();
+    let mut env_path_new = env_path.clone();
+    let dir_bin_cargo = format!("{}/.cargo/bin", home);
+    env_path_new = [env_path_new,
+                    dir_bin_cargo,
+                    "/usr/local/bin".to_string()].join(":");
+    env::set_var("PATH", &env_path_new);
+
     let mut previous_dir = "".to_string();
     let mut proc_status_ok = true;
     let mut prompt;
