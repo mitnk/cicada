@@ -55,15 +55,21 @@ fn main() {
         let cmd = rl.readline(&prompt);
         match cmd {
             Ok(line) => {
+                let cmd: String;
                 if line.trim() == "exit" {
                     println!("Bye.");
                     break;
                 } else if line.trim() == "" {
                     continue;
+                } else if line.trim() == "bash" {
+                    cmd = "bash --rcfile ~/.bash_profile".to_string();
+                } else {
+                    cmd = line.to_string();
                 }
-                rl.add_history_entry(&line);
 
-                let args = shlex::split(line.trim()).unwrap();
+                rl.add_history_entry(&cmd);
+
+                let args = shlex::split(cmd.trim()).unwrap();
 
                 if args[0] == "cd" {
                     if args.len() > 2 {
