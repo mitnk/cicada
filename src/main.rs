@@ -26,6 +26,7 @@ fn main() {
 
     let user = env::var("USER").unwrap();
     let home = env::var("HOME").unwrap();
+    let mut previous_dir = "".to_string();
     let mut proc_status_ok = true;
     let mut prompt;
     let mut painter;
@@ -34,14 +35,22 @@ fn main() {
         if proc_status_ok {painter = Green;} else {painter = Red;}
 
         // TODO: clean these mess up
-        let dir = env::current_dir().unwrap();
-        let dir = dir.to_string_lossy();
-        let tokens: Vec<&str> = dir.split("/").collect();
-        let trail = tokens.last().unwrap();
+        let current_dir = env::current_dir().unwrap();
+        let current_dir = current_dir.to_string_lossy();
+        let tokens: Vec<&str> = current_dir.split("/").collect();
+        let last = tokens.last().unwrap();
+        let pwd: String;
+        if last.to_string() == "" {
+            pwd = "/".to_string();
+        } else if current_dir == home {
+            pwd = "~".to_string();
+        } else {
+            pwd = last.to_string();
+        }
         prompt = format!("{}@{}: {}$ ",
                          painter.paint(user.to_string()),
                          painter.paint("RUSH"),
-                         painter.paint(trail.to_string()));
+                         painter.paint(pwd));
 
         let cmd = rl.readline(&prompt);
         match cmd {
@@ -57,14 +66,32 @@ fn main() {
                 let args = shlex::split(line.trim()).unwrap();
 
                 if args[0] == "cd" {
-                    if args.len() == 1 {
-                        env::set_current_dir(&home).unwrap();
+                    if args.len() > 2 {
+                        println!("invalid cd command");
+                        proc_status_ok = false;
+                        continue;
                     } else {
-                        let mut path = args[1..].join("");
-                        if !path.starts_with("/") {
-                            path = format!("{}/{}", tokens.join("/"), path);
+                        let mut path: String;
+                        if args.len() == 1 {
+                            path = home.to_string();
+                        } else {
+                            path = args[1..].join("");
                         }
-                        match env::set_current_dir(path) {
+                        if path == "-"{
+                            if previous_dir == "" {
+                                println!("no previous dir");
+                                continue;
+                            }
+                            path = previous_dir.clone();
+                        } else {
+                            if !path.starts_with("/") {
+                                path = format!("{}/{}", tokens.join("/"), path);
+                            }
+                        }
+                        if current_dir != path {
+                            previous_dir = current_dir.to_string();
+                        }
+                        match env::set_current_dir(&path) {
                             Ok(_) => {
                                 proc_status_ok = true;
                                 continue;
@@ -76,7 +103,6 @@ fn main() {
                             }
                         }
                     }
-                    continue;
                 }
 
                 tools::rlog(format!("run {:?}\n", args));
