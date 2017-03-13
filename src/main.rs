@@ -25,15 +25,23 @@ fn main() {
     println!("##### Welcome to RUSH v{} #####", VERSION);
 
     let user = env::var("USER").unwrap();
+    let home = env::var("HOME").unwrap();
     let mut proc_status_ok = true;
     let mut prompt;
     let mut painter;
     let mut rl = Editor::<()>::new();
     loop {
         if proc_status_ok {painter = Green;} else {painter = Red;}
-        prompt = format!("{}@{} ",
+
+        // TODO: clean these mess up
+        let dir = env::current_dir().unwrap();
+        let dir = dir.to_string_lossy();
+        let tokens: Vec<&str> = dir.split("/").collect();
+        let trail = tokens.last().unwrap();
+        prompt = format!("{}@{}: {}$ ",
                          painter.paint(user.to_string()),
-                         painter.paint("RUSH: ~$"));
+                         painter.paint("RUSH"),
+                         painter.paint(trail.to_string()));
 
         let cmd = rl.readline(&prompt);
         match cmd {
@@ -47,6 +55,30 @@ fn main() {
                 rl.add_history_entry(&line);
 
                 let args = shlex::split(line.trim()).unwrap();
+
+                if args[0] == "cd" {
+                    if args.len() == 1 {
+                        env::set_current_dir(&home).unwrap();
+                    } else {
+                        let mut path = args[1..].join("");
+                        if !path.starts_with("/") {
+                            path = format!("{}/{}", tokens.join("/"), path);
+                        }
+                        match env::set_current_dir(path) {
+                            Ok(_) => {
+                                proc_status_ok = true;
+                                continue;
+                            },
+                            Err(e) => {
+                                proc_status_ok = false;
+                                println!("{:?}", e);
+                                continue;
+                            }
+                        }
+                    }
+                    continue;
+                }
+
                 tools::rlog(format!("run {:?}\n", args));
                 let mut child;
                 match Command::new(&args[0]).args(&(args[1..]))

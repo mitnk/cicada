@@ -1,3 +1,3 @@
 install:
-	cargo build
-	cp target/debug/rush /usr/local/bin/
+	cargo build --release
+	cp target/release/rush /usr/local/bin/
