@@ -35,9 +35,8 @@ fn main() {
     ].join(":");
     env::set_var("PATH", &env_path_new);
 
-    let mut previous_dir = "".to_string();
+    let mut previous_dir = String::new();
     let mut proc_status_ok = true;
-    let mut prompt;
     let mut painter;
     let mut rl = Editor::<()>::new();
     loop {
@@ -56,11 +55,10 @@ fn main() {
         } else {
             pwd = last.to_string();
         }
-        prompt = format!("{}@{}: {}$ ",
+        let prompt = format!("{}@{}: {}$ ",
                          painter.paint(user.to_string()),
                          painter.paint("RUSH"),
                          painter.paint(pwd));
-
         let cmd = rl.readline(&prompt);
         match cmd {
             Ok(line) => {
