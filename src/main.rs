@@ -7,8 +7,8 @@ extern crate errno;
 use std::env;
 use std::os::unix::process::CommandExt;
 use std::process::Command;
-use std::thread;
-use std::time::Duration;
+// use std::thread;
+// use std::time::Duration;
 
 use ansi_term::Colour::Red;
 use ansi_term::Colour::Green;
@@ -49,9 +49,9 @@ fn main() {
         let last = tokens.last().unwrap();
         let pwd: String;
         if last.to_string() == "" {
-            pwd = "/".to_string();
+            pwd = String::from("/");
         } else if current_dir == home {
-            pwd = "~".to_string();
+            pwd = String::from("~");
         } else {
             pwd = last.to_string();
         }
@@ -64,12 +64,11 @@ fn main() {
             Ok(line) => {
                 let cmd: String;
                 if line.trim() == "exit" {
-                    println!("Bye.");
                     break;
                 } else if line.trim() == "" {
                     continue;
                 } else if line.trim() == "bash" {
-                    cmd = "bash --rcfile ~/.bash_profile".to_string();
+                    cmd = String::from("bash --rcfile ~/.bash_profile");
                 } else {
                     cmd = line.to_string();
                 }
@@ -121,27 +120,25 @@ fn main() {
                 tools::rlog(format!("run {:?}\n", args));
                 let mut child;
                 match Command::new(&args[0]).args(&(args[1..]))
-                    .before_exec(
-                        || {
-                            unsafe {
-                                let pid = libc::getpid();
-                                libc::setpgid(0, pid);
-                            }
-                            Ok(())
+                    .before_exec(|| {
+                        unsafe {
+                            let pid = libc::getpid();
+                            libc::setpgid(0, pid);
                         }
-                    )
+                        Ok(())
+                    })
                     .spawn() {
                     Ok(x) => child = x,
                     Err(e) => {
                         proc_status_ok = false;
                         println!("{:?}", e);
-                        continue
+                        continue;
                     }
                 }
                 unsafe {
                     let pid = child.id() as i32;
                     let gid = libc::getpgid(pid);
-                    thread::sleep(Duration::from_millis(1));
+                    // thread::sleep(Duration::from_millis(1));
                     tools::rlog(format!("try give term to {}\n", gid));
                     jobs::give_terminal_to(gid);
                     tools::rlog(format!("waiting pid {}\n", gid));
