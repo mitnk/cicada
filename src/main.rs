@@ -74,9 +74,7 @@ fn main() {
                 }
 
                 rl.add_history_entry(&cmd);
-
                 let args = shlex::split(cmd.trim()).unwrap();
-
                 if args[0] == "cd" {
                     if args.len() > 2 {
                         println!("invalid cd command");
