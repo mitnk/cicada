@@ -3,6 +3,10 @@ extern crate rustyline;
 extern crate shlex;
 extern crate libc;
 extern crate errno;
+extern crate regex;
+
+#[macro_use]
+extern crate nom;
 
 use std::env;
 use std::os::unix::process::CommandExt;
@@ -14,10 +18,13 @@ use ansi_term::Colour::Red;
 use ansi_term::Colour::Green;
 use rustyline::Editor;
 use rustyline::error::ReadlineError;
+use nom::IResult;
+use regex::Regex;
 
 
 mod jobs;
 mod tools;
+mod parsers;
 
 
 fn main() {
@@ -72,8 +79,19 @@ fn main() {
                 } else {
                     cmd = line.to_string();
                 }
-
                 rl.add_history_entry(&cmd);
+
+                if Regex::new(r"^ *\(*[0-9\.]+").unwrap().is_match(line.as_str()) {
+                    match parsers::expr(line.as_bytes()) {
+                        IResult::Done(_, x) => {
+                            println!("{:?}", x);
+                        },
+                        IResult::Error(x) => println!("Error: {:?}", x),
+                        IResult::Incomplete(x) => println!("Incomplete: {:?}", x)
+                    }
+                    continue;
+                }
+
                 let args = shlex::split(cmd.trim()).unwrap();
                 if args[0] == "cd" {
                     if args.len() > 2 {
