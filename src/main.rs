@@ -11,6 +11,7 @@ extern crate nom;
 use std::env;
 use std::os::unix::process::CommandExt;
 use std::process::Command;
+
 // use std::thread;
 // use std::time::Duration;
 
@@ -28,6 +29,11 @@ mod parsers;
 
 
 fn main() {
+    if env::args().len() > 1 {
+        println!("does not support args yet.");
+        return;
+    }
+
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
     println!("##### Welcome to RUSH v{} #####", VERSION);
 
@@ -39,6 +45,10 @@ fn main() {
         "/usr/local/bin".to_string(),
         env_path,
         dir_bin_cargo,
+        "/Library/Frameworks/Python.framework/Versions/3.6/bin".to_string(),
+        "/Library/Frameworks/Python.framework/Versions/3.5/bin".to_string(),
+        "/Library/Frameworks/Python.framework/Versions/3.4/bin".to_string(),
+        "/Library/Frameworks/Python.framework/Versions/2.7/bin".to_string(),
     ].join(":");
     env::set_var("PATH", &env_path_new);
 
