@@ -26,6 +26,7 @@ use regex::Regex;
 mod jobs;
 mod tools;
 mod parsers;
+mod builtins;
 
 
 fn main() {
@@ -41,15 +42,14 @@ fn main() {
     let home = env::var("HOME").unwrap();
     let env_path = env::var("PATH").unwrap();
     let dir_bin_cargo = format!("{}/.cargo/bin", home);
-    let env_path_new = [
-        "/usr/local/bin".to_string(),
-        env_path,
-        dir_bin_cargo,
-        "/Library/Frameworks/Python.framework/Versions/3.6/bin".to_string(),
-        "/Library/Frameworks/Python.framework/Versions/3.5/bin".to_string(),
-        "/Library/Frameworks/Python.framework/Versions/3.4/bin".to_string(),
-        "/Library/Frameworks/Python.framework/Versions/2.7/bin".to_string(),
-    ].join(":");
+    let env_path_new = ["/usr/local/bin".to_string(),
+                        env_path,
+                        dir_bin_cargo,
+                        "/Library/Frameworks/Python.framework/Versions/3.6/bin".to_string(),
+                        "/Library/Frameworks/Python.framework/Versions/3.5/bin".to_string(),
+                        "/Library/Frameworks/Python.framework/Versions/3.4/bin".to_string(),
+                        "/Library/Frameworks/Python.framework/Versions/2.7/bin".to_string()]
+            .join(":");
     env::set_var("PATH", &env_path_new);
 
     let mut previous_dir = String::new();
@@ -57,13 +57,18 @@ fn main() {
     let mut painter;
     let mut rl = Editor::<()>::new();
     loop {
-        if proc_status_ok {painter = Green;} else {painter = Red;}
+        if proc_status_ok {
+            painter = Green;
+        } else {
+            painter = Red;
+        }
 
         // TODO: clean these mess up
-        let current_dir = env::current_dir().unwrap();
-        let current_dir = current_dir.to_string_lossy();
-        let tokens: Vec<&str> = current_dir.split("/").collect();
-        let last = tokens.last().unwrap();
+        let _current_dir = env::current_dir().unwrap();
+        let current_dir = _current_dir.to_str().unwrap();
+        let _tokens: Vec<&str> = current_dir.split("/").collect();
+
+        let last = _tokens.last().unwrap();
         let pwd: String;
         if last.to_string() == "" {
             pwd = String::from("/");
@@ -73,9 +78,9 @@ fn main() {
             pwd = last.to_string();
         }
         let prompt = format!("{}@{}: {}$ ",
-                         painter.paint(user.to_string()),
-                         painter.paint("RUSH"),
-                         painter.paint(pwd));
+                             painter.paint(user.to_string()),
+                             painter.paint("RUSH"),
+                             painter.paint(pwd));
         let cmd = rl.readline(&prompt);
         match cmd {
             Ok(line) => {
@@ -91,69 +96,39 @@ fn main() {
                 }
                 rl.add_history_entry(&cmd);
 
-                if Regex::new(r"^ *\(*[0-9\.]+").unwrap().is_match(line.as_str()) {
+                if Regex::new(r"^ *\(* *[0-9\.]+").unwrap().is_match(line.as_str()) {
                     match parsers::expr(line.as_bytes()) {
                         IResult::Done(_, x) => {
                             println!("{:?}", x);
-                        },
+                        }
                         IResult::Error(x) => println!("Error: {:?}", x),
-                        IResult::Incomplete(x) => println!("Incomplete: {:?}", x)
+                        IResult::Incomplete(x) => println!("Incomplete: {:?}", x),
                     }
                     continue;
                 }
 
                 let args = shlex::split(cmd.trim()).unwrap();
                 if args[0] == "cd" {
-                    if args.len() > 2 {
-                        println!("invalid cd command");
-                        proc_status_ok = false;
-                        continue;
-                    } else {
-                        let mut path: String;
-                        if args.len() == 1 {
-                            path = home.to_string();
-                        } else {
-                            path = args[1..].join("");
-                        }
-                        if path == "-"{
-                            if previous_dir == "" {
-                                println!("no previous dir");
-                                continue;
-                            }
-                            path = previous_dir.clone();
-                        } else {
-                            if !path.starts_with("/") {
-                                path = format!("{}/{}", tokens.join("/"), path);
-                            }
-                        }
-                        if current_dir != path {
-                            previous_dir = current_dir.to_string();
-                        }
-                        match env::set_current_dir(&path) {
-                            Ok(_) => {
-                                proc_status_ok = true;
-                                continue;
-                            },
-                            Err(e) => {
-                                proc_status_ok = false;
-                                println!("{:?}", e);
-                                continue;
-                            }
-                        }
-                    }
+                    let result = builtins::cd::run(args.clone(),
+                                                   home.as_str(),
+                                                   current_dir,
+                                                   &mut previous_dir);
+                    proc_status_ok = result == 0;
+                    continue;
                 }
 
                 tools::rlog(format!("run {:?}\n", args));
                 let mut child;
-                match Command::new(&args[0]).args(&(args[1..]))
-                    .before_exec(|| {
-                        unsafe {
-                            let pid = libc::getpid();
-                            libc::setpgid(0, pid);
-                        }
-                        Ok(())
-                    })
-                    .spawn() {
+                match Command::new(&args[0])
+                          .args(&(args[1..]))
+                          .before_exec(|| {
+                    unsafe {
+                        let pid = libc::getpid();
+                        libc::setpgid(0, pid);
+                    }
+                    Ok(())
+                })
+                          .spawn() {
                     Ok(x) => child = x,
                     Err(e) => {
                         proc_status_ok = false;
@@ -177,15 +152,15 @@ fn main() {
                     tools::rlog(format!("try give term to {}\n", gid));
                     jobs::give_terminal_to(gid);
                 }
-            },
+            }
             Err(ReadlineError::Interrupted) => {
                 // Ctrl-C
                 continue;
-            },
+            }
             Err(ReadlineError::Eof) => {
                 // Ctrl-D
                 continue;
-            },
+            }
             Err(err) => {
                 println!("RL Error: {:?}", err);
                 continue;
