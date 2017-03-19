@@ -4,3 +4,7 @@ install:
 
 doc:
 	cargo doc --open
+
+
+clean:
+	find . -name '*.rs.bk' | xargs rm

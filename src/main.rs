@@ -63,7 +63,6 @@ fn main() {
             painter = Red;
         }
 
-        // TODO: clean these mess up
         let _current_dir = env::current_dir().unwrap();
         let current_dir = _current_dir.to_str().unwrap();
         let _tokens: Vec<&str> = current_dir.split("/").collect();
@@ -115,6 +114,9 @@ fn main() {
                                                    &mut previous_dir);
                     proc_status_ok = result == 0;
                     continue;
+                } else if args.iter().any(|x| x == "|") {
+                    println!("pipeline not support yet.");
+                    continue;
                 }
 
                 tools::rlog(format!("run {:?}\n", args));
@@ -139,7 +141,6 @@ fn main() {
                 unsafe {
                     let pid = child.id() as i32;
                     let gid = libc::getpgid(pid);
-                    // thread::sleep(Duration::from_millis(1));
                     tools::rlog(format!("try give term to {}\n", gid));
                     jobs::give_terminal_to(gid);
                     tools::rlog(format!("waiting pid {}\n", gid));

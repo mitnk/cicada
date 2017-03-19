@@ -24,7 +24,7 @@ pub unsafe fn give_terminal_to(pid: i32) {
         let code = e.0;
         rlog(format!("Error {}: {}\n", code, e));
     } else {
-        rlog(format!("return term back to {} rcode: {}\n", pid, rcode));
+        rlog(format!("gave term to {} rcode: {}\n", pid, rcode));
     }
     let rcode = libc::pthread_sigmask(libc::SIG_SETMASK, &old_mask, &mut mask);
     if rcode != 0 {
