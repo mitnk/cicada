@@ -1,6 +1,6 @@
 [package]
 name = "rush"
-version = "0.1.12"
+version = "0.1.13"
 authors = ["Hugo Wang <w@mitnk.com>"]
 
 [dependencies]
@@ -11,3 +11,4 @@ libc = "0.2.0"
 errno = "*"
 nom = "^2.1"
 regex = "0.2"
+nix = "0.8.0"

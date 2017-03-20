@@ -4,6 +4,7 @@ extern crate shlex;
 extern crate libc;
 extern crate errno;
 extern crate regex;
+extern crate nix;
 
 #[macro_use]
 extern crate nom;
@@ -27,6 +28,7 @@ mod jobs;
 mod tools;
 mod parsers;
 mod builtins;
+mod execute;
 
 
 fn main() {
@@ -115,7 +117,8 @@ fn main() {
                     proc_status_ok = result == 0;
                     continue;
                 } else if args.iter().any(|x| x == "|") {
-                    println!("pipeline not support yet.");
+                    let result = execute::run_pipeline(args.clone());
+                    proc_status_ok = result == 0;
                     continue;
                 }
 
