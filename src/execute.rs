@@ -69,8 +69,21 @@ pub fn run_pipeline(args: Vec<String>) -> i32 {
             p.stdin(pipe_in);
         }
 
-        let mut child = p.spawn().unwrap();
-        let ecode = child.wait().unwrap();
+        let mut child;
+        if let Ok(x) = p.spawn() {
+            child = x;
+        } else {
+            println!("child spawn error");
+            return 1;
+        }
+
+        let ecode;
+        if let Ok(x) = child.wait() {
+            ecode = x;
+        } else {
+            println!("child wait error");
+            return 1;
+        }
         if !ecode.success() {
             status = 1;
         }

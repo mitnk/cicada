@@ -96,8 +96,14 @@ fn main() {
                     cmd = line.to_string();
                 }
                 rl.add_history_entry(&cmd);
-
-                if Regex::new(r"^ *\(* *[0-9\.]+").unwrap().is_match(line.as_str()) {
+                let re;
+                if let Ok(x) = Regex::new(r"^ *\(* *[0-9\.]+") {
+                    re = x;
+                } else {
+                    println!("regex error");
+                    continue;
+                }
+                if re.is_match(line.as_str()) {
                     match parsers::expr(line.as_bytes()) {
                         IResult::Done(_, x) => {
                             println!("{:?}", x);
@@ -108,7 +114,14 @@ fn main() {
                     continue;
                 }
 
-                let args = shlex::split(cmd.trim()).unwrap();
+                let args;
+                if let Some(x) = shlex::split(cmd.trim()) {
+                    args = x;
+                } else {
+                    println!("shlex split error: does not support multiple line");
+                    proc_status_ok = false;
+                    continue;
+                }
                 if args[0] == "cd" {
                     let result = builtins::cd::run(args.clone(),
                                                    home.as_str(),
@@ -148,7 +161,16 @@ fn main() {
                     jobs::give_terminal_to(gid);
                     tools::rlog(format!("waiting pid {}\n", gid));
                 }
-                let ecode = child.wait().unwrap();
+
+                let ecode;
+                if let Ok(x) = child.wait() {
+                    ecode = x;
+                } else {
+                    println!("child wait error.");
+                    proc_status_ok = false;
+                    continue;
+                }
+
                 proc_status_ok = ecode.success();
                 tools::rlog(format!("done. ok: {}\n", proc_status_ok));
                 unsafe {
