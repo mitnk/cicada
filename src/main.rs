@@ -18,8 +18,13 @@ use std::process::Command;
 
 use ansi_term::Colour::Red;
 use ansi_term::Colour::Green;
-use rustyline::Editor;
+
+use rustyline::completion::FilenameCompleter;
 use rustyline::error::ReadlineError;
+use rustyline::{Config, CompletionType, Editor};
+
+// use rustyline::Editor;
+// use rustyline::error::ReadlineError;
 use nom::IResult;
 use regex::Regex;
 
@@ -57,7 +62,15 @@ fn main() {
     let mut previous_dir = String::new();
     let mut proc_status_ok = true;
     let mut painter;
-    let mut rl = Editor::<()>::new();
+
+    let config = Config::builder()
+        .history_ignore_space(true)
+        .completion_type(CompletionType::List)
+        .build();
+    let mut rl = Editor::with_config(config);
+    let c = FilenameCompleter::new();
+    rl.set_completer(Some(c));
+
     loop {
         if proc_status_ok {
             painter = Green;
@@ -95,7 +108,7 @@ fn main() {
                 } else {
                     cmd = line.to_string();
                 }
-                rl.add_history_entry(&cmd);
+                rl.add_history_entry(cmd.as_ref());
                 let re;
                 if let Ok(x) = Regex::new(r"^ *\(* *[0-9\.]+") {
                     re = x;
