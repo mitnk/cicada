@@ -4,7 +4,7 @@ use std::os::unix::io::FromRawFd;
 use nix::unistd::pipe;
 use nix::sys::signal;
 
-extern fn handle_sigchld(_:i32) {
+extern "C" fn handle_sigchld(_: i32) {
     // println!("child finished!: {}", x);
 }
 
@@ -21,7 +21,7 @@ pub fn run_pipeline(args: Vec<String>) -> i32 {
     let mut i = 0;
 
     let mut cmd: Vec<&str> = Vec::new();
-    let mut cmds: Vec<Vec <&str> > = Vec::new();
+    let mut cmds: Vec<Vec<&str>> = Vec::new();
     loop {
         let token = &args[i];
         if token != "|" {
