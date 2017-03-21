@@ -1,6 +1,7 @@
 extern crate ansi_term;
 extern crate rustyline;
 extern crate shlex;
+extern crate sqlite;
 extern crate libc;
 extern crate errno;
 extern crate regex;
@@ -11,6 +12,7 @@ extern crate nom;
 
 use std::env;
 use std::os::unix::process::CommandExt;
+use std::path::Path;
 use std::process::Command;
 
 // use std::thread;
@@ -70,6 +72,19 @@ fn main() {
     let mut rl = Editor::with_config(config);
     let c = FilenameCompleter::new();
     rl.set_completer(Some(c));
+    rl.get_history().set_max_len(9999);  // make bigger, but not huge
+
+    let file_db = format!("{}/{}", home, ".local/share/xonsh/xonsh-history.sqlite");
+    if Path::new(file_db.as_str()).exists() {
+        let conn = sqlite::open(file_db).unwrap();
+        conn.iterate("SELECT DISTINCT inp FROM xonsh_history ORDER BY ROWID;", |pairs| {
+            for &(_, value) in pairs.iter() {
+                let inp = value.unwrap();
+                rl.add_history_entry(inp.as_ref());
+            }
+            true
+        }).unwrap();
+    }
 
     loop {
         if proc_status_ok {
