@@ -134,7 +134,10 @@ fn main() {
                         xonsh_history (inp, rtn, tsb, tse, sessionid) \
                         VALUES('{}', {}, {}, {}, '{}');",
                         str::replace(cmd.as_str(), "'", "''"), 0, 0, 0, "rush");
-                    conn.execute(sql).expect("failed to save history to db");
+                    match conn.execute(sql) {
+                        Ok(_) => {}
+                        Err(e) => println!("failed to save history: {:?}", e)
+                    }
                 }
 
                 let re;
