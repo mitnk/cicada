@@ -45,7 +45,6 @@ fn main() {
     }
 
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-    println!("##### Welcome to RUSH v{} #####", VERSION);
 
     let user = env::var("USER").unwrap();
     let home = env::var("HOME").unwrap();
@@ -120,6 +119,9 @@ fn main() {
                     break;
                 } else if line.trim() == "" {
                     continue;
+                } else if line.trim() == "version" {
+                    println!("RUSH v{} by @mitnk", VERSION);
+                    continue;
                 } else if line.trim() == "bash" {
                     cmd = String::from("bash --rcfile ~/.bash_profile");
                 } else {
@@ -141,19 +143,29 @@ fn main() {
                 }
 
                 let re;
-                if let Ok(x) = Regex::new(r"^ *\(* *[0-9\.]+") {
+                if let Ok(x) = Regex::new(r"^[ 0-9\.\(\+\-\*/]+$") {
                     re = x;
                 } else {
-                    println!("regex error");
+                    println!("regex error for arithmetic");
                     continue;
                 }
                 if re.is_match(line.as_str()) {
-                    match parsers::expr(line.as_bytes()) {
-                        IResult::Done(_, x) => {
-                            println!("{:?}", x);
+                    if line.contains(".") {
+                        match parsers::parser_float::expr_float(line.as_bytes()) {
+                            IResult::Done(_, x) => {
+                                println!("{:?}", x);
+                            }
+                            IResult::Error(x) => println!("Error: {:?}", x),
+                            IResult::Incomplete(x) => println!("Incomplete: {:?}", x),
                         }
-                        IResult::Error(x) => println!("Error: {:?}", x),
-                        IResult::Incomplete(x) => println!("Incomplete: {:?}", x),
+                    } else {
+                        match parsers::parser_int::expr_int(line.as_bytes()) {
+                            IResult::Done(_, x) => {
+                                println!("{:?}", x);
+                            }
+                            IResult::Error(x) => println!("Error: {:?}", x),
+                            IResult::Incomplete(x) => println!("Incomplete: {:?}", x),
+                        }
                     }
                     continue;
                 }
