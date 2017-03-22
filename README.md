@@ -35,6 +35,7 @@ $ chsh -s /usr/local/bin/rush
 ## Won't do list
 
 - job controls (`Ctrl-Z`, `fg`, `bg` etc)
+- Windows support
 - and more...
 
 
