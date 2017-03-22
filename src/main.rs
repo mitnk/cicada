@@ -1,11 +1,12 @@
 extern crate ansi_term;
+extern crate errno;
+extern crate libc;
+extern crate nix;
+extern crate regex;
 extern crate rustyline;
 extern crate shlex;
 extern crate sqlite;
-extern crate libc;
-extern crate errno;
-extern crate regex;
-extern crate nix;
+extern crate time;
 
 #[macro_use]
 extern crate nom;
@@ -76,7 +77,18 @@ fn main() {
     let file_db = format!("{}/{}", home, ".local/share/xonsh/xonsh-history.sqlite");
     if Path::new(file_db.as_str()).exists() {
         let conn = sqlite::open(file_db).unwrap();
-        conn.iterate("SELECT DISTINCT inp FROM xonsh_history ORDER BY ROWID;",
+        conn.execute("
+            CREATE TABLE IF NOT EXISTS xonsh_history
+                (inp TEXT,
+                 rtn INTEGER,
+                 tsb REAL,
+                 tse REAL,
+                 sessionid TEXT,
+                 out TEXT,
+                 info TEXT
+                );
+        ").unwrap();
+        conn.iterate("SELECT DISTINCT inp FROM xonsh_history ORDER BY tsb;",
                      |pairs| {
                 for &(_, value) in pairs.iter() {
                     let inp = value.unwrap();
@@ -128,6 +140,7 @@ fn main() {
                     cmd = line.to_string();
                 }
 
+                let time_started = time::get_time();
                 rl.add_history_entry(cmd.as_ref());
                 let file_db = format!("{}/{}", home, ".local/share/xonsh/xonsh-history.sqlite");
                 if Path::new(file_db.as_str()).exists() {
@@ -135,7 +148,8 @@ fn main() {
                     let sql = format!("INSERT INTO \
                         xonsh_history (inp, rtn, tsb, tse, sessionid) \
                         VALUES('{}', {}, {}, {}, '{}');",
-                        str::replace(cmd.as_str(), "'", "''"), 0, 0, 0, "rush");
+                        str::replace(cmd.as_str(), "'", "''"),
+                        0, time_started.sec, time_started.sec as f64 + 0.01, "rush");
                     match conn.execute(sql) {
                         Ok(_) => {}
                         Err(e) => println!("failed to save history: {:?}", e)

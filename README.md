@@ -22,7 +22,7 @@ $ chsh -s /usr/local/bin/rush
 
 - run programs
 - pipelines (barely)
-- history (barely)
+- history
 - math arithmetic (e.g. `1 + 2 * 3 - 4`)
 
 
@@ -34,6 +34,7 @@ $ chsh -s /usr/local/bin/rush
 
 ## Won't do list
 
+- functions
 - job controls (`Ctrl-Z`, `fg`, `bg` etc)
 - Windows support
 - and more...

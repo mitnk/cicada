@@ -1,6 +1,6 @@
 [package]
 name = "rush"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Hugo Wang <w@mitnk.com>"]
 
 [dependencies]
@@ -14,3 +14,4 @@ nom = "^2.1"
 regex = "0.2"
 nix = "0.8.0"
 sqlite = "0.23.0"
+time = "0.1.0"
