@@ -1,6 +1,7 @@
 use std::io::Error;
+use std::fs::OpenOptions;
 use std::process::{Command, Stdio};
-use std::os::unix::io::FromRawFd;
+use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::os::unix::process::CommandExt;
 
 use nix::unistd::pipe;
@@ -26,54 +27,43 @@ extern "C" fn handle_sigchld(_: i32) {
     */
 }
 
+fn args_to_cmds(args: Vec<String>) -> Vec<Vec<String>> {
+    let mut cmd: Vec<String> = Vec::new();
+    let mut cmds: Vec<Vec<String>> = Vec::new();
+    for token in &args {
+        if token != "|" {
+            cmd.push(token.trim().to_string());
+        } else {
+            cmds.push(cmd.clone());
+            cmd = Vec::new();
+        }
+    }
+    cmds.push(cmd.clone());
+    cmds
+}
 
-pub fn run_pipeline(args: Vec<String>) -> i32 {
+
+pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool) -> i32 {
     let sig_action = signal::SigAction::new(signal::SigHandler::Handler(handle_sigchld),
                                             signal::SaFlags::empty(),
                                             signal::SigSet::empty());
     unsafe {
         signal::sigaction(signal::SIGCHLD, &sig_action).unwrap();
     }
-
-    let length = args.len();
-    let mut i = 0;
-
-    let mut cmd: Vec<&str> = Vec::new();
-    let mut cmds: Vec<Vec<&str>> = Vec::new();
-    loop {
-        let token = &args[i];
-        if token != "|" {
-            cmd.push(token.as_str());
-        } else {
-            cmds.push(cmd.clone());
-            cmd = Vec::new();
-        }
-        i += 1;
-        if i >= length {
-            cmds.push(cmd.clone());
-            break;
-        }
-    }
-
+    let cmds = args_to_cmds(args);
     let length = cmds.len();
     let mut pipes = Vec::new();
-    i = 0;
-    loop {
+    for _ in 0..length - 1 {
         let fds = pipe().unwrap();
         pipes.push(fds);
-        i += 1;
-        if i + 1 >= length {
-            break;
-        }
     }
 
-    i = 0;
+    let mut i = 0;
     let mut pgid: u32 = 0;
     let mut children: Vec<u32> = Vec::new();
     let mut status = 0;
     for cmd in &cmds {
-
-        let mut p = Command::new(cmd[0]);
+        let mut p = Command::new(&cmd[0]);
         p.args(&cmd[1..]);
         p.before_exec(move || {
             unsafe {
@@ -100,6 +90,20 @@ pub fn run_pipeline(args: Vec<String>) -> i32 {
             let fds_prev = pipes[i - 1];
             let pipe_in = unsafe { Stdio::from_raw_fd(fds_prev.0) };
             p.stdin(pipe_in);
+        }
+
+        if redirect != "" && i == length - 1 {
+            // redirect output if needed
+            let mut oos = OpenOptions::new();
+            if append {
+                oos.append(true);
+            } else {
+                oos.write(true);
+                oos.truncate(true);
+            }
+            let fd = oos.create(true).open(redirect).unwrap().into_raw_fd();
+            let file_out = unsafe { Stdio::from_raw_fd(fd) };
+            p.stdout(file_out);
         }
 
         let mut child;
@@ -162,4 +166,54 @@ pub fn run_pipeline(args: Vec<String>) -> i32 {
         i += 1;
     }
     return status;
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::args_to_cmds;
+
+    #[test]
+    fn test_args_to_cmd() {
+        let s = vec![String::from("ls")];
+        let result = args_to_cmds(s);
+        let expected = vec![vec!["ls".to_string()]];
+        assert_eq!(result.len(), expected.len());
+        for (i, item) in result.iter().enumerate() {
+            assert_eq!(*item, expected[i]);
+        }
+
+        let s = vec![
+            String::from("ls"),
+            String::from("|"),
+            String::from("wc"),
+        ];
+        let result = args_to_cmds(s);
+        let expected = vec![vec!["ls".to_string()], vec!["wc".to_string()]];
+        assert_eq!(result.len(), expected.len());
+        for (i, item) in result.iter().enumerate() {
+            assert_eq!(*item, expected[i]);
+        }
+
+        let s = vec![
+            String::from("  ls   "),
+            String::from("-lh"),
+            String::from("|"),
+            String::from("wc  "),
+            String::from("-l"),
+            String::from("|"),
+            String::from("  less"),
+        ];
+        let result = args_to_cmds(s);
+        let expected = vec![
+            vec!["ls".to_string(), "-lh".to_string()],
+            vec!["wc".to_string(), "-l".to_string()],
+            vec!["less".to_string()],
+        ];
+        assert_eq!(result.len(), expected.len());
+        for (i, item) in result.iter().enumerate() {
+            assert_eq!(*item, expected[i]);
+        }
+
+    }
 }

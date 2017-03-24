@@ -12,9 +12,7 @@ extern crate time;
 extern crate nom;
 
 use std::env;
-use std::os::unix::process::CommandExt;
 use std::path::Path;
-use std::process::Command;
 
 // use std::thread;
 // use std::time::Duration;
@@ -156,7 +154,7 @@ fn main() {
                 }
 
                 let re;
-                if let Ok(x) = Regex::new(r"^[ 0-9\.\(\+\-\*/]+$") {
+                if let Ok(x) = Regex::new(r"^[ 0-9\.\(\)\+\-\*/]+$") {
                     re = x;
                 } else {
                     println!("regex error for arithmetic");
@@ -198,8 +196,19 @@ fn main() {
                                                    &mut previous_dir);
                     proc_status_ok = result == 0;
                     continue;
-                } else if args.iter().any(|x| x == "|") {
-                    let result = execute::run_pipeline(args.clone());
+                } else {
+                    let len = args.len();
+                    let result;
+                    if len > 2 && (args[len - 2] == ">" || args[len - 2] == ">>") {
+                        let append = args[len - 2] == ">>";
+                        let mut args_new = args.clone();
+                        let redirect = args_new.pop().unwrap();
+                        args_new.pop();
+                        result = execute::run_pipeline(
+                            args_new, redirect.as_str(), append);
+                    } else {
+                        result = execute::run_pipeline(args.clone(), "", false);
+                    }
                     proc_status_ok = result == 0;
                     unsafe {
                         let gid = libc::getpgid(0);
@@ -207,50 +216,6 @@ fn main() {
                         jobs::give_terminal_to(gid);
                     }
                     continue;
-                }
-
-                tools::rlog(format!("run {:?}\n", args));
-                let mut child;
-                match Command::new(&args[0])
-                          .args(&(args[1..]))
-                          .before_exec(|| {
-                    unsafe {
-                        let pid = libc::getpid();
-                        libc::setpgid(0, pid);
-                    }
-                    Ok(())
-                })
-                          .spawn() {
-                    Ok(x) => child = x,
-                    Err(e) => {
-                        proc_status_ok = false;
-                        println!("{:?}", e);
-                        continue;
-                    }
-                }
-                unsafe {
-                    let pid = child.id() as i32;
-                    let gid = libc::getpgid(pid);
-                    tools::rlog(format!("try give term to {}\n", gid));
-                    jobs::give_terminal_to(gid);
-                    tools::rlog(format!("waiting pid {}\n", gid));
-                }
-
-                let ecode;
-                if let Ok(x) = child.wait() {
-                    ecode = x;
-                } else {
-                    println!("child wait error.");
-                    proc_status_ok = false;
-                    continue;
-                }
-
-                proc_status_ok = ecode.success();
-                tools::rlog(format!("done. ok: {}\n", proc_status_ok));
-                unsafe {
-                    let gid = libc::getpgid(0);
-                    tools::rlog(format!("try return term to {}\n", gid));
-                    jobs::give_terminal_to(gid);
                 }
             }
             Err(ReadlineError::Interrupted) => {
