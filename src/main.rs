@@ -31,7 +31,6 @@ use rustyline::{Config, CompletionType, Editor};
 use nom::IResult;
 use regex::Regex;
 
-
 mod jobs;
 mod tools;
 mod parsers;
@@ -202,6 +201,11 @@ fn main() {
                 } else if args.iter().any(|x| x == "|") {
                     let result = execute::run_pipeline(args.clone());
                     proc_status_ok = result == 0;
+                    unsafe {
+                        let gid = libc::getpgid(0);
+                        tools::rlog(format!("try return term to {}\n", gid));
+                        jobs::give_terminal_to(gid);
+                    }
                     continue;
                 }
 
@@ -245,7 +249,7 @@ fn main() {
                 tools::rlog(format!("done. ok: {}\n", proc_status_ok));
                 unsafe {
                     let gid = libc::getpgid(0);
-                    tools::rlog(format!("try give term to {}\n", gid));
+                    tools::rlog(format!("try return term to {}\n", gid));
                     jobs::give_terminal_to(gid);
                 }
             }

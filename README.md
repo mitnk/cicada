@@ -21,14 +21,17 @@ $ chsh -s /usr/local/bin/rush
 ## Features so far
 
 - run programs
-- pipelines (barely)
+- pipeline
 - history
 - math arithmetic (e.g. `1 + 2 * 3 - 4`)
 
 
 ## To do list
 
+- update ENV vars
+- completions
 - redirections
+- rc file
 - and less...
 
 

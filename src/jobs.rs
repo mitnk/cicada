@@ -4,7 +4,7 @@ pub use tools::rlog;
 use std::mem;
 
 
-pub unsafe fn give_terminal_to(pid: i32) {
+pub unsafe fn give_terminal_to(gid: i32) {
     let mut mask: libc::sigset_t = mem::zeroed();
     let mut old_mask: libc::sigset_t = mem::zeroed();
 
@@ -18,13 +18,13 @@ pub unsafe fn give_terminal_to(pid: i32) {
     if rcode != 0 {
         rlog(format!("failed to call pthread_sigmask\n"));
     }
-    let rcode = libc::tcsetpgrp(1, pid);
+    let rcode = libc::tcsetpgrp(1, gid);
     if rcode == -1 {
         let e = errno();
         let code = e.0;
         rlog(format!("Error {}: {}\n", code, e));
     } else {
-        rlog(format!("gave term to {} rcode: {}\n", pid, rcode));
+        rlog(format!("gave term to {}\n", gid));
     }
     let rcode = libc::pthread_sigmask(libc::SIG_SETMASK, &old_mask, &mut mask);
     if rcode != 0 {
