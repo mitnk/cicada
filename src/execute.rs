@@ -1,4 +1,5 @@
 use std::io::Error;
+// use std::fs::File;
 use std::fs::OpenOptions;
 use std::process::{Command, Stdio};
 use std::os::unix::io::{FromRawFd, IntoRawFd};
@@ -50,7 +51,35 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool) -> i32 {
     unsafe {
         signal::sigaction(signal::SIGCHLD, &sig_action).unwrap();
     }
-    let cmds = args_to_cmds(args);
+
+    let mut vec_redirected = Vec::new();
+    let mut args_new = args.clone();
+    let mut redirected_to = 0;
+    for arg in &args_new {
+        if arg == "2>&1" {
+            redirected_to = 1;
+        }
+        if arg == "1>&2" {
+            redirected_to = 2;
+        }
+        if arg == "|" {
+            vec_redirected.push(redirected_to);
+            redirected_to = 0;
+        }
+    }
+    vec_redirected.push(redirected_to);
+
+    while args_new.iter().position(|x| *x == "2>&1").is_some() ||
+            args_new.iter().position(|x| *x == "1>&2").is_some() {
+        if let Some(index) = args_new.iter().position(|x| *x == "2>&1") {
+            args_new.remove(index);
+        }
+        if let Some(index) = args_new.iter().position(|x| *x == "1>&2") {
+            args_new.remove(index);
+        }
+    }
+
+    let cmds = args_to_cmds(args_new);
     let length = cmds.len();
     let mut pipes = Vec::new();
     for _ in 0..length - 1 {
@@ -79,21 +108,52 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool) -> i32 {
             }
             Ok(())
         });
+
         if i < length - 1 {
             let fds = pipes[i];
             let pipe_out = unsafe { Stdio::from_raw_fd(fds.1) };
-            if i + 1 < length {
-                p.stdout(pipe_out);
+            p.stdout(pipe_out);
+
+            if vec_redirected[i] > 0 {
+                if vec_redirected[i] == 1 {
+                    let fds = pipes[i];
+                    let pipe_out = unsafe { Stdio::from_raw_fd(fds.1) };
+                    p.stderr(pipe_out);
+                }
+                /* else if vec_redirected[i] == 2 {
+                    unsafe { p.stdout(Stdio::from_raw_fd(2)) };
+                }
+                */
             }
         }
+
         if i > 0 {
-            let fds_prev = pipes[i - 1];
-            let pipe_in = unsafe { Stdio::from_raw_fd(fds_prev.0) };
-            p.stdin(pipe_in);
+            // redirect to stderr has some issues now:
+            // run commands like `ls | wc 1>&2 | cat` a second time will crash
+            /*
+            if vec_redirected[i - 1] == 2 {
+                match File::open("/dev/null") {
+                    Ok(x) => {
+                        let dev_null = x.into_raw_fd();
+                        let pipe_in = unsafe { Stdio::from_raw_fd(dev_null) };
+                        p.stdin(pipe_in);
+                    }
+                    Err(e) => {
+                        println!("open dev null error: {:?}", e);
+                    }
+                }
+            } else {
+            */
+                let fds_prev = pipes[i - 1];
+                let pipe_in = unsafe { Stdio::from_raw_fd(fds_prev.0) };
+                p.stdin(pipe_in);
+            /*
+            }
+            */
         }
 
+        // redirect output if needed
         if redirect != "" && i == length - 1 {
-            // redirect output if needed
             let mut oos = OpenOptions::new();
             if append {
                 oos.append(true);
@@ -107,14 +167,17 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool) -> i32 {
         }
 
         let mut child;
-        if let Ok(x) = p.spawn() {
-            child = x;
-            if i != length - 1 {
-                children.push(child.id());
+        match p.spawn() {
+            Ok(x) => {
+                child = x;
+                if i != length - 1 {
+                    children.push(child.id());
+                }
             }
-        } else {
-            println!("child spawn error");
-            return 1;
+            Err(e) => {
+                println!("child spawn error: {:?}", e);
+                continue;
+            }
         }
 
         if i == 0 {
