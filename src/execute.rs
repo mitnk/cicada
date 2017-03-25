@@ -43,15 +43,7 @@ fn args_to_cmds(args: Vec<String>) -> Vec<Vec<String>> {
     cmds
 }
 
-
-pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool) -> i32 {
-    let sig_action = signal::SigAction::new(signal::SigHandler::Handler(handle_sigchld),
-                                            signal::SaFlags::empty(),
-                                            signal::SigSet::empty());
-    unsafe {
-        signal::sigaction(signal::SIGCHLD, &sig_action).unwrap();
-    }
-
+fn args_to_redirections(args: Vec<String>) -> (Vec<String>, Vec<i32>) {
     let mut vec_redirected = Vec::new();
     let mut args_new = args.clone();
     let mut redirected_to = 0;
@@ -69,16 +61,26 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool) -> i32 {
     }
     vec_redirected.push(redirected_to);
 
-    while args_new.iter().position(|x| *x == "2>&1").is_some() ||
-            args_new.iter().position(|x| *x == "1>&2").is_some() {
-        if let Some(index) = args_new.iter().position(|x| *x == "2>&1") {
-            args_new.remove(index);
-        }
-        if let Some(index) = args_new.iter().position(|x| *x == "1>&2") {
-            args_new.remove(index);
-        }
+    while args_new.iter().position(|x| *x == "2>&1").is_some() {
+        let index = args_new.iter().position(|x| *x == "2>&1").unwrap();
+        args_new.remove(index);
+    }
+    while args_new.iter().position(|x| *x == "1>&2").is_some() {
+        let index = args_new.iter().position(|x| *x == "1>&2").unwrap();
+        args_new.remove(index);
+    }
+    (args_new, vec_redirected)
+}
+
+pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool) -> i32 {
+    let sig_action = signal::SigAction::new(signal::SigHandler::Handler(handle_sigchld),
+                                            signal::SaFlags::empty(),
+                                            signal::SigSet::empty());
+    unsafe {
+        signal::sigaction(signal::SIGCHLD, &sig_action).unwrap();
     }
 
+    let (args_new, vec_redirected) = args_to_redirections(args);
     let cmds = args_to_cmds(args_new);
     let length = cmds.len();
     let mut pipes = Vec::new();
