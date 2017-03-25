@@ -1,5 +1,5 @@
 use std::io::Error;
-// use std::fs::File;
+use std::fs::File;
 use std::fs::OpenOptions;
 use std::process::{Command, Stdio};
 use std::os::unix::io::{FromRawFd, IntoRawFd};
@@ -111,28 +111,34 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool) -> i32 {
             Ok(())
         });
 
+        // all processes except the last one need to get stdout piped
         if i < length - 1 {
             let fds = pipes[i];
             let pipe_out = unsafe { Stdio::from_raw_fd(fds.1) };
             p.stdout(pipe_out);
+        }
 
-            if vec_redirected[i] > 0 {
-                if vec_redirected[i] == 1 {
+        if vec_redirected[i] > 0 {
+            if vec_redirected[i] == 1 {
+                if i == length - 1 {
+                    unsafe {
+                        let fd_std = libc::dup(1);
+                        p.stderr(Stdio::from_raw_fd(fd_std));
+                    }
+                } else {
                     let fds = pipes[i];
                     let pipe_out = unsafe { Stdio::from_raw_fd(fds.1) };
                     p.stderr(pipe_out);
                 }
-                /* else if vec_redirected[i] == 2 {
-                    unsafe { p.stdout(Stdio::from_raw_fd(2)) };
+            } else if vec_redirected[i] == 2 {
+                unsafe {
+                    let fd_std = libc::dup(2);
+                    p.stdout(Stdio::from_raw_fd(fd_std));
                 }
-                */
             }
         }
 
         if i > 0 {
-            // redirect to stderr has some issues now:
-            // run commands like `ls | wc 1>&2 | cat` a second time will crash
-            /*
             if vec_redirected[i - 1] == 2 {
                 match File::open("/dev/null") {
                     Ok(x) => {
@@ -145,13 +151,10 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool) -> i32 {
                     }
                 }
             } else {
-            */
                 let fds_prev = pipes[i - 1];
                 let pipe_in = unsafe { Stdio::from_raw_fd(fds_prev.0) };
                 p.stdin(pipe_in);
-            /*
             }
-            */
         }
 
         // redirect output if needed
@@ -218,7 +221,8 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool) -> i32 {
             }
 
             // ack of the zombies
-            // TODO: better wait in signal handlers, but.. see above.
+            // FIXME: better wait children in signal handler, but ..
+            // .. see comments in `handle_sigchld()` above.
             for pid in &children {
                 unsafe {
                     let mut stat: i32 = 0;

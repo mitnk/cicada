@@ -1,5 +1,6 @@
 use std::fs::OpenOptions;
 use std::io::Write;
+use libc;
 
 
 pub fn rlog(s: String) {
@@ -8,5 +9,7 @@ pub fn rlog(s: String) {
         .create(true)
         .open("/tmp/rush-debug.log")
         .unwrap();
+    let pid = unsafe { libc::getpid() };
+    let s = format!("[{}] {}", pid, s);
     file.write_all(s.as_bytes()).unwrap();
 }

@@ -22,6 +22,7 @@ $ chsh -s /usr/local/bin/rush
 
 - run programs
 - pipeline
+- redirections
 - history
 - math arithmetic (e.g. `1 + 2 * 3 - 4`)
 
@@ -30,7 +31,6 @@ $ chsh -s /usr/local/bin/rush
 
 - update ENV vars
 - completions
-- redirections
 - rc file
 - and less...
 
