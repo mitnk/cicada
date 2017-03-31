@@ -1,11 +1,10 @@
 [package]
 name = "rush"
-version = "0.2.8"
+version = "0.3.0"
 authors = ["Hugo Wang <w@mitnk.com>"]
 
 [dependencies]
-# rustyline = "1.0.0"
-rustyline = { git = "https://github.com/kkawakam/rustyline.git" }
+linefeed = "0.2"
 ansi_term = "0.9"
 shlex = "0.1.0"
 libc = "0.2.0"

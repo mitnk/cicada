@@ -1,4 +1,5 @@
 run:
+	@rustc -V
 	cargo build
 	./target/debug/rush
 

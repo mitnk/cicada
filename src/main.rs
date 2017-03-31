@@ -1,9 +1,9 @@
 extern crate ansi_term;
 extern crate errno;
 extern crate libc;
+extern crate linefeed;
 extern crate nix;
 extern crate regex;
-extern crate rustyline;
 extern crate shlex;
 extern crate sqlite;
 extern crate time;
@@ -20,14 +20,10 @@ use std::path::Path;
 use ansi_term::Colour::Red;
 use ansi_term::Colour::Green;
 
-use rustyline::completion::FilenameCompleter;
-use rustyline::error::ReadlineError;
-use rustyline::{Config, CompletionType, Editor};
-
-// use rustyline::Editor;
-// use rustyline::error::ReadlineError;
 use nom::IResult;
 use regex::Regex;
+
+use linefeed::{Reader, ReadResult};
 
 mod jobs;
 mod tools;
@@ -62,14 +58,7 @@ fn main() {
     let mut proc_status_ok = true;
     let mut painter;
 
-    let config = Config::builder()
-        .history_ignore_space(true)
-        .completion_type(CompletionType::List)
-        .build();
-    let mut rl = Editor::with_config(config);
-    let c = FilenameCompleter::new();
-    rl.set_completer(Some(c));
-    rl.get_history().set_max_len(9999); // make bigger, but not huge
+    let mut rl = Reader::new("demo").unwrap();
 
     let file_db = format!("{}/{}", home, ".local/share/xonsh/xonsh-history.sqlite");
     if Path::new(file_db.as_str()).exists() {
@@ -89,7 +78,7 @@ fn main() {
                      |pairs| {
                 for &(_, value) in pairs.iter() {
                     let inp = value.unwrap();
-                    rl.add_history_entry(inp.as_ref());
+                    rl.add_history(inp.to_string());
                 }
                 true
             })
@@ -120,116 +109,104 @@ fn main() {
                              painter.paint(user.to_string()),
                              painter.paint("RUSH"),
                              painter.paint(pwd));
-        let cmd = rl.readline(&prompt);
-        match cmd {
-            Ok(line) => {
-                let cmd: String;
-                if line.trim() == "exit" {
-                    break;
-                } else if line.trim() == "" {
-                    continue;
-                } else if line.trim() == "version" {
-                    println!("RUSH v{} by @mitnk", VERSION);
-                    continue;
-                } else if line.trim() == "bash" {
-                    cmd = String::from("bash --rcfile ~/.bash_profile");
-                } else {
-                    cmd = line.to_string();
-                }
+        rl.set_prompt(prompt.as_str());
+        if let Ok(ReadResult::Input(line)) = rl.read_line() {
+            let cmd: String;
+            if line.trim() == "exit" {
+                break;
+            } else if line.trim() == "" {
+                continue;
+            } else if line.trim() == "version" {
+                println!("RUSH v{} by @mitnk", VERSION);
+                continue;
+            } else if line.trim() == "bash" {
+                cmd = String::from("bash --rcfile ~/.bash_profile");
+            } else {
+                cmd = line.to_string();
+            }
 
-                let time_started = time::get_time();
-                rl.add_history_entry(cmd.as_ref());
-                let file_db = format!("{}/{}", home, ".local/share/xonsh/xonsh-history.sqlite");
-                if Path::new(file_db.as_str()).exists() {
-                    let conn = sqlite::open(file_db).unwrap();
-                    let sql = format!("INSERT INTO \
-                        xonsh_history (inp, rtn, tsb, tse, sessionid) \
-                        VALUES('{}', {}, {}, {}, '{}');",
-                        str::replace(cmd.as_str(), "'", "''"),
-                        0, time_started.sec, time_started.sec as f64 + 0.01, "rush");
-                    match conn.execute(sql) {
-                        Ok(_) => {}
-                        Err(e) => println!("failed to save history: {:?}", e)
-                    }
+            let time_started = time::get_time();
+            rl.add_history(cmd.to_string());
+            let file_db = format!("{}/{}", home, ".local/share/xonsh/xonsh-history.sqlite");
+            if Path::new(file_db.as_str()).exists() {
+                let conn = sqlite::open(file_db).unwrap();
+                let sql = format!("INSERT INTO \
+                    xonsh_history (inp, rtn, tsb, tse, sessionid) \
+                    VALUES('{}', {}, {}, {}, '{}');",
+                    str::replace(cmd.as_str(), "'", "''"),
+                    0, time_started.sec, time_started.sec as f64 + 0.01, "rush");
+                match conn.execute(sql) {
+                    Ok(_) => {}
+                    Err(e) => println!("failed to save history: {:?}", e)
                 }
+            }
 
-                let re;
-                if let Ok(x) = Regex::new(r"^[ 0-9\.\(\)\+\-\*/]+$") {
-                    re = x;
-                } else {
-                    println!("regex error for arithmetic");
-                    continue;
-                }
-                if re.is_match(line.as_str()) {
-                    if line.contains(".") {
-                        match parsers::parser_float::expr_float(line.as_bytes()) {
-                            IResult::Done(_, x) => {
-                                println!("{:?}", x);
-                            }
-                            IResult::Error(x) => println!("Error: {:?}", x),
-                            IResult::Incomplete(x) => println!("Incomplete: {:?}", x),
+            let re;
+            if let Ok(x) = Regex::new(r"^[ 0-9\.\(\)\+\-\*/]+$") {
+                re = x;
+            } else {
+                println!("regex error for arithmetic");
+                continue;
+            }
+            if re.is_match(line.as_str()) {
+                if line.contains(".") {
+                    match parsers::parser_float::expr_float(line.as_bytes()) {
+                        IResult::Done(_, x) => {
+                            println!("{:?}", x);
                         }
-                    } else {
-                        match parsers::parser_int::expr_int(line.as_bytes()) {
-                            IResult::Done(_, x) => {
-                                println!("{:?}", x);
-                            }
-                            IResult::Error(x) => println!("Error: {:?}", x),
-                            IResult::Incomplete(x) => println!("Incomplete: {:?}", x),
+                        IResult::Error(x) => println!("Error: {:?}", x),
+                        IResult::Incomplete(x) => println!("Incomplete: {:?}", x),
+                    }
+                } else {
+                    match parsers::parser_int::expr_int(line.as_bytes()) {
+                        IResult::Done(_, x) => {
+                            println!("{:?}", x);
                         }
+                        IResult::Error(x) => println!("Error: {:?}", x),
+                        IResult::Incomplete(x) => println!("Incomplete: {:?}", x),
                     }
-                    continue;
                 }
+                continue;
+            }
 
-                let args;
-                if let Some(x) = shlex::split(cmd.trim()) {
-                    args = x;
+            let args;
+            if let Some(x) = shlex::split(cmd.trim()) {
+                args = x;
+            } else {
+                println!("shlex split error: does not support multiple line");
+                proc_status_ok = false;
+                continue;
+            }
+            if args[0] == "cd" {
+                let result = builtins::cd::run(args.clone(),
+                                               home.as_str(),
+                                               current_dir,
+                                               &mut previous_dir);
+                proc_status_ok = result == 0;
+                continue;
+            } else {
+                let len = args.len();
+                let result;
+                if len > 2 && (args[len - 2] == ">" || args[len - 2] == ">>") {
+                    let append = args[len - 2] == ">>";
+                    let mut args_new = args.clone();
+                    let redirect = args_new.pop().unwrap();
+                    args_new.pop();
+                    result = execute::run_pipeline(
+                        args_new, redirect.as_str(), append);
                 } else {
-                    println!("shlex split error: does not support multiple line");
-                    proc_status_ok = false;
-                    continue;
+                    result = execute::run_pipeline(args.clone(), "", false);
                 }
-                if args[0] == "cd" {
-                    let result = builtins::cd::run(args.clone(),
-                                                   home.as_str(),
-                                                   current_dir,
-                                                   &mut previous_dir);
-                    proc_status_ok = result == 0;
-                    continue;
-                } else {
-                    let len = args.len();
-                    let result;
-                    if len > 2 && (args[len - 2] == ">" || args[len - 2] == ">>") {
-                        let append = args[len - 2] == ">>";
-                        let mut args_new = args.clone();
-                        let redirect = args_new.pop().unwrap();
-                        args_new.pop();
-                        result = execute::run_pipeline(
-                            args_new, redirect.as_str(), append);
-                    } else {
-                        result = execute::run_pipeline(args.clone(), "", false);
-                    }
-                    proc_status_ok = result == 0;
-                    unsafe {
-                        let gid = libc::getpgid(0);
-                        tools::rlog(format!("try return term to {}\n", gid));
-                        jobs::give_terminal_to(gid);
-                    }
-                    continue;
+                proc_status_ok = result == 0;
+                unsafe {
+                    let gid = libc::getpgid(0);
+                    tools::rlog(format!("try return term to {}\n", gid));
+                    jobs::give_terminal_to(gid);
                 }
-            }
-            Err(ReadlineError::Interrupted) => {
-                // Ctrl-C
                 continue;
             }
-            Err(ReadlineError::Eof) => {
-                // Ctrl-D
-                continue;
-            }
-            Err(err) => {
-                println!("RL Error: {:?}", err);
-                continue;
-            }
+        } else {
+            println!("rl.read_line() error");
         }
     }
 }
