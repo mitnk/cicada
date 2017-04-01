@@ -1,6 +1,6 @@
 [package]
 name = "rush"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Hugo Wang <w@mitnk.com>"]
 
 [dependencies]

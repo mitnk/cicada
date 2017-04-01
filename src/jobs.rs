@@ -1,7 +1,7 @@
 use errno::errno;
 use libc;
-pub use tools::rlog;
 use std::mem;
+use tools::rlog;
 
 
 pub unsafe fn give_terminal_to(gid: i32) {
