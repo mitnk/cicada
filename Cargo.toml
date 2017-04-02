@@ -3,6 +3,12 @@ name = "cicada"
 version = "0.3.1"
 authors = ["Hugo Wang <w@mitnk.com>"]
 
+description = "A simple Unix shell."
+repository = "https://github.com/mitnk/cicada"
+keywords = ["shell", "unix"]
+categories = ["command-line-utilities", "command-line-interface", "development-tools"]
+license = "MIT"
+
 [dependencies]
 linefeed = "0.2"
 ansi_term = "0.9"
