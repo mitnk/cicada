@@ -13,7 +13,6 @@ extern crate yaml_rust;
 extern crate nom;
 
 use std::env;
-use std::io;
 use std::path::Path;
 use std::rc::Rc;
 
@@ -26,8 +25,7 @@ use ansi_term::Colour::Green;
 use nom::IResult;
 use regex::Regex;
 
-use linefeed::{Reader, ReadResult};
-use linefeed::{Command, Function, Terminal};
+use linefeed::{Command, Reader, ReadResult};
 
 mod builtins;
 mod completers;
@@ -35,18 +33,7 @@ mod execute;
 mod jobs;
 mod parsers;
 mod tools;
-
-struct DemoFunction;
-const DEMO_FN_SEQ: &'static str = "\x1b[A"; // Ctrl-X, d
-
-impl<Term: Terminal> Function<Term> for DemoFunction {
-    fn execute(&self, reader: &mut Reader<Term>, _count: i32, _ch: char) -> io::Result<()> {
-        assert_eq!(reader.sequence(), DEMO_FN_SEQ);
-        reader.insert_str("<todo>")
-    }
-}
-
-
+mod binds;
 
 
 fn main() {
@@ -76,11 +63,11 @@ fn main() {
     let mut painter;
 
     let mut rl = Reader::new("demo").unwrap();
-    // rl.read_init();
+    rl.set_history_size(99999);
     rl.set_completer(Rc::new(completers::DemoCompleter));
 
-    rl.define_function("demo-function", Rc::new(DemoFunction));
-    rl.bind_sequence(DEMO_FN_SEQ, Command::from_str("demo-function"));
+    rl.define_function("up-key-function", Rc::new(binds::UpKeyFunction));
+    rl.bind_sequence(binds::SEQ_UP_KEY, Command::from_str("up-key-function"));
 
     let file_db = format!("{}/{}", home, ".local/share/xonsh/xonsh-history.sqlite");
     if Path::new(file_db.as_str()).exists() {
@@ -100,7 +87,7 @@ fn main() {
                      |pairs| {
                 for &(_, value) in pairs.iter() {
                     let inp = value.unwrap();
-                    rl.add_history(inp.to_string());
+                    rl.add_history(inp.trim().to_string());
                 }
                 true
             })
@@ -148,7 +135,7 @@ fn main() {
             }
 
             let time_started = time::get_time();
-            rl.add_history(cmd.to_string());
+            rl.add_history(cmd.trim().to_string());
             let file_db = format!("{}/{}", home, ".local/share/xonsh/xonsh-history.sqlite");
             if Path::new(file_db.as_str()).exists() {
                 let conn = sqlite::open(file_db).unwrap();
