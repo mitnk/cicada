@@ -1,6 +1,6 @@
 # mtsh
 
-A shell written by Rust.
+A Unix shell written by Rust.
 
 
 ## Install (needs rust environment)
@@ -20,7 +20,7 @@ $ chsh -s /usr/local/bin/mtsh
 
 ## Usage (Features so far)
 
-### run programs
+**run programs**
 
 ```bash
 $ ls
@@ -35,7 +35,7 @@ Music
 ...
 ```
 
-### pipeline
+**pipeline**
 
 ```bash
 $ man awk | awk -F "[ ,.\"]+" '{for(i=1;i<=NF;i++)A[$i]++}END{for(k in A)print k, A[k]}' | sort -k2nr | head -n8
@@ -49,7 +49,7 @@ in 21
 to 21
 ```
 
-### redirections
+**redirections**
 
 ```bash
 $ ls file-not-exist 2>&1 | wc > e.txt
@@ -57,7 +57,7 @@ $ cat e.txt
        1       7      46
 ```
 
-### math arithmetic
+**math arithmetic**
 
 ```bash
 $ 1 + 2 * 3 - 4
@@ -66,11 +66,11 @@ $ (1 + 2) * (3 - 4) / 8.0
 -0.375
 ```
 
-### history
+**history**
 
 see doc
 
-### completions
+**completions**
 
 see doc
 
