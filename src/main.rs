@@ -156,7 +156,7 @@ fn main() {
                     xonsh_history (inp, rtn, tsb, tse, sessionid) \
                     VALUES('{}', {}, {}, {}, '{}');",
                     str::replace(cmd.as_str(), "'", "''"),
-                    0, time_started.sec, time_started.sec as f64 + 0.01, "mtsh");
+                    0, time_started.sec, time_started.sec as f64 + 0.01, "cicada");
                 match conn.execute(sql) {
                     Ok(_) => {}
                     Err(e) => println!("failed to save history: {:?}", e)

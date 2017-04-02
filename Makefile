@@ -1,11 +1,11 @@
 run:
 	@rustc -V
 	cargo build
-	./target/debug/mtsh
+	./target/debug/cicada
 
 install:
 	cargo build --release
-	cp target/release/mtsh /usr/local/bin/
+	cp target/release/cicada /usr/local/bin/
 
 doc:
 	cargo doc --open

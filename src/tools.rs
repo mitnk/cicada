@@ -8,7 +8,7 @@ pub fn rlog(s: String) {
     let mut file = OpenOptions::new()
         .append(true)
         .create(true)
-        .open("/tmp/mtsh-debug.log")
+        .open("/tmp/cicada-debug.log")
         .unwrap();
     let pid = unsafe { libc::getpid() };
     let s = format!("[{}] {}", pid, s);
@@ -22,5 +22,5 @@ pub fn get_user_home() -> String {
 
 pub fn get_user_completer_dir() -> String {
     let home = get_user_home();
-    return format!("{}/.mtsh/completers", home);
+    return format!("{}/.cicada/completers", home);
 }

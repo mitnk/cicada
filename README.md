@@ -1,6 +1,6 @@
-# mtsh
+# Cicada Shell
 
-A Unix shell written by Rust.
+A Simple Unix shell written in Rust.
 
 
 ## Install (needs rust environment)
@@ -10,11 +10,11 @@ $ make install
 ```
 
 
-## Set mtsh as your login shell
+## Set cicada as your login shell
 
-Appending `/usr/local/bin/mtsh` into your `/etc/shells`, then run
+Appending `/usr/local/bin/cicada` into your `/etc/shells`, then run
 ```
-$ chsh -s /usr/local/bin/mtsh
+$ chsh -s /usr/local/bin/cicada
 ```
 
 
