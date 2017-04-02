@@ -129,7 +129,7 @@ fn main() {
         }
         let prompt = format!("{}@{}: {}$ ",
                              painter.paint(user.to_string()),
-                             painter.paint("MT"),
+                             painter.paint("cicada"),
                              painter.paint(pwd));
         rl.set_prompt(prompt.as_str());
         if let Ok(ReadResult::Input(line)) = rl.read_line() {
@@ -139,7 +139,7 @@ fn main() {
             } else if line.trim() == "" {
                 continue;
             } else if line.trim() == "version" {
-                println!("MT shell v{} by @mitnk", VERSION);
+                println!("Cicada v{} by @mitnk", VERSION);
                 continue;
             } else if line.trim() == "bash" {
                 cmd = String::from("bash --rcfile ~/.bash_profile");
