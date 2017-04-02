@@ -1,4 +1,4 @@
-# Rush
+# mtsh
 
 A simplified shell written by Rust.
 
@@ -10,11 +10,11 @@ $ make install
 ```
 
 
-## Set rush as your login shell
+## Set mtsh as your login shell
 
-Appending `/usr/local/bin/rush` into your `/etc/shells`, then run
+Appending `/usr/local/bin/mtsh` into your `/etc/shells`, then run
 ```
-$ chsh -s /usr/local/bin/rush
+$ chsh -s /usr/local/bin/mtsh
 ```
 
 

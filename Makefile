@@ -1,11 +1,11 @@
 run:
 	@rustc -V
 	cargo build
-	./target/debug/rush
+	./target/debug/mtsh
 
 install:
 	cargo build --release
-	cp target/release/rush /usr/local/bin/
+	cp target/release/mtsh /usr/local/bin/
 
 doc:
 	cargo doc --open

@@ -7,6 +7,7 @@ extern crate regex;
 extern crate shlex;
 extern crate sqlite;
 extern crate time;
+extern crate yaml_rust;
 
 #[macro_use]
 extern crate nom;
@@ -57,7 +58,7 @@ fn main() {
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
     let user = env::var("USER").unwrap();
-    let home = env::var("HOME").unwrap();
+    let home = tools::get_user_home();
     let env_path = env::var("PATH").unwrap();
     let dir_bin_cargo = format!("{}/.cargo/bin", home);
     let env_path_new = ["/usr/local/bin".to_string(),
@@ -128,7 +129,7 @@ fn main() {
         }
         let prompt = format!("{}@{}: {}$ ",
                              painter.paint(user.to_string()),
-                             painter.paint("RUSH"),
+                             painter.paint("MT"),
                              painter.paint(pwd));
         rl.set_prompt(prompt.as_str());
         if let Ok(ReadResult::Input(line)) = rl.read_line() {
@@ -138,7 +139,7 @@ fn main() {
             } else if line.trim() == "" {
                 continue;
             } else if line.trim() == "version" {
-                println!("RUSH v{} by @mitnk", VERSION);
+                println!("MT shell v{} by @mitnk", VERSION);
                 continue;
             } else if line.trim() == "bash" {
                 cmd = String::from("bash --rcfile ~/.bash_profile");
@@ -155,7 +156,7 @@ fn main() {
                     xonsh_history (inp, rtn, tsb, tse, sessionid) \
                     VALUES('{}', {}, {}, {}, '{}');",
                     str::replace(cmd.as_str(), "'", "''"),
-                    0, time_started.sec, time_started.sec as f64 + 0.01, "rush");
+                    0, time_started.sec, time_started.sec as f64 + 0.01, "mtsh");
                 match conn.execute(sql) {
                     Ok(_) => {}
                     Err(e) => println!("failed to save history: {:?}", e)

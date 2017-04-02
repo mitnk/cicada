@@ -1,12 +1,17 @@
+use std::path::Path;
 use std::rc::Rc;
 
 use linefeed::Reader;
 use linefeed::complete::{Completer, Completion};
 use linefeed::terminal::Terminal;
 use regex::Regex;
+use shlex;
 
 pub mod path;
+pub mod dots;
 pub struct DemoCompleter;
+
+use tools;
 
 fn for_bin(line: &str) -> bool {
     let re;
@@ -18,6 +23,21 @@ fn for_bin(line: &str) -> bool {
     return re.is_match(line);
 }
 
+fn for_dots(line: &str) -> bool {
+    let args;
+    if let Some(x) = shlex::split(line.trim()) {
+        args = x;
+    } else {
+        return false;
+    }
+    if args.len() == 0 {
+        return false;
+    }
+    let dir = tools::get_user_completer_dir();
+    let dot_file = format!("{}/{}.yaml", dir, args[0]);
+    return Path::new(dot_file.as_str()).exists()
+}
+
 impl<Term: Terminal> Completer<Term> for DemoCompleter {
     fn complete(&self, word: &str, reader: &Reader<Term>,
             start: usize, _end: usize) -> Option<Vec<Completion>> {
@@ -25,9 +45,12 @@ impl<Term: Terminal> Completer<Term> for DemoCompleter {
         if for_bin(line) {
             let cpl = Rc::new(path::BinCompleter);
             return cpl.complete(word, reader, start, _end);
-        } else {
-            let cpl = Rc::new(path::PathCompleter);
+        }
+        if for_dots(line) {
+            let cpl = Rc::new(dots::DotsCompleter);
             return cpl.complete(word, reader, start, _end);
         }
+        let cpl = Rc::new(path::PathCompleter);
+        return cpl.complete(word, reader, start, _end);
     }
 }

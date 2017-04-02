@@ -1,5 +1,5 @@
 [package]
-name = "rush"
+name = "mtsh"
 version = "0.3.1"
 authors = ["Hugo Wang <w@mitnk.com>"]
 
@@ -14,3 +14,4 @@ regex = "0.2"
 nix = "0.8.0"
 sqlite = "0.23.0"
 time = "0.1.0"
+yaml-rust = "*"

@@ -1,5 +1,3 @@
-//! Provides utilities for implementing word completion
-
 use std::borrow::Cow;
 use std::collections::HashSet;
 use std::env;
