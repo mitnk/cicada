@@ -9,7 +9,7 @@ impl<Term: Terminal> Function<Term> for UpKeyFunction {
         assert_eq!(reader.sequence(), SEQ_UP_KEY);
         let line = reader.buffer().to_string();
         let mut record = String::new();
-        for x in reader.history() {
+        for x in reader.history().rev() {
             let s = x.to_string();
             if s.starts_with(line.as_str()) {
                 record = s.clone();

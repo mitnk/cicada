@@ -9,7 +9,7 @@ use shlex;
 
 pub mod path;
 pub mod dots;
-pub struct DemoCompleter;
+pub struct CCDCompleter;
 
 use tools;
 
@@ -38,7 +38,7 @@ fn for_dots(line: &str) -> bool {
     return Path::new(dot_file.as_str()).exists()
 }
 
-impl<Term: Terminal> Completer<Term> for DemoCompleter {
+impl<Term: Terminal> Completer<Term> for CCDCompleter {
     fn complete(&self, word: &str, reader: &Reader<Term>,
             start: usize, _end: usize) -> Option<Vec<Completion>> {
         let line = reader.buffer();

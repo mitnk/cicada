@@ -20,12 +20,11 @@ use std::rc::Rc;
 // use std::time::Duration;
 
 use ansi_term::Colour::Red;
-use ansi_term::Colour::Green;
 
 use nom::IResult;
 use regex::Regex;
 
-// use linefeed::Command;
+use linefeed::Command;
 use linefeed::{Reader, ReadResult};
 
 mod builtins;
@@ -34,7 +33,7 @@ mod execute;
 mod jobs;
 mod parsers;
 mod tools;
-// mod binds;
+mod binds;
 
 
 fn main() {
@@ -61,14 +60,13 @@ fn main() {
 
     let mut previous_dir = String::new();
     let mut proc_status_ok = true;
-    let mut painter;
 
-    let mut rl = Reader::new("demo").unwrap();
-    rl.set_history_size(99999);
-    rl.set_completer(Rc::new(completers::DemoCompleter));
+    let mut rl = Reader::new("cicada").unwrap();
+    rl.set_history_size(9999);  // bigger not huge
+    rl.set_completer(Rc::new(completers::CCDCompleter));
 
-    // rl.define_function("up-key-function", Rc::new(binds::UpKeyFunction));
-    // rl.bind_sequence(binds::SEQ_UP_KEY, Command::from_str("up-key-function"));
+    rl.define_function("up-key-function", Rc::new(binds::UpKeyFunction));
+    rl.bind_sequence(binds::SEQ_UP_KEY, Command::from_str("up-key-function"));
 
     let file_db = format!("{}/{}", home, ".local/share/xonsh/xonsh-history.sqlite");
     if Path::new(file_db.as_str()).exists() {
@@ -96,12 +94,6 @@ fn main() {
     }
 
     loop {
-        if proc_status_ok {
-            painter = Green;
-        } else {
-            painter = Red;
-        }
-
         let _current_dir = env::current_dir().unwrap();
         let current_dir = _current_dir.to_str().unwrap();
         let _tokens: Vec<&str> = current_dir.split("/").collect();
@@ -115,11 +107,16 @@ fn main() {
         } else {
             pwd = last.to_string();
         }
-        let prompt = format!("{}@{}: {}$ ",
-                             painter.paint(user.to_string()),
-                             painter.paint("cicada"),
-                             painter.paint(pwd));
+
+        let prompt;
+        if proc_status_ok {
+            prompt = format!("{}@cicada: {}$ ", user.to_string(), pwd);
+        } else {
+            // XXX: use color will make linefeed window size calculating wrong
+            prompt = format!("{}@cicada: {}$ ", user.to_string(), Red.paint(pwd));
+        }
         rl.set_prompt(prompt.as_str());
+
         if let Ok(ReadResult::Input(line)) = rl.read_line() {
             let cmd: String;
             if line.trim() == "exit" {
