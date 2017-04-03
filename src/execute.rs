@@ -72,7 +72,7 @@ fn args_to_redirections(args: Vec<String>) -> (Vec<String>, Vec<i32>) {
     (args_new, vec_redirected)
 }
 
-pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool) -> i32 {
+pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool, background: bool) -> i32 {
     let sig_action = signal::SigAction::new(signal::SigHandler::Handler(handle_sigchld),
                                             signal::SaFlags::empty(),
                                             signal::SigSet::empty());
@@ -96,6 +96,7 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool) -> i32 {
     for cmd in &cmds {
         let mut p = Command::new(&cmd[0]);
         p.args(&cmd[1..]);
+
         p.before_exec(move || {
             unsafe {
                 if i == 0 {
@@ -185,7 +186,7 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool) -> i32 {
             }
         }
 
-        if i == 0 {
+        if !background && i == 0 {
             pgid = child.id();
             tools::rlog(format!("try give term to {}\n", pgid));
             unsafe {
@@ -193,7 +194,7 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool) -> i32 {
             }
         }
 
-        if i == length - 1 {
+        if !background && i == length - 1 {
             let pid = child.id();
             tools::rlog(format!("wait pid {}\n", pid));
             match child.wait() {

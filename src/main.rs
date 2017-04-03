@@ -25,7 +25,8 @@ use ansi_term::Colour::Green;
 use nom::IResult;
 use regex::Regex;
 
-use linefeed::{Command, Reader, ReadResult};
+// use linefeed::Command;
+use linefeed::{Reader, ReadResult};
 
 mod builtins;
 mod completers;
@@ -33,7 +34,7 @@ mod execute;
 mod jobs;
 mod parsers;
 mod tools;
-mod binds;
+// mod binds;
 
 
 fn main() {
@@ -66,8 +67,8 @@ fn main() {
     rl.set_history_size(99999);
     rl.set_completer(Rc::new(completers::DemoCompleter));
 
-    rl.define_function("up-key-function", Rc::new(binds::UpKeyFunction));
-    rl.bind_sequence(binds::SEQ_UP_KEY, Command::from_str("up-key-function"));
+    // rl.define_function("up-key-function", Rc::new(binds::UpKeyFunction));
+    // rl.bind_sequence(binds::SEQ_UP_KEY, Command::from_str("up-key-function"));
 
     let file_db = format!("{}/{}", home, ".local/share/xonsh/xonsh-history.sqlite");
     if Path::new(file_db.as_str()).exists() {
@@ -178,7 +179,7 @@ fn main() {
                 continue;
             }
 
-            let args;
+            let mut args;
             if let Some(x) = shlex::split(cmd.trim()) {
                 args = x;
             } else {
@@ -194,7 +195,16 @@ fn main() {
                 proc_status_ok = result == 0;
                 continue;
             } else {
-                let len = args.len();
+                let mut background = false;
+                let mut len = args.len();
+                if len > 1 {
+                    if args[len - 1] == "&" {
+                        args.pop().expect("args pop error");
+                        background = true;
+                        len -= 1;
+                    }
+                }
+
                 let result;
                 if len > 2 && (args[len - 2] == ">" || args[len - 2] == ">>") {
                     let append = args[len - 2] == ">>";
@@ -202,9 +212,9 @@ fn main() {
                     let redirect = args_new.pop().unwrap();
                     args_new.pop();
                     result = execute::run_pipeline(
-                        args_new, redirect.as_str(), append);
+                        args_new, redirect.as_str(), append, background);
                 } else {
-                    result = execute::run_pipeline(args.clone(), "", false);
+                    result = execute::run_pipeline(args.clone(), "", false, background);
                 }
                 proc_status_ok = result == 0;
                 unsafe {
