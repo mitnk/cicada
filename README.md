@@ -1,16 +1,25 @@
-# Cicada Shell
+# Cicada
 
 A Simple Unix shell written in Rust.
 
 
-## Install (needs rust environment)
+## Install Cicada Shell
+
+[Rust environment](https://rustup.rs/) is needed for installation.
+
+### try it out
+
+Check out this repository and run `cargo run` in it.
+
+### install cicada
 
 ```
 $ make install
 ```
 
+This will install `cicada` under your `/usr/local/bin`. Use `sudo` if needed.
 
-## Set cicada as your login shell
+### Set cicada as your login shell
 
 Appending `/usr/local/bin/cicada` into your `/etc/shells`, then run
 ```
@@ -68,11 +77,11 @@ $ (1 + 2) * (3 - 4) / 8.0
 
 **history**
 
-see doc
+see doc (to add)
 
 **completions**
 
-see doc
+see doc (to add)
 
 
 ## To do list
