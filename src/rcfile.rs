@@ -20,18 +20,8 @@ pub fn load_rcfile() {
     }
 }
 
-fn is_env(line: &str) -> bool {
-    let re;
-    if let Ok(x) = Regex::new(r"^ *export *[a-zA-Z0-9_\.-]+=.*$") {
-        re = x;
-    } else {
-        return false;
-    }
-    return re.is_match(line);
-}
-
 fn handle_line(line: &str) {
-    if is_env(line) {
+    if tools::is_env(line) {
         handle_env(line);
         return;
     }

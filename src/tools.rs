@@ -1,6 +1,9 @@
 use std::env;
 use std::fs::OpenOptions;
 use std::io::Write;
+
+use regex::Regex;
+
 use libc;
 use shlex;
 
@@ -46,8 +49,18 @@ pub fn unquote(s: &str) -> String {
     } else {
         return String::new();
     }
-    if args.len() != 1 {
+    if args.len() == 0 {
         return String::new();
     }
     return args[0].clone();
+}
+
+pub fn is_env(line: &str) -> bool {
+    let re;
+    if let Ok(x) = Regex::new(r"^ *export *[a-zA-Z0-9_\.-]+=.*$") {
+        re = x;
+    } else {
+        return false;
+    }
+    return re.is_match(line);
 }

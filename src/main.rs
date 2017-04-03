@@ -13,7 +13,6 @@ extern crate yaml_rust;
 extern crate nom;
 
 use std::env;
-use std::path::Path;
 use std::rc::Rc;
 
 // use std::thread;
@@ -35,6 +34,7 @@ mod parsers;
 mod tools;
 mod binds;
 mod rcfile;
+mod history;
 
 
 fn main() {
@@ -64,36 +64,11 @@ fn main() {
     let mut proc_status_ok = true;
 
     let mut rl = Reader::new("cicada").unwrap();
-    rl.set_history_size(9999);  // bigger not huge
+    history::init(&mut rl);
     rl.set_completer(Rc::new(completers::CCDCompleter));
 
     rl.define_function("up-key-function", Rc::new(binds::UpKeyFunction));
     rl.bind_sequence(binds::SEQ_UP_KEY, Command::from_str("up-key-function"));
-
-    let file_db = format!("{}/{}", home, ".local/share/xonsh/xonsh-history.sqlite");
-    if Path::new(file_db.as_str()).exists() {
-        let conn = sqlite::open(file_db).unwrap();
-        conn.execute("
-            CREATE TABLE IF NOT EXISTS xonsh_history
-                (inp TEXT,
-                 rtn INTEGER,
-                 tsb REAL,
-                 tse REAL,
-                 sessionid TEXT,
-                 out TEXT,
-                 info TEXT
-                );
-        ").unwrap();
-        conn.iterate("SELECT DISTINCT inp FROM xonsh_history ORDER BY tsb;",
-                     |pairs| {
-                for &(_, value) in pairs.iter() {
-                    let inp = value.unwrap();
-                    rl.add_history(inp.trim().to_string());
-                }
-                true
-            })
-            .unwrap();
-    }
 
     let mut painter;
     loop {
@@ -136,24 +111,12 @@ fn main() {
             } else if line.trim() == "bash" {
                 cmd = String::from("bash --rcfile ~/.bash_profile");
             } else {
-                cmd = line.to_string();
+                cmd = line.clone();
             }
 
-            let time_started = time::get_time();
-            rl.add_history(cmd.trim().to_string());
-            let file_db = format!("{}/{}", home, ".local/share/xonsh/xonsh-history.sqlite");
-            if Path::new(file_db.as_str()).exists() {
-                let conn = sqlite::open(file_db).unwrap();
-                let sql = format!("INSERT INTO \
-                    xonsh_history (inp, rtn, tsb, tse, sessionid) \
-                    VALUES('{}', {}, {}, {}, '{}');",
-                    str::replace(cmd.as_str(), "'", "''"),
-                    0, time_started.sec, time_started.sec as f64 + 0.01, "cicada");
-                match conn.execute(sql) {
-                    Ok(_) => {}
-                    Err(e) => println!("failed to save history: {:?}", e)
-                }
-            }
+            let tss_spec = time::get_time();
+            let tss = (tss_spec.sec as f64) + tss_spec.nsec as f64 / 1000000000.0;
+            history::add(&mut rl, line.as_str(), tss);
 
             let re;
             if let Ok(x) = Regex::new(r"^[ 0-9\.\(\)\+\-\*/]+$") {
@@ -191,11 +154,20 @@ fn main() {
                 proc_status_ok = false;
                 continue;
             }
+
+            if args.len() == 0 {
+                continue;
+            }
+
             if args[0] == "cd" {
                 let result = builtins::cd::run(args.clone(),
                                                home.as_str(),
                                                current_dir,
                                                &mut previous_dir);
+                proc_status_ok = result == 0;
+                continue;
+            } else if args[0] == "export" {
+                let result = builtins::export::run(line.as_str());
                 proc_status_ok = result == 0;
                 continue;
             } else {
