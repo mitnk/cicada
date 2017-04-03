@@ -19,7 +19,7 @@ use std::rc::Rc;
 // use std::thread;
 // use std::time::Duration;
 
-use ansi_term::Colour::Red;
+use ansi_term::Colour::{Red, Green};
 
 use nom::IResult;
 use regex::Regex;
@@ -93,7 +93,14 @@ fn main() {
             .unwrap();
     }
 
+    let mut painter;
     loop {
+        if proc_status_ok {
+            painter = Green;
+        } else {
+            painter = Red;
+        }
+
         let _current_dir = env::current_dir().unwrap();
         let current_dir = _current_dir.to_str().unwrap();
         let _tokens: Vec<&str> = current_dir.split("/").collect();
@@ -108,13 +115,11 @@ fn main() {
             pwd = last.to_string();
         }
 
-        let prompt;
-        if proc_status_ok {
-            prompt = format!("{}@cicada: {}$ ", user.to_string(), pwd);
-        } else {
-            // XXX: use color will make linefeed window size calculating wrong
-            prompt = format!("{}@cicada: {}$ ", user.to_string(), Red.paint(pwd));
-        }
+        let prompt = tools::wrap_seq_chars(
+            format!("\x01{}@{}: {}$ \x02",
+                    painter.paint(user.to_string()),
+                    painter.paint("cicada"),
+                    painter.paint(pwd)));
         rl.set_prompt(prompt.as_str());
 
         if let Ok(ReadResult::Input(line)) = rl.read_line() {
