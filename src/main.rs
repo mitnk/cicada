@@ -34,6 +34,7 @@ mod jobs;
 mod parsers;
 mod tools;
 mod binds;
+mod rcfile;
 
 
 fn main() {
@@ -57,6 +58,7 @@ fn main() {
                         "/Library/Frameworks/Python.framework/Versions/2.7/bin".to_string()]
             .join(":");
     env::set_var("PATH", &env_path_new);
+    rcfile::load_rcfile();
 
     let mut previous_dir = String::new();
     let mut proc_status_ok = true;
