@@ -150,15 +150,3 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
     }
     res
 }
-
-#[cfg(test)]
-mod tests {
-    use nom::IResult;
-    use super::complete_dots;
-
-    #[test]
-    fn dots_test() {
-        complete_dots("abc");
-        assert_eq!(1, 2);
-    }
-}

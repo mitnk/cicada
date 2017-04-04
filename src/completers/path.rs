@@ -14,6 +14,8 @@ use linefeed::complete::escape;
 use linefeed::complete::unescape;
 use linefeed::complete::escaped_word_start;
 
+use tools;
+
 
 /// Performs completion by searching for filenames matching the word prefix.
 pub struct PathCompleter;
@@ -39,7 +41,11 @@ impl<Term: Terminal> Completer<Term> for PathCompleter {
 
 /// Returns a sorted list of paths whose prefix matches the given path.
 fn complete_path(path: &str) -> Vec<Completion> {
-    let (base_dir, fname) = split_path(path);
+    let mut path_s = String::from(path);
+    if tools::needs_extend_home(path_s.as_str()) {
+        tools::extend_home(&mut path_s)
+    }
+    let (base_dir, fname) = split_path(path_s.as_str());
     let mut res = Vec::new();
 
     let lookup_dir = base_dir.unwrap_or(".");

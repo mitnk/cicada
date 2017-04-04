@@ -54,15 +54,15 @@ pub fn get_history_file() -> String {
     }
 }
 
-pub fn add(rl: &mut Reader<DefaultTerminal>, line: &str, status: i32, tss: f64, tse: f64) {
+pub fn add(rl: &mut Reader<DefaultTerminal>, line: &str, status: i32, tsb: f64, tse: f64) {
     rl.add_history(line.to_string());
     let hfile = get_history_file();
     let conn = sqlite::open(hfile).expect("sqlite open error");
     let sql = format!("INSERT INTO \
         xonsh_history (inp, rtn, tsb, tse, sessionid) \
         VALUES('{}', {}, {}, {}, '{}');",
-        str::replace(line, "'", "''"),
-        status, tss, tse, "cicada");
+        str::replace(line.trim(), "'", "''"),
+        status, tsb, tse, "cicada");
     match conn.execute(sql) {
         Ok(_) => {}
         Err(e) => println!("failed to save history: {:?}", e)

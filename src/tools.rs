@@ -64,3 +64,59 @@ pub fn is_env(line: &str) -> bool {
     }
     return re.is_match(line);
 }
+
+pub fn extend_home(s: &mut String) {
+    let v = vec![
+        r"(?P<head> +)~(?P<tail> +)",
+        r"(?P<head> +)~(?P<tail>/)",
+        r"^(?P<head> *)~(?P<tail>/)",
+        r"(?P<head> +)~(?P<tail> *$)",
+    ];
+    for item in &v {
+        let re;
+        if let Ok(x) = Regex::new(item) {
+            re = x;
+        } else {
+            return;
+        }
+        let home = get_user_home();
+        let ss = s.clone();
+        let to = format!("$head{}$tail", home);
+        let result = re.replace_all(ss.as_str(), to.as_str());
+        *s = result.to_string();
+    }
+}
+
+pub fn needs_extend_home(line: &str) -> bool {
+    let re;
+    if let Ok(x) = Regex::new(r"( +~ +)|( +~/)|(^ *~/)|( +~ *$)") {
+        re = x;
+    } else {
+        return false;
+    }
+    return re.is_match(line);
+}
+
+pub fn pre_handle_cmd_line(s: &mut String) {
+    if needs_extend_home(s.as_str()) {
+        extend_home(s);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::needs_extend_home;
+
+    #[test]
+    fn dots_test() {
+        assert!(needs_extend_home("ls ~"));
+        assert!(needs_extend_home("ls  ~  "));
+        assert!(needs_extend_home("cat ~/a.py"));
+        assert!(needs_extend_home("echo ~"));
+        assert!(needs_extend_home("echo ~ ~~"));
+        assert!(needs_extend_home("~/bin/py"));
+        assert!(!needs_extend_home("echo '~'"));
+        assert!(!needs_extend_home("echo \"~\""));
+        assert!(!needs_extend_home("echo ~~"));
+    }
+}

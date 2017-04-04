@@ -96,16 +96,9 @@ fn main() {
         rl.set_prompt(prompt.as_str());
 
         if let Ok(ReadResult::Input(line)) = rl.read_line() {
-            let cmd: String;
-            let tss_spec = time::get_time();
-            let tss = (tss_spec.sec as f64) + tss_spec.nsec as f64 / 1000000000.0;
-
+            let mut cmd;
             if line.trim() == "exit" {
                 break;
-            } else if line.trim().starts_with("cd") {
-                status = builtins::cd::run(line.clone(), &mut previous_dir);
-                history::add(&mut rl, line.as_str(), status, tss, tss);
-                continue;
             } else if line.trim() == "" {
                 continue;
             } else if line.trim() == "version" {
@@ -117,10 +110,20 @@ fn main() {
                 cmd = line.clone();
             }
 
-            status = execute::run_procs(cmd);
+            let tsb_spec = time::get_time();
+            let tsb = (tsb_spec.sec as f64) + tsb_spec.nsec as f64 / 1000000000.0;
+
+            tools::pre_handle_cmd_line(&mut cmd);
+            // special cases needing extra context
+            if line.trim().starts_with("cd") {
+                status = builtins::cd::run(cmd, &mut previous_dir);
+            } else {
+                // normal cases
+                status = execute::run_procs(cmd);
+            }
             let tse_spec = time::get_time();
             let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1000000000.0;
-            history::add(&mut rl, line.as_str(), status, tss, tse);
+            history::add(&mut rl, line.as_str(), status, tsb, tse);
         } else {
             println!("rl.read_line() error");
         }
