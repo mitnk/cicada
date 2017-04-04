@@ -7,10 +7,15 @@ use std::os::unix::process::CommandExt;
 
 use nix::unistd::pipe;
 use nix::sys::signal;
+use nom::IResult;
+use regex::Regex;
 use libc;
-use tools;
-use jobs;
+use shlex;
 
+use builtins;
+use jobs;
+use parsers;
+use tools;
 
 extern "C" fn handle_sigchld(_: i32) {
     // When handle waitpid here & for commands like `ls | cmd-not-exist`
@@ -72,7 +77,81 @@ fn args_to_redirections(args: Vec<String>) -> (Vec<String>, Vec<i32>) {
     (args_new, vec_redirected)
 }
 
-pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool, background: bool) -> i32 {
+pub fn run_procs(line: String) -> i32 {
+    let re;
+    if let Ok(x) = Regex::new(r"^[ 0-9\.\(\)\+\-\*/]+$") {
+        re = x;
+    } else {
+        println!("regex error for arithmetic");
+        return 1;
+    }
+    if re.is_match(line.as_str()) {
+        if line.contains(".") {
+            match parsers::parser_float::expr_float(line.as_bytes()) {
+                IResult::Done(_, x) => {
+                    println!("{:?}", x);
+                }
+                IResult::Error(x) => println!("Error: {:?}", x),
+                IResult::Incomplete(x) => println!("Incomplete: {:?}", x),
+            }
+        } else {
+            match parsers::parser_int::expr_int(line.as_bytes()) {
+                IResult::Done(_, x) => {
+                    println!("{:?}", x);
+                }
+                IResult::Error(x) => println!("Error: {:?}", x),
+                IResult::Incomplete(x) => println!("Incomplete: {:?}", x),
+            }
+        }
+        return 0;
+    }
+
+    let mut args;
+    if let Some(x) = shlex::split(line.trim()) {
+        args = x;
+    } else {
+        println!("shlex split error: does not support multiple line");
+        return 1;
+    }
+    if args.len() == 0 {
+        return 0;
+    }
+
+    if args[0] == "export" {
+        return builtins::export::run(line.as_str());
+    }
+
+    // for any other situations
+    let mut background = false;
+    let mut len = args.len();
+    if len > 1 {
+        if args[len - 1] == "&" {
+            args.pop().expect("args pop error");
+            background = true;
+            len -= 1;
+        }
+    }
+
+    let (result, term_given) = if len > 2 && (args[len - 2] == ">" || args[len - 2] == ">>") {
+        let append = args[len - 2] == ">>";
+        let mut args_new = args.clone();
+        let redirect = args_new.pop().unwrap();
+        args_new.pop();
+        run_pipeline(args_new, redirect.as_str(), append, background)
+    } else {
+        run_pipeline(args.clone(), "", false, background)
+    };
+    if term_given {
+        unsafe {
+            let gid = libc::getpgid(0);
+            tools::rlog(format!("try return term to {}\n", gid));
+            jobs::give_terminal_to(gid);
+        }
+    }
+    return result;
+}
+
+pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool, background: bool) -> (i32, bool) {
     let sig_action = signal::SigAction::new(signal::SigHandler::Handler(handle_sigchld),
                                             signal::SaFlags::empty(),
                                             signal::SigSet::empty());
@@ -80,6 +159,7 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool, background:
         signal::sigaction(signal::SIGCHLD, &sig_action).unwrap();
     }
 
+    let mut term_given = false;
     let (args_new, vec_redirected) = args_to_redirections(args);
     let cmds = args_to_cmds(args_new);
     let length = cmds.len();
@@ -190,7 +270,7 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool, background:
             pgid = child.id();
             tools::rlog(format!("try give term to {}\n", pgid));
             unsafe {
-                jobs::give_terminal_to(pgid as i32);
+                term_given = jobs::give_terminal_to(pgid as i32);
             }
         }
 
@@ -235,7 +315,7 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool, background:
         }
         i += 1;
     }
-    return status;
+    return (status, term_given);
 }
 
 

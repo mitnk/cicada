@@ -20,9 +20,6 @@ use std::rc::Rc;
 
 use ansi_term::Colour::{Red, Green};
 
-use nom::IResult;
-use regex::Regex;
-
 use linefeed::Command;
 use linefeed::{Reader, ReadResult};
 
@@ -60,9 +57,6 @@ fn main() {
     env::set_var("PATH", &env_path_new);
     rcfile::load_rcfile();
 
-    let mut previous_dir = String::new();
-    let mut proc_status_ok = true;
-
     let mut rl = Reader::new("cicada").unwrap();
     history::init(&mut rl);
     rl.set_completer(Rc::new(completers::CCDCompleter));
@@ -70,9 +64,11 @@ fn main() {
     rl.define_function("up-key-function", Rc::new(binds::UpKeyFunction));
     rl.bind_sequence(binds::SEQ_UP_KEY, Command::from_str("up-key-function"));
 
+    let mut previous_dir = String::new();
     let mut painter;
+    let mut status = 0;
     loop {
-        if proc_status_ok {
+        if status == 0 {
             painter = Green;
         } else {
             painter = Red;
@@ -93,7 +89,7 @@ fn main() {
         }
 
         let prompt = tools::wrap_seq_chars(
-            format!("\x01{}@{}: {}$ \x02",
+            format!("{}@{}: {}$ ",
                     painter.paint(user.to_string()),
                     painter.paint("cicada"),
                     painter.paint(pwd)));
@@ -101,8 +97,15 @@ fn main() {
 
         if let Ok(ReadResult::Input(line)) = rl.read_line() {
             let cmd: String;
+            let tss_spec = time::get_time();
+            let tss = (tss_spec.sec as f64) + tss_spec.nsec as f64 / 1000000000.0;
+
             if line.trim() == "exit" {
                 break;
+            } else if line.trim().starts_with("cd") {
+                status = builtins::cd::run(line.clone(), &mut previous_dir);
+                history::add(&mut rl, line.as_str(), status, tss, tss);
+                continue;
             } else if line.trim() == "" {
                 continue;
             } else if line.trim() == "version" {
@@ -114,92 +117,10 @@ fn main() {
                 cmd = line.clone();
             }
 
-            let tss_spec = time::get_time();
-            let tss = (tss_spec.sec as f64) + tss_spec.nsec as f64 / 1000000000.0;
-            history::add(&mut rl, line.as_str(), tss);
-
-            let re;
-            if let Ok(x) = Regex::new(r"^[ 0-9\.\(\)\+\-\*/]+$") {
-                re = x;
-            } else {
-                println!("regex error for arithmetic");
-                continue;
-            }
-            if re.is_match(line.as_str()) {
-                if line.contains(".") {
-                    match parsers::parser_float::expr_float(line.as_bytes()) {
-                        IResult::Done(_, x) => {
-                            println!("{:?}", x);
-                        }
-                        IResult::Error(x) => println!("Error: {:?}", x),
-                        IResult::Incomplete(x) => println!("Incomplete: {:?}", x),
-                    }
-                } else {
-                    match parsers::parser_int::expr_int(line.as_bytes()) {
-                        IResult::Done(_, x) => {
-                            println!("{:?}", x);
-                        }
-                        IResult::Error(x) => println!("Error: {:?}", x),
-                        IResult::Incomplete(x) => println!("Incomplete: {:?}", x),
-                    }
-                }
-                continue;
-            }
-
-            let mut args;
-            if let Some(x) = shlex::split(cmd.trim()) {
-                args = x;
-            } else {
-                println!("shlex split error: does not support multiple line");
-                proc_status_ok = false;
-                continue;
-            }
-
-            if args.len() == 0 {
-                continue;
-            }
-
-            if args[0] == "cd" {
-                let result = builtins::cd::run(args.clone(),
-                                               home.as_str(),
-                                               current_dir,
-                                               &mut previous_dir);
-                proc_status_ok = result == 0;
-                continue;
-            } else if args[0] == "export" {
-                let result = builtins::export::run(line.as_str());
-                proc_status_ok = result == 0;
-                continue;
-            } else {
-                let mut background = false;
-                let mut len = args.len();
-                if len > 1 {
-                    if args[len - 1] == "&" {
-                        args.pop().expect("args pop error");
-                        background = true;
-                        len -= 1;
-                    }
-                }
-
-                let result;
-                if len > 2 && (args[len - 2] == ">" || args[len - 2] == ">>") {
-                    let append = args[len - 2] == ">>";
-                    let mut args_new = args.clone();
-                    let redirect = args_new.pop().unwrap();
-                    args_new.pop();
-                    result = execute::run_pipeline(
-                        args_new, redirect.as_str(), append, background);
-                } else {
-                    result = execute::run_pipeline(args.clone(), "", false, background);
-                }
-                proc_status_ok = result == 0;
-                unsafe {
-                    let gid = libc::getpgid(0);
-                    tools::rlog(format!("try return term to {}\n", gid));
-                    jobs::give_terminal_to(gid);
-                }
-                continue;
-            }
+            status = execute::run_procs(cmd);
+            let tse_spec = time::get_time();
+            let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1000000000.0;
+            history::add(&mut rl, line.as_str(), status, tss, tse);
         } else {
             println!("rl.read_line() error");
         }

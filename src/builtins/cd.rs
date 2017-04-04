@@ -1,12 +1,24 @@
 use std::env;
+use shlex;
+use tools;
 
-pub fn run(args: Vec<String>, home: &str, current_dir: &str, previous_dir: &mut String) -> i32 {
+pub fn run(line: String, previous_dir:&mut String) -> i32 {
+    let args;
+    if let Some(x) = shlex::split(line.trim()) {
+        args = x;
+    } else {
+        println!("shlex split error: does not support multiple line");
+        return 1;
+    }
     if args.len() > 2 {
         println!("invalid cd command");
         return 1;
     } else {
         let mut dir_to: String;
+        let _current_dir = env::current_dir().unwrap();
+        let current_dir = _current_dir.to_str().unwrap();
         if args.len() == 1 {
+            let home = tools::get_user_home();
             dir_to = home.to_string();
         } else {
             dir_to = args[1..].join("");

@@ -1,10 +1,10 @@
 use errno::errno;
 use libc;
 use std::mem;
-use tools::rlog;
+use tools;
 
 
-pub unsafe fn give_terminal_to(gid: i32) {
+pub unsafe fn give_terminal_to(gid: i32) -> bool {
     let mut mask: libc::sigset_t = mem::zeroed();
     let mut old_mask: libc::sigset_t = mem::zeroed();
 
@@ -16,18 +16,22 @@ pub unsafe fn give_terminal_to(gid: i32) {
 
     let rcode = libc::pthread_sigmask(libc::SIG_BLOCK, &mask, &mut old_mask);
     if rcode != 0 {
-        rlog(format!("failed to call pthread_sigmask\n"));
+        tools::rlog(format!("failed to call pthread_sigmask\n"));
     }
     let rcode = libc::tcsetpgrp(1, gid);
+    let given;
     if rcode == -1 {
+        given = false;
         let e = errno();
         let code = e.0;
-        rlog(format!("Error {}: {}\n", code, e));
+        tools::rlog(format!("Error {}: {}\n", code, e));
     } else {
-        rlog(format!("gave term to {}\n", gid));
+        tools::rlog(format!("gave term to {}\n", gid));
+        given = true;
     }
     let rcode = libc::pthread_sigmask(libc::SIG_SETMASK, &old_mask, &mut mask);
     if rcode != 0 {
-        rlog(format!("failed to call pthread_sigmask\n"));
+        tools::rlog(format!("failed to call pthread_sigmask\n"));
     }
+    return given;
 }
