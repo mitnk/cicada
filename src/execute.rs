@@ -1,9 +1,11 @@
-use std::io::Error;
+use std::error::Error as STDError;
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::process::{Command, Stdio};
+use std::io::Error;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::os::unix::process::CommandExt;
+use std::path::Path;
+use std::process::{Command, Stdio};
 
 use nix::unistd::pipe;
 use nix::sys::signal;
@@ -117,10 +119,10 @@ pub fn run_procs(line: String) -> i32 {
         return 0;
     }
 
+    // for the builtins "export"
     if args[0] == "export" {
         return builtins::export::run(line.as_str());
     }
-
     // for any other situations
     let mut background = false;
     let mut len = args.len();
@@ -131,15 +133,34 @@ pub fn run_procs(line: String) -> i32 {
             len -= 1;
         }
     }
+    let mut redirect_from = String::new();
+    let has_redirect_from = args.iter().any(|x| x == "<");
+    if has_redirect_from {
+        let idx = args.iter().position(|x| x == "<").unwrap();
+        args.remove(idx);
+        len -= 1;
+        if len >= idx + 1 {
+            redirect_from = args.remove(idx);
+            len -= 1;
+        } else {
+            println!("cicada: invalid command");
+            return 1;
+        }
+    }
+    // println!("has_redirect_from: {}", has_redirect_from);
+    // println!("redirect_from: {}", redirect_from);
+    if len <= 0 {
+        return 0;
+    }
 
     let (result, term_given) = if len > 2 && (args[len - 2] == ">" || args[len - 2] == ">>") {
         let append = args[len - 2] == ">>";
         let mut args_new = args.clone();
-        let redirect = args_new.pop().unwrap();
+        let redirect_to = args_new.pop().unwrap();
         args_new.pop();
-        run_pipeline(args_new, redirect.as_str(), append, background)
+        run_pipeline(args_new, redirect_from.as_str(), redirect_to.as_str(), append, background)
     } else {
-        run_pipeline(args.clone(), "", false, background)
+        run_pipeline(args.clone(), redirect_from.as_str(), "", false, background)
     };
     if term_given {
         unsafe {
@@ -151,12 +172,16 @@ pub fn run_procs(line: String) -> i32 {
     return result;
 }
 
-pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool, background: bool) -> (i32, bool) {
+fn run_pipeline(args: Vec<String>,
+                    redirect_from: &str,
+                    redirect_to: &str,
+                    append: bool,
+                    background: bool) -> (i32, bool) {
     let sig_action = signal::SigAction::new(signal::SigHandler::Handler(handle_sigchld),
                                             signal::SaFlags::empty(),
                                             signal::SigSet::empty());
     unsafe {
-        signal::sigaction(signal::SIGCHLD, &sig_action).unwrap();
+        signal::sigaction(signal::SIGCHLD, &sig_action).expect("sigaction error");
     }
 
     let mut term_given = false;
@@ -165,7 +190,7 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool, background:
     let length = cmds.len();
     let mut pipes = Vec::new();
     for _ in 0..length - 1 {
-        let fds = pipe().unwrap();
+        let fds = pipe().expect("pipe error");
         pipes.push(fds);
     }
 
@@ -175,7 +200,9 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool, background:
     let mut children: Vec<u32> = Vec::new();
     let mut status = 0;
     for cmd in &cmds {
-        let mut p = Command::new(&cmd[0]);
+        let program = &cmd[0];
+        // treat `(ls)` as `ls`
+        let mut p = Command::new(program.trim_matches(|c| c == '(' || c == ')'));
         p.args(&cmd[1..]);
 
         if isatty {
@@ -224,16 +251,7 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool, background:
 
         if i > 0 {
             if vec_redirected[i - 1] == 2 {
-                match File::open("/dev/null") {
-                    Ok(x) => {
-                        let dev_null = x.into_raw_fd();
-                        let pipe_in = unsafe { Stdio::from_raw_fd(dev_null) };
-                        p.stdin(pipe_in);
-                    }
-                    Err(e) => {
-                        println!("open dev null error: {:?}", e);
-                    }
-                }
+                p.stdin(Stdio::null());
             } else {
                 let fds_prev = pipes[i - 1];
                 let pipe_in = unsafe { Stdio::from_raw_fd(fds_prev.0) };
@@ -241,8 +259,22 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool, background:
             }
         }
 
+        if i == 0 && redirect_from != "" {
+            let path = Path::new(redirect_from);
+            let display = path.display();
+            let file = match File::open(&path) {
+                Err(why) => panic!("couldn't open {}: {}",
+                                   display,
+                                   why.description()),
+                Ok(file) => file,
+            };
+            let fd = file.into_raw_fd();
+            let file_in = unsafe { Stdio::from_raw_fd(fd) };
+            p.stdin(file_in);
+        }
+
         // redirect output if needed
-        if redirect != "" && i == length - 1 {
+        if redirect_to != "" && i == length - 1 {
             let mut oos = OpenOptions::new();
             if append {
                 oos.append(true);
@@ -250,7 +282,7 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool, background:
                 oos.write(true);
                 oos.truncate(true);
             }
-            let fd = oos.create(true).open(redirect).unwrap().into_raw_fd();
+            let fd = oos.create(true).open(redirect_to).unwrap().into_raw_fd();
             let file_out = unsafe { Stdio::from_raw_fd(fd) };
             p.stdout(file_out);
         }

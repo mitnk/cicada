@@ -38,7 +38,8 @@ mod history;
 
 fn main() {
     if env::args().len() > 1 {
-        println!("does not support args yet.");
+        let line = tools::env_args_to_command_line();
+        execute::run_procs(line);
         return;
     }
 

@@ -103,6 +103,21 @@ pub fn pre_handle_cmd_line(s: &mut String) {
     }
 }
 
+pub fn env_args_to_command_line() -> String {
+    let mut result = String::new();
+    let env_args = env::args();
+    if env_args.len() <= 1 {
+        return result;
+    }
+    for (i, arg) in env_args.enumerate() {
+        if i == 0 || arg == "-c" {
+            continue;
+        }
+        result.push_str(arg.as_str());
+    }
+    return result;
+}
+
 #[cfg(test)]
 mod tests {
     use super::needs_extend_home;

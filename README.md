@@ -1,6 +1,6 @@
 # Cicada
 
-A Simple Unix shell written in Rust.
+A simple Unix shell written in Rust.
 
 
 ## Install Cicada Shell
