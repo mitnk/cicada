@@ -1,15 +1,14 @@
 # Cicada
 
-A simple Unix shell written in Rust.
+A simple, semi-toy Unix shell written in Rust.
 
 
 ## Install Cicada Shell
 
-[Rust environment](https://rustup.rs/) is needed for installation.
+Note: [Rust environment](https://rustup.rs/) is needed for installation
 
-### try it out
-
-Check out this repository and run `cargo run` in it.
+You can try `cicada` out without installing it by checking out the repository
+and run `cargo run` in its root directory.
 
 ### install cicada
 
@@ -29,24 +28,17 @@ $ chsh -s /usr/local/bin/cicada
 
 ## Usage (Features so far)
 
-**run programs**
-
-```bash
+```
+# run programs
 $ ls
 Desktop
 Documents
 Downloads
 Dropbox
-Games
-Library
 Movies
 Music
-...
-```
 
-**pipeline**
-
-```bash
+# with pipeline
 $ man awk | awk -F "[ ,.\"]+" '{for(i=1;i<=NF;i++)A[$i]++}END{for(k in A)print k, A[k]}' | sort -k2nr | head -n8
 the 70
 of 40
@@ -56,45 +48,52 @@ and 24
 are 21
 in 21
 to 21
-```
 
-**redirections**
-
-```bash
+# with redirections
 $ ls file-not-exist 2>&1 | wc > e.txt
 $ cat e.txt
        1       7      46
-```
 
-**math arithmetic**
-
-```bash
+# do math arithmetic
 $ 1 + 2 * 3 - 4
 3
 $ (1 + 2) * (3 - 4) / 8.0
 -0.375
 ```
 
-**history**
+## RC File
 
-see doc (to add)
+Cicada use RC file: "~/.cicadarc". Currently only support ENVs and aliases:
 
-**completions**
+```
+# A sample RC file
+export RUST_BACKTRACE='full'
+export LESS="-R"
+export COPYFILE_DISABLE=1
+
+# specify the history file,
+# its default path is "~/.local/share/cicada/history.sqlite"
+export HISTORY_FILE=/Users/mitnk/.local/share/xonsh/xonsh-history.sqlite
+
+alias ls="ls -G"
+alias ll="ls -lh"
+```
+
+## Completions
 
 see doc (to add)
 
 
 ## To do list
 
-- update ENV vars
-- rc file
+- [Shell](http://tldp.org/LDP/Bash-Beginners-Guide/html/sect_03_04.html) [expansion](http://wiki.bash-hackers.org/syntax/expansion/globs)
+- job controls (`Ctrl-Z`, `fg`, `bg` etc)
 - and less...
 
 
 ## Won't do list
 
 - functions
-- job controls (`Ctrl-Z`, `fg`, `bg` etc)
 - Windows support
 - and more...
 

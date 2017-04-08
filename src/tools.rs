@@ -57,7 +57,7 @@ pub fn unquote(s: &str) -> String {
 
 pub fn is_env(line: &str) -> bool {
     let re;
-    if let Ok(x) = Regex::new(r"^ *export *[a-zA-Z0-9_\.-]+=.*$") {
+    if let Ok(x) = Regex::new(r"^ *export +[a-zA-Z0-9_\.-]+=.*$") {
         re = x;
     } else {
         return false;
@@ -118,9 +118,20 @@ pub fn env_args_to_command_line() -> String {
     return result;
 }
 
+pub fn is_alias(line: &str) -> bool {
+    let re;
+    if let Ok(x) = Regex::new(r"^ *alias +[a-zA-Z0-9_\.-]+=.*$") {
+        re = x;
+    } else {
+        return false;
+    }
+    return re.is_match(line);
+}
+
 #[cfg(test)]
 mod tests {
     use super::needs_extend_home;
+    use super::is_alias;
 
     #[test]
     fn dots_test() {
@@ -133,5 +144,10 @@ mod tests {
         assert!(!needs_extend_home("echo '~'"));
         assert!(!needs_extend_home("echo \"~\""));
         assert!(!needs_extend_home("echo ~~"));
+    }
+
+    #[test]
+    fn test_is_alias() {
+        assert!(is_alias("alias ls='ls -lh'"));
     }
 }

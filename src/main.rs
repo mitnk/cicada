@@ -34,11 +34,12 @@ mod tools;
 mod binds;
 mod rcfile;
 mod history;
+mod shell;
 
 
 fn main() {
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-
+    let mut sh = shell::Shell::new();
     let user = env::var("USER").unwrap();
     let home = tools::get_user_home();
     let env_path = env::var("PATH").unwrap();
@@ -52,11 +53,11 @@ fn main() {
                         "/Library/Frameworks/Python.framework/Versions/2.7/bin".to_string()]
             .join(":");
     env::set_var("PATH", &env_path_new);
-    rcfile::load_rcfile();
+    rcfile::load_rcfile(&mut sh);
 
     if env::args().len() > 1 {
         let line = tools::env_args_to_command_line();
-        execute::run_procs(line, false);
+        execute::run_procs(&mut sh, line, false);
         return;
     }
 
@@ -67,7 +68,7 @@ fn main() {
         let stdin = io::stdin();
         let mut handle = stdin.lock();
         handle.read_to_string(&mut buffer).expect("read to str error");
-        execute::run_procs(buffer, false);
+        execute::run_procs(&mut sh, buffer, false);
         return;
     }
 
@@ -137,12 +138,12 @@ fn main() {
                 let tsb = (tsb_spec.sec as f64) + tsb_spec.nsec as f64 / 1000000000.0;
 
                 tools::pre_handle_cmd_line(&mut cmd);
-                // special cases needing extra context
-                if line.trim().starts_with("cd") {
+                if line.trim().starts_with("cd ") || line.trim() == "cd" {
+                    // a special case needing extra context
                     status = builtins::cd::run(cmd, &mut previous_dir);
                 } else {
                     // normal cases
-                    status = execute::run_procs(cmd, true);
+                    status = execute::run_procs(&mut sh, cmd, true);
                 }
                 let tse_spec = time::get_time();
                 let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1000000000.0;

@@ -17,6 +17,7 @@ use shlex;
 use builtins;
 use jobs;
 use parsers;
+use shell;
 use tools;
 
 extern "C" fn handle_sigchld(_: i32) {
@@ -28,9 +29,7 @@ extern "C" fn handle_sigchld(_: i32) {
     unsafe {
         let mut stat: i32 = 0;
         let ptr: *mut i32 = &mut stat;
-        tools::rlog(format!("waiting...\n"));
         let pid = libc::waitpid(-1, ptr, libc::WNOHANG);
-        tools::rlog(format!("child {} exit\n", pid));
     }
     */
 }
@@ -79,7 +78,7 @@ fn args_to_redirections(args: Vec<String>) -> (Vec<String>, Vec<i32>) {
     (args_new, vec_redirected)
 }
 
-pub fn run_procs(line: String, tty: bool) -> i32 {
+pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
     let re;
     if let Ok(x) = Regex::new(r"^[ 0-9\.\(\)\+\-\*/]+$") {
         re = x;
@@ -147,8 +146,6 @@ pub fn run_procs(line: String, tty: bool) -> i32 {
             return 1;
         }
     }
-    // println!("has_redirect_from: {}", has_redirect_from);
-    // println!("redirect_from: {}", redirect_from);
     if len <= 0 {
         return 0;
     }
@@ -158,21 +155,40 @@ pub fn run_procs(line: String, tty: bool) -> i32 {
         let mut args_new = args.clone();
         let redirect_to = args_new.pop().unwrap();
         args_new.pop();
-        run_pipeline(args_new, redirect_from.as_str(), redirect_to.as_str(), append, background, tty)
+        run_pipeline(sh, args_new, redirect_from.as_str(), redirect_to.as_str(), append, background, tty)
     } else {
-        run_pipeline(args.clone(), redirect_from.as_str(), "", false, background, tty)
+        run_pipeline(sh, args.clone(), redirect_from.as_str(), "", false, background, tty)
     };
     if term_given {
         unsafe {
             let gid = libc::getpgid(0);
-            tools::rlog(format!("try return term to {}\n", gid));
             jobs::give_terminal_to(gid);
         }
     }
     return result;
 }
 
-fn run_pipeline(args: Vec<String>,
+fn extend_alias(sh: &mut shell::Shell, cmd: &mut Vec<String>) {
+    let cmd_new = cmd.clone();
+    let program = &cmd_new[0];
+    let extended = sh.extend_alias(program.as_str());
+    if extended != *program {
+        if let Some(_args) = shlex::split(extended.trim()) {
+            for (i, item) in _args.iter().enumerate() {
+                if i == 0 {
+                    cmd[0] = item.clone();
+                    continue;
+                }
+                cmd.insert(i, item.clone());
+            }
+        } else {
+            cmd[0] = extended;
+        }
+    }
+}
+
+fn run_pipeline(sh: &mut shell::Shell,
+                args: Vec<String>,
                 redirect_from: &str,
                 redirect_to: &str,
                 append: bool,
@@ -187,7 +203,7 @@ fn run_pipeline(args: Vec<String>,
 
     let mut term_given = false;
     let (args_new, vec_redirected) = args_to_redirections(args);
-    let cmds = args_to_cmds(args_new);
+    let mut cmds = args_to_cmds(args_new);
     let length = cmds.len();
     let mut pipes = Vec::new();
     for _ in 0..length - 1 {
@@ -207,12 +223,12 @@ fn run_pipeline(args: Vec<String>,
     info.push_str("\n");
     tools::rlog(info);
     let isatty = if tty { unsafe { libc::isatty(0) == 1 } } else { false };
-    tools::rlog(format!("isatty: {}\n", isatty));
     let mut i = 0;
     let mut pgid: u32 = 0;
     let mut children: Vec<u32> = Vec::new();
     let mut status = 0;
-    for cmd in &cmds {
+    for mut cmd in &mut cmds {
+        extend_alias(sh, &mut cmd);
         let program = &cmd[0];
         // treat `(ls)` as `ls`
         let mut p = Command::new(program.trim_matches(|c| c == '(' || c == ')'));
@@ -225,10 +241,8 @@ fn run_pipeline(args: Vec<String>,
                         // set the first process as progress group leader
                         let pid = libc::getpid();
                         libc::setpgid(0, pid);
-                        tools::rlog(format!("set self gid to {}\n", pid));
                     } else {
                         libc::setpgid(0, pgid as i32);
-                        tools::rlog(format!("set other gid to {}\n", pgid));
                     }
                 }
                 Ok(())
@@ -309,22 +323,19 @@ fn run_pipeline(args: Vec<String>,
                 }
             }
             Err(e) => {
-                println!("child spawn error: {:?}", e);
+                println!("process spawn error: {:?}", e.description());
                 continue;
             }
         }
 
         if isatty && !background && i == 0 {
             pgid = child.id();
-            tools::rlog(format!("try give term to {}\n", pgid));
             unsafe {
                 term_given = jobs::give_terminal_to(pgid as i32);
             }
         }
 
         if !background && i == length - 1 {
-            let pid = child.id();
-            tools::rlog(format!("wait pid {}\n", pid));
             match child.wait() {
                 Ok(ecode) => {
                     if ecode.success() {
@@ -356,7 +367,6 @@ fn run_pipeline(args: Vec<String>,
                 unsafe {
                     let mut stat: i32 = 0;
                     let ptr: *mut i32 = &mut stat;
-                    tools::rlog(format!("wait zombie pid {}\n", pid));
                     libc::waitpid(*pid as i32, ptr, 0);
                 }
             }
