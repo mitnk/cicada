@@ -169,6 +169,7 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool, background:
         pipes.push(fds);
     }
 
+    let isatty: bool = unsafe { libc::isatty(0) == 1 };
     let mut i = 0;
     let mut pgid: u32 = 0;
     let mut children: Vec<u32> = Vec::new();
@@ -177,20 +178,22 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool, background:
         let mut p = Command::new(&cmd[0]);
         p.args(&cmd[1..]);
 
-        p.before_exec(move || {
-            unsafe {
-                if i == 0 {
-                    // set the first process as progress group leader
-                    let pid = libc::getpid();
-                    libc::setpgid(0, pid);
-                    tools::rlog(format!("set self gid to {}\n", pid));
-                } else {
-                    libc::setpgid(0, pgid as i32);
-                    tools::rlog(format!("set other gid to {}\n", pgid));
+        if isatty {
+            p.before_exec(move || {
+                unsafe {
+                    if i == 0 {
+                        // set the first process as progress group leader
+                        let pid = libc::getpid();
+                        libc::setpgid(0, pid);
+                        tools::rlog(format!("set self gid to {}\n", pid));
+                    } else {
+                        libc::setpgid(0, pgid as i32);
+                        tools::rlog(format!("set other gid to {}\n", pgid));
+                    }
                 }
-            }
-            Ok(())
-        });
+                Ok(())
+            });
+        }
 
         // all processes except the last one need to get stdout piped
         if i < length - 1 {
@@ -266,7 +269,7 @@ pub fn run_pipeline(args: Vec<String>, redirect: &str, append: bool, background:
             }
         }
 
-        if !background && i == 0 {
+        if isatty && !background && i == 0 {
             pgid = child.id();
             tools::rlog(format!("try give term to {}\n", pgid));
             unsafe {

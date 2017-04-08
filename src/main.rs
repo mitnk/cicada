@@ -23,6 +23,8 @@ use ansi_term::Colour::{Red, Green};
 use linefeed::Command;
 use linefeed::{Reader, ReadResult};
 
+use std::io::{self, Read};
+
 mod builtins;
 mod completers;
 mod execute;
@@ -57,7 +59,25 @@ fn main() {
     env::set_var("PATH", &env_path_new);
     rcfile::load_rcfile();
 
-    let mut rl = Reader::new("cicada").unwrap();
+    let isatty: bool = unsafe { libc::isatty(0) == 1 };
+    if !isatty {
+        let mut buffer = String::new();
+        let stdin = io::stdin();
+        let mut handle = stdin.lock();
+        handle.read_to_string(&mut buffer).expect("read to str error");
+        execute::run_procs(buffer);
+        return;
+    }
+
+    let mut rl;
+    match Reader::new("cicada") {
+        Ok(x) => rl = x,
+        Err(e) => {
+            // non-tty will raise errors here
+            println!("Reader Error: {:?}", e);
+            return;
+        }
+    }
     history::init(&mut rl);
     rl.set_completer(Rc::new(completers::CCDCompleter));
 
@@ -95,37 +115,47 @@ fn main() {
                     painter.paint(pwd)));
         rl.set_prompt(prompt.as_str());
 
-        if let Ok(ReadResult::Input(line)) = rl.read_line() {
-            let mut cmd;
-            if line.trim() == "exit" {
-                break;
-            } else if line.trim() == "" {
-                continue;
-            } else if line.trim() == "version" {
-                println!("Cicada v{} by @mitnk", VERSION);
-                continue;
-            } else if line.trim() == "bash" {
-                cmd = String::from("bash --rcfile ~/.bash_profile");
-            } else {
-                cmd = line.clone();
-            }
+        match rl.read_line() {
+            Ok(ReadResult::Input(line)) => {
+                let mut cmd;
+                if line.trim() == "exit" {
+                    break;
+                } else if line.trim() == "" {
+                    continue;
+                } else if line.trim() == "version" {
+                    println!("Cicada v{} by @mitnk", VERSION);
+                    continue;
+                } else if line.trim() == "bash" {
+                    cmd = String::from("bash --rcfile ~/.bash_profile");
+                } else {
+                    cmd = line.clone();
+                }
 
-            let tsb_spec = time::get_time();
-            let tsb = (tsb_spec.sec as f64) + tsb_spec.nsec as f64 / 1000000000.0;
+                let tsb_spec = time::get_time();
+                let tsb = (tsb_spec.sec as f64) + tsb_spec.nsec as f64 / 1000000000.0;
 
-            tools::pre_handle_cmd_line(&mut cmd);
-            // special cases needing extra context
-            if line.trim().starts_with("cd") {
-                status = builtins::cd::run(cmd, &mut previous_dir);
-            } else {
-                // normal cases
-                status = execute::run_procs(cmd);
+                tools::pre_handle_cmd_line(&mut cmd);
+                // special cases needing extra context
+                if line.trim().starts_with("cd") {
+                    status = builtins::cd::run(cmd, &mut previous_dir);
+                } else {
+                    // normal cases
+                    status = execute::run_procs(cmd);
+                }
+                let tse_spec = time::get_time();
+                let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1000000000.0;
+                history::add(&mut rl, line.as_str(), status, tsb, tse);
             }
-            let tse_spec = time::get_time();
-            let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1000000000.0;
-            history::add(&mut rl, line.as_str(), status, tsb, tse);
-        } else {
-            println!("rl.read_line() error");
+            Ok(ReadResult::Eof) => {
+                println!("");
+                continue;
+            }
+            Ok(ReadResult::Signal(s)) => {
+                println!("readline signal: {:?}", s);
+            }
+            Err(e) => {
+                println!("readline error: {:?}", e);
+            }
         }
     }
 }

@@ -30,7 +30,8 @@ fn for_dots(line: &str) -> bool {
     } else {
         return false;
     }
-    if args.len() == 0 {
+    let len = args.len();
+    if len == 0 {
         return false;
     }
     let dir = tools::get_user_completer_dir();
@@ -48,7 +49,14 @@ impl<Term: Terminal> Completer<Term> for CCDCompleter {
         }
         if for_dots(line) {
             let cpl = Rc::new(dots::DotsCompleter);
-            return cpl.complete(word, reader, start, _end);
+            match cpl.complete(word, reader, start, _end) {
+                Some(x) => {
+                    if x.len() > 0 {
+                        return Some(x);
+                    }
+                }
+                None => {}
+            }
         }
         let cpl = Rc::new(path::PathCompleter);
         return cpl.complete(word, reader, start, _end);
