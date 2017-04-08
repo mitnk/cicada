@@ -79,7 +79,7 @@ fn args_to_redirections(args: Vec<String>) -> (Vec<String>, Vec<i32>) {
     (args_new, vec_redirected)
 }
 
-pub fn run_procs(line: String) -> i32 {
+pub fn run_procs(line: String, tty: bool) -> i32 {
     let re;
     if let Ok(x) = Regex::new(r"^[ 0-9\.\(\)\+\-\*/]+$") {
         re = x;
@@ -158,9 +158,9 @@ pub fn run_procs(line: String) -> i32 {
         let mut args_new = args.clone();
         let redirect_to = args_new.pop().unwrap();
         args_new.pop();
-        run_pipeline(args_new, redirect_from.as_str(), redirect_to.as_str(), append, background)
+        run_pipeline(args_new, redirect_from.as_str(), redirect_to.as_str(), append, background, tty)
     } else {
-        run_pipeline(args.clone(), redirect_from.as_str(), "", false, background)
+        run_pipeline(args.clone(), redirect_from.as_str(), "", false, background, tty)
     };
     if term_given {
         unsafe {
@@ -173,10 +173,11 @@ pub fn run_procs(line: String) -> i32 {
 }
 
 fn run_pipeline(args: Vec<String>,
-                    redirect_from: &str,
-                    redirect_to: &str,
-                    append: bool,
-                    background: bool) -> (i32, bool) {
+                redirect_from: &str,
+                redirect_to: &str,
+                append: bool,
+                background: bool,
+                tty: bool) -> (i32, bool) {
     let sig_action = signal::SigAction::new(signal::SigHandler::Handler(handle_sigchld),
                                             signal::SaFlags::empty(),
                                             signal::SigSet::empty());
@@ -194,7 +195,19 @@ fn run_pipeline(args: Vec<String>,
         pipes.push(fds);
     }
 
-    let isatty: bool = unsafe { libc::isatty(0) == 1 };
+    let mut info = String::from("run: ");
+    for cmd in &cmds {
+        for x in cmd {
+            info.push_str(format!("{} ", x).as_str());
+        }
+        info.push_str(format!("| ").as_str());
+    }
+    info.pop().unwrap();
+    info.pop().unwrap();
+    info.push_str("\n");
+    tools::rlog(info);
+    let isatty = if tty { unsafe { libc::isatty(0) == 1 } } else { false };
+    tools::rlog(format!("isatty: {}\n", isatty));
     let mut i = 0;
     let mut pgid: u32 = 0;
     let mut children: Vec<u32> = Vec::new();

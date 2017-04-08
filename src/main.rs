@@ -37,12 +37,6 @@ mod history;
 
 
 fn main() {
-    if env::args().len() > 1 {
-        let line = tools::env_args_to_command_line();
-        execute::run_procs(line);
-        return;
-    }
-
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
     let user = env::var("USER").unwrap();
@@ -60,13 +54,20 @@ fn main() {
     env::set_var("PATH", &env_path_new);
     rcfile::load_rcfile();
 
+    if env::args().len() > 1 {
+        let line = tools::env_args_to_command_line();
+        execute::run_procs(line, false);
+        return;
+    }
+
     let isatty: bool = unsafe { libc::isatty(0) == 1 };
     if !isatty {
+        // cases like open a new MacVim window on an existing one
         let mut buffer = String::new();
         let stdin = io::stdin();
         let mut handle = stdin.lock();
         handle.read_to_string(&mut buffer).expect("read to str error");
-        execute::run_procs(buffer);
+        execute::run_procs(buffer, false);
         return;
     }
 
@@ -141,7 +142,7 @@ fn main() {
                     status = builtins::cd::run(cmd, &mut previous_dir);
                 } else {
                     // normal cases
-                    status = execute::run_procs(cmd);
+                    status = execute::run_procs(cmd, true);
                 }
                 let tse_spec = time::get_time();
                 let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1000000000.0;
