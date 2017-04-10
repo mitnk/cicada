@@ -4,6 +4,8 @@ use std::io::Read;
 use std::path::Path;
 
 use regex::Regex;
+use shellexpand;
+
 use tools;
 use shell;
 
@@ -35,7 +37,16 @@ fn handle_env(line: &str) {
     let re = Regex::new(r"^ *export +([a-zA-Z0-9_\.-]+)=(.*)$").unwrap();
     for cap in re.captures_iter(line) {
         let value = tools::unquote(&cap[2]);
-        env::set_var(&cap[1], &value);
+        match shellexpand::env(value.as_str()) {
+            Ok(x) => {
+                let value = x.to_string();
+                let name = &cap[1];
+                env::set_var(name, &value);
+            }
+            Err(e) => {
+                println!("shellexpand err: {:?}", e);
+            }
+        }
     }
 }
 

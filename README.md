@@ -71,6 +71,8 @@ export RUST_BACKTRACE='full'
 export LESS="-R"
 export COPYFILE_DISABLE=1
 
+export PATH="/usr/local/bin:$PATH"
+
 # specify the history file,
 # its default path is "~/.local/share/cicada/history.sqlite"
 export HISTORY_FILE=/Users/mitnk/.local/share/xonsh/xonsh-history.sqlite

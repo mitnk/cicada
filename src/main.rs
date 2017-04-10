@@ -4,6 +4,7 @@ extern crate libc;
 extern crate linefeed;
 extern crate nix;
 extern crate regex;
+extern crate shellexpand;
 extern crate shlex;
 extern crate sqlite;
 extern crate time;
@@ -43,15 +44,7 @@ fn main() {
     let user = env::var("USER").unwrap();
     let home = tools::get_user_home();
     let env_path = env::var("PATH").unwrap();
-    let dir_bin_cargo = format!("{}/.cargo/bin", home);
-    let env_path_new = ["/usr/local/bin".to_string(),
-                        env_path,
-                        dir_bin_cargo,
-                        "/Library/Frameworks/Python.framework/Versions/3.6/bin".to_string(),
-                        "/Library/Frameworks/Python.framework/Versions/3.5/bin".to_string(),
-                        "/Library/Frameworks/Python.framework/Versions/3.4/bin".to_string(),
-                        "/Library/Frameworks/Python.framework/Versions/2.7/bin".to_string()]
-            .join(":");
+    let env_path_new = ["/usr/local/bin".to_string(), env_path].join(":");
     env::set_var("PATH", &env_path_new);
     rcfile::load_rcfile(&mut sh);
 

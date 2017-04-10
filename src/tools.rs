@@ -3,6 +3,7 @@ use std::fs::OpenOptions;
 use std::io::Write;
 
 use regex::Regex;
+use shellexpand;
 
 use libc;
 use shlex;
@@ -97,10 +98,34 @@ pub fn needs_extend_home(line: &str) -> bool {
     return re.is_match(line);
 }
 
-pub fn pre_handle_cmd_line(s: &mut String) {
-    if needs_extend_home(s.as_str()) {
-        extend_home(s);
+fn extend_env(line: &mut String) {
+    let mut result: Vec<String> = Vec::new();
+    let _line = line.clone();
+    let _tokens: Vec<&str> = _line.split(" ").collect();
+    for item in &_tokens {
+        if item.trim().starts_with("'") {
+            result.push(item.to_string());
+        } else {
+            match shellexpand::env(item) {
+                Ok(x) => {
+                    result.push(x.into_owned());
+                }
+                Err(e) => {
+                    println!("shellexpand error: {:?}", e);
+                    result.push(item.to_string());
+                }
+            }
+        }
     }
+    *line = result.join(" ");
+}
+
+pub fn pre_handle_cmd_line(line: &mut String) {
+    // TODO maybe replace extend_home() with shellexpand::full()
+    if needs_extend_home(line.as_str()) {
+        extend_home(line);
+    }
+    extend_env(line);
 }
 
 pub fn env_args_to_command_line() -> String {
@@ -132,6 +157,7 @@ pub fn is_alias(line: &str) -> bool {
 mod tests {
     use super::needs_extend_home;
     use super::is_alias;
+    use super::extend_env;
 
     #[test]
     fn dots_test() {
@@ -149,5 +175,12 @@ mod tests {
     #[test]
     fn test_is_alias() {
         assert!(is_alias("alias ls='ls -lh'"));
+    }
+
+    #[test]
+    fn test_extend_env() {
+        let mut s = String::from("echo '$PATH'");
+        extend_env(&mut s);
+        assert_eq!(s, "echo '$PATH'");
     }
 }
