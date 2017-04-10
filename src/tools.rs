@@ -2,6 +2,7 @@ use std::env;
 use std::fs::OpenOptions;
 use std::io::Write;
 
+use glob;
 use regex::Regex;
 use shellexpand;
 
@@ -120,10 +121,59 @@ fn extend_env(line: &mut String) {
     *line = result.join(" ");
 }
 
+fn needs_globbing(line: &str) -> bool {
+    let re;
+    if let Ok(x) = Regex::new(r"[\*]+") {
+        re = x;
+    } else {
+        return false;
+    }
+    return re.is_match(line);
+}
+
+fn extend_glob(line: &mut String) {
+    let _line = line.clone();
+    // XXX: spliting needs to consider cases like `echo 'a * b'`
+    let _tokens: Vec<&str> = _line.split(" ").collect();
+    let mut result: Vec<String> = Vec::new();
+    for item in &_tokens {
+        if item.trim().starts_with("'") || item.trim().starts_with("\"")
+                || !needs_globbing(item) {
+            result.push(item.to_string());
+        } else {
+            match glob::glob(item) {
+                Ok(paths) => {
+                    for entry in paths {
+                        match entry {
+                            Ok(path) => {
+                                let s = path.to_string_lossy();
+                                if s.starts_with(".") {
+                                    continue;
+                                }
+                                result.push(s.into_owned());
+                            }
+                            Err(e) => println!("{:?}", e),
+                        }
+                    }
+                }
+                Err(e) => {
+                    println!("glob error: {:?}", e);
+                    result.push(item.to_string());
+                    return;
+                }
+            }
+        }
+    }
+    *line = result.join(" ");
+}
+
 pub fn pre_handle_cmd_line(line: &mut String) {
     // TODO maybe replace extend_home() with shellexpand::full()
     if needs_extend_home(line.as_str()) {
         extend_home(line);
+    }
+    if needs_globbing(line.as_str()) {
+        extend_glob(line);
     }
     extend_env(line);
 }

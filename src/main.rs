@@ -1,5 +1,6 @@
 extern crate ansi_term;
 extern crate errno;
+extern crate glob;
 extern crate libc;
 extern crate linefeed;
 extern crate nix;
