@@ -87,7 +87,6 @@ fn main() {
     rl.define_function("up-key-function", Rc::new(binds::UpKeyFunction));
     rl.bind_sequence(binds::SEQ_UP_KEY, Command::from_str("up-key-function"));
 
-    let mut previous_dir = String::new();
     let mut painter;
     let mut status = 0;
     loop {
@@ -136,15 +135,8 @@ fn main() {
 
                 let tsb_spec = time::get_time();
                 let tsb = (tsb_spec.sec as f64) + tsb_spec.nsec as f64 / 1000000000.0;
-
                 tools::pre_handle_cmd_line(&mut cmd);
-                if line.trim().starts_with("cd ") || line.trim() == "cd" {
-                    // a special case needing extra context
-                    status = builtins::cd::run(cmd, &mut previous_dir);
-                } else {
-                    // normal cases
-                    status = execute::run_procs(&mut sh, cmd, true);
-                }
+                status = execute::run_procs(&mut sh, cmd, true);
                 let tse_spec = time::get_time();
                 let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1000000000.0;
                 history::add(&mut rl, line.as_str(), status, tsb, tse);

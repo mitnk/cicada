@@ -117,7 +117,12 @@ pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
     if args.len() == 0 {
         return 0;
     }
+    extend_alias(sh, &mut args);
 
+    // for the builtins "cd"
+    if args[0] == "cd" {
+        return builtins::cd::run(sh, args);
+    }
     // for the builtins "export"
     if args[0] == "export" {
         return builtins::export::run(line.as_str());
@@ -155,9 +160,9 @@ pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
         let mut args_new = args.clone();
         let redirect_to = args_new.pop().unwrap();
         args_new.pop();
-        run_pipeline(sh, args_new, redirect_from.as_str(), redirect_to.as_str(), append, background, tty)
+        run_pipeline(args_new, redirect_from.as_str(), redirect_to.as_str(), append, background, tty)
     } else {
-        run_pipeline(sh, args.clone(), redirect_from.as_str(), "", false, background, tty)
+        run_pipeline(args.clone(), redirect_from.as_str(), "", false, background, tty)
     };
     if term_given {
         unsafe {
@@ -168,27 +173,48 @@ pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
     return result;
 }
 
-fn extend_alias(sh: &mut shell::Shell, cmd: &mut Vec<String>) {
-    let cmd_new = cmd.clone();
-    let program = &cmd_new[0];
-    let extended = sh.extend_alias(program.as_str());
-    if extended != *program {
-        if let Some(_args) = shlex::split(extended.trim()) {
-            for (i, item) in _args.iter().enumerate() {
-                if i == 0 {
-                    cmd[0] = item.clone();
-                    continue;
-                }
-                cmd.insert(i, item.clone());
-            }
-        } else {
-            cmd[0] = extended;
+fn extend_alias(sh: &mut shell::Shell, args: &mut Vec<String>) {
+    let args_new = args.clone();
+    let mut is_cmd = false;
+    let mut insert_pos: usize = 0;
+    for (i, arg) in args_new.iter().enumerate() {
+        if i == 0 {
+            is_cmd = true;
         }
+        else if arg == "|" {
+            is_cmd = true;
+            insert_pos += 1;
+            continue;
+        }
+        if !is_cmd {
+            continue;
+        }
+
+        let program = arg;
+        let extended = sh.extend_alias(program.as_str());
+        if extended != *program {
+            if let Some(_args) = shlex::split(extended.trim()) {
+                for (i, item) in _args.iter().enumerate() {
+                    if i == 0 {
+                        args[insert_pos] = item.clone();
+                        insert_pos += 1;
+                        continue;
+                    }
+                    args.insert(insert_pos, item.clone());
+                    insert_pos += 1;
+                }
+            } else {
+                args[insert_pos] = extended;
+                insert_pos += 1;
+            }
+            continue;
+        }
+        insert_pos += 1;
+        is_cmd = false;
     }
 }
 
-fn run_pipeline(sh: &mut shell::Shell,
-                args: Vec<String>,
+fn run_pipeline(args: Vec<String>,
                 redirect_from: &str,
                 redirect_to: &str,
                 append: bool,
@@ -222,13 +248,13 @@ fn run_pipeline(sh: &mut shell::Shell,
     info.pop().unwrap();
     info.push_str("\n");
     tools::rlog(info);
+
     let isatty = if tty { unsafe { libc::isatty(0) == 1 } } else { false };
     let mut i = 0;
     let mut pgid: u32 = 0;
     let mut children: Vec<u32> = Vec::new();
     let mut status = 0;
-    for mut cmd in &mut cmds {
-        extend_alias(sh, &mut cmd);
+    for cmd in &mut cmds {
         let program = &cmd[0];
         // treat `(ls)` as `ls`
         let mut p = Command::new(program.trim_matches(|c| c == '(' || c == ')'));
@@ -380,6 +406,8 @@ fn run_pipeline(sh: &mut shell::Shell,
 #[cfg(test)]
 mod tests {
     use super::args_to_cmds;
+    use super::extend_alias;
+    use shell;
 
     #[test]
     fn test_args_to_cmd() {
@@ -423,5 +451,86 @@ mod tests {
             assert_eq!(*item, expected[i]);
         }
 
+    }
+
+    #[test]
+    fn test_extend_alias() {
+        let mut sh = shell::Shell::new();
+        sh.add_alias("ll", "ls -lh");
+        sh.add_alias("wc", "wc -l");
+        let mut args = vec!["ll".to_string()];
+        extend_alias(&mut sh, &mut args);
+        assert_eq!(args, vec!["ls".to_string(), "-lh".to_string()]);
+
+        args = vec!["ll".to_string(), "|".to_string(), "wc".to_string()];
+        extend_alias(&mut sh, &mut args);
+        assert_eq!(args, vec![
+           "ls".to_string(),
+           "-lh".to_string(),
+           "|".to_string(),
+           "wc".to_string(),
+           "-l".to_string(),
+        ]);
+
+        args = vec!["ls".to_string(), "|".to_string(), "wc".to_string()];
+        extend_alias(&mut sh, &mut args);
+        assert_eq!(args, vec![
+           "ls".to_string(),
+           "|".to_string(),
+           "wc".to_string(),
+           "-l".to_string(),
+        ]);
+
+        args = vec![
+            "ls".to_string(),
+            "|".to_string(),
+            "cat".to_string(),
+            "|".to_string(),
+            "wc".to_string(),
+        ];
+        extend_alias(&mut sh, &mut args);
+        assert_eq!(args, vec![
+            "ls".to_string(),
+            "|".to_string(),
+            "cat".to_string(),
+            "|".to_string(),
+            "wc".to_string(),
+            "-l".to_string(),
+        ]);
+
+        args = vec![
+            "ls".to_string(),
+            "|".to_string(),
+            "wc".to_string(),
+            "|".to_string(),
+            "cat".to_string(),
+        ];
+        extend_alias(&mut sh, &mut args);
+        assert_eq!(args, vec![
+            "ls".to_string(),
+            "|".to_string(),
+            "wc".to_string(),
+            "-l".to_string(),
+            "|".to_string(),
+            "cat".to_string(),
+        ]);
+
+        args = vec![
+            "ll".to_string(),
+            "|".to_string(),
+            "cat".to_string(),
+            "|".to_string(),
+            "wc".to_string(),
+        ];
+        extend_alias(&mut sh, &mut args);
+        assert_eq!(args, vec![
+            "ls".to_string(),
+            "-lh".to_string(),
+            "|".to_string(),
+            "cat".to_string(),
+            "|".to_string(),
+            "wc".to_string(),
+            "-l".to_string(),
+        ]);
     }
 }

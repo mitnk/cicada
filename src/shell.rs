@@ -2,12 +2,14 @@ use std::collections::HashMap;
 
 pub struct Shell {
     pub alias: HashMap<String, String>,
+    pub previous_dir: String,
 }
 
 impl Shell {
     pub fn new() -> Shell {
         Shell {
             alias: HashMap::new(),
+            previous_dir: String::new(),
         }
     }
 

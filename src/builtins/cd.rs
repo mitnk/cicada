@@ -1,15 +1,8 @@
 use std::env;
-use shlex;
+use shell;
 use tools;
 
-pub fn run(line: String, previous_dir:&mut String) -> i32 {
-    let args;
-    if let Some(x) = shlex::split(line.trim()) {
-        args = x;
-    } else {
-        println!("shlex split error: does not support multiple line");
-        return 1;
-    }
+pub fn run(sh: &mut shell::Shell, args: Vec<String>) -> i32 {
     if args.len() > 2 {
         println!("invalid cd command");
         return 1;
@@ -24,18 +17,18 @@ pub fn run(line: String, previous_dir:&mut String) -> i32 {
             dir_to = args[1..].join("");
         }
         if dir_to == "-" {
-            if previous_dir == "" {
+            if sh.previous_dir == "" {
                 println!("no previous dir");
                 return 0;
             }
-            dir_to = previous_dir.clone();
+            dir_to = sh.previous_dir.clone();
         } else {
             if !dir_to.starts_with("/") {
                 dir_to = format!("{}/{}", current_dir.to_string(), dir_to);
             }
         }
         if current_dir != dir_to {
-            *previous_dir = current_dir.to_string();
+            sh.previous_dir = current_dir.to_string();
         }
         match env::set_current_dir(&dir_to) {
             Ok(_) => {

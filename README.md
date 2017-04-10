@@ -86,6 +86,7 @@ see doc (to add)
 
 ## To do list
 
+- [Special characters](http://tldp.org/LDP/abs/html/special-chars.html)
 - [Shell](http://tldp.org/LDP/Bash-Beginners-Guide/html/sect_03_04.html) [expansion](http://wiki.bash-hackers.org/syntax/expansion/globs)
 - job controls (`Ctrl-Z`, `fg`, `bg` etc)
 - and less...
