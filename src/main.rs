@@ -1,4 +1,3 @@
-extern crate ansi_term;
 extern crate errno;
 extern crate glob;
 extern crate libc;
@@ -20,7 +19,7 @@ use std::rc::Rc;
 // use std::thread;
 // use std::time::Duration;
 
-use ansi_term::Colour::{Red, Green};
+// use ansi_term::Colour::{Red, Green};
 
 use linefeed::Command;
 use linefeed::{Reader, ReadResult};
@@ -31,6 +30,7 @@ mod builtins;
 mod completers;
 mod execute;
 mod jobs;
+mod libs;
 mod parsers;
 mod tools;
 mod binds;
@@ -81,15 +81,8 @@ fn main() {
     rl.define_function("up-key-function", Rc::new(binds::UpKeyFunction));
     rl.bind_sequence(binds::SEQ_UP_KEY, Command::from_str("up-key-function"));
 
-    let mut painter;
     let mut status = 0;
     loop {
-        if status == 0 {
-            painter = Green;
-        } else {
-            painter = Red;
-        }
-
         let _current_dir = env::current_dir().unwrap();
         let current_dir = _current_dir.to_str().unwrap();
         let _tokens: Vec<&str> = current_dir.split("/").collect();
@@ -104,11 +97,17 @@ fn main() {
             pwd = last.to_string();
         }
 
-        let prompt = tools::wrap_seq_chars(
+        let prompt = if status == 0 {
             format!("{}@{}: {}$ ",
-                    painter.paint(user.to_string()),
-                    painter.paint("cicada"),
-                    painter.paint(pwd)));
+                    libs::colored::green(user.as_str()),
+                    libs::colored::green("cicada"),
+                    libs::colored::green(pwd.as_str()))
+        } else {
+            format!("{}@{}: {}$ ",
+                    libs::colored::red(user.as_str()),
+                    libs::colored::red("cicada"),
+                    libs::colored::red(pwd.as_str()))
+        };
         rl.set_prompt(prompt.as_str());
 
         match rl.read_line() {

@@ -31,14 +31,6 @@ pub fn get_user_completer_dir() -> String {
     return format!("{}/.cicada/completers", home);
 }
 
-/// in docs of `linefeed::reader::Reader.set_prompt()`:
-/// If prompt contains any terminal escape sequences, such escape sequences
-/// should be immediately preceded by the character '\x01' and immediately
-/// followed by the character '\x02'.
-pub fn wrap_seq_chars(s: String) -> String {
-    return format!("\x01{}\x02", s);
-}
-
 pub fn get_rc_file() -> String {
     let home = get_user_home();
     return format!("{}/{}", home, ".cicadarc");
@@ -143,6 +135,7 @@ fn extend_glob(line: &mut String) {
         } else {
             match glob::glob(item) {
                 Ok(paths) => {
+                    let mut is_empty = true;
                     for entry in paths {
                         match entry {
                             Ok(path) => {
@@ -151,9 +144,13 @@ fn extend_glob(line: &mut String) {
                                     continue;
                                 }
                                 result.push(s.into_owned());
+                                is_empty = false;
                             }
                             Err(e) => println!("{:?}", e),
                         }
+                    }
+                    if is_empty {
+                        result.push(item.to_string());
                     }
                 }
                 Err(e) => {

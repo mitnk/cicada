@@ -187,6 +187,7 @@ fn extend_alias(sh: &mut shell::Shell, args: &mut Vec<String>) {
             continue;
         }
         if !is_cmd {
+            insert_pos += 1;
             continue;
         }
 
@@ -350,6 +351,7 @@ fn run_pipeline(args: Vec<String>,
             }
             Err(e) => {
                 println!("process spawn error: {:?}", e.description());
+                status = 1;
                 continue;
             }
         }
@@ -531,6 +533,26 @@ mod tests {
             "|".to_string(),
             "wc".to_string(),
             "-l".to_string(),
+        ]);
+
+        sh.add_alias("grep", "grep -I --color=auto --exclude-dir=.git");
+        args = vec![
+            "ps".to_string(),
+            "ax".to_string(),
+            "|".to_string(),
+            "grep".to_string(),
+            "foo".to_string(),
+        ];
+        extend_alias(&mut sh, &mut args);
+        assert_eq!(args, vec![
+            "ps".to_string(),
+            "ax".to_string(),
+            "|".to_string(),
+            "grep".to_string(),
+            "-I".to_string(),
+            "--color=auto".to_string(),
+            "--exclude-dir=.git".to_string(),
+            "foo".to_string(),
         ]);
     }
 }
