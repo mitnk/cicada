@@ -7,6 +7,7 @@ use linefeed::terminal::DefaultTerminal;
 use sqlite;
 
 use tools;
+use shell;
 
 pub fn init(rl: &mut Reader<DefaultTerminal>) {
     rl.set_history_size(9999);  // make it bigger but not huge
@@ -30,7 +31,7 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
              info TEXT
             );
     ").unwrap();
-    conn.iterate("SELECT DISTINCT inp FROM xonsh_history ORDER BY tsb;",
+    conn.iterate("SELECT inp FROM xonsh_history ORDER BY tsb;",
                  |pairs| {
             for &(_, value) in pairs.iter() {
                 let inp = value.unwrap();
@@ -54,8 +55,13 @@ pub fn get_history_file() -> String {
     }
 }
 
-pub fn add(rl: &mut Reader<DefaultTerminal>, line: &str, status: i32, tsb: f64, tse: f64) {
+pub fn add(sh: &mut shell::Shell, rl: &mut Reader<DefaultTerminal>, line: &str, status: i32, tsb: f64, tse: f64) {
     rl.add_history(line.to_string());
+    if line == sh.previous_cmd {
+        return;
+    }
+
+    sh.previous_cmd = line.to_string();
     let hfile = get_history_file();
     let conn = sqlite::open(hfile).expect("sqlite open error");
     let sql = format!("INSERT INTO \

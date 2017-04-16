@@ -3,6 +3,7 @@ use std::collections::HashMap;
 pub struct Shell {
     pub alias: HashMap<String, String>,
     pub previous_dir: String,
+    pub previous_cmd: String,
 }
 
 impl Shell {
@@ -10,6 +11,7 @@ impl Shell {
         Shell {
             alias: HashMap::new(),
             previous_dir: String::new(),
+            previous_cmd: String::new(),
         }
     }
 

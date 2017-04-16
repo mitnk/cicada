@@ -105,7 +105,7 @@ fn main() {
                 status = execute::run_procs(&mut sh, cmd, true);
                 let tse_spec = time::get_time();
                 let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1000000000.0;
-                history::add(&mut rl, line.as_str(), status, tsb, tse);
+                history::add(&mut sh, &mut rl, line.as_str(), status, tsb, tse);
             }
             Ok(ReadResult::Eof) => {
                 println!("");
