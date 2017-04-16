@@ -26,24 +26,22 @@ use linefeed::{Reader, ReadResult};
 
 use std::io::{self, Read};
 
+mod binds;
 mod builtins;
 mod completers;
 mod execute;
 mod jobs;
 mod libs;
 mod parsers;
-mod tools;
-mod binds;
-mod rcfile;
 mod history;
+mod rcfile;
 mod shell;
+mod tools;
 
 
 fn main() {
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
     let mut sh = shell::Shell::new();
-    let user = env::var("USER").unwrap();
-    let home = tools::get_user_home();
     let env_path = env::var("PATH").unwrap();
     let env_path_new = ["/usr/local/bin".to_string(), env_path].join(":");
     env::set_var("PATH", &env_path_new);
@@ -83,43 +81,8 @@ fn main() {
 
     let mut status = 0;
     loop {
-        let _current_dir = env::current_dir().unwrap();
-        let current_dir = _current_dir.to_str().unwrap();
-        let _tokens: Vec<&str> = current_dir.split("/").collect();
-
-        let last = _tokens.last().unwrap();
-        let pwd: String;
-        if last.to_string() == "" {
-            pwd = String::from("/");
-        } else if current_dir == home {
-            pwd = String::from("~");
-        } else {
-            pwd = last.to_string();
-        }
-
-        let mut prompt = if status == 0 {
-            format!("{}@{}: {}$ ",
-                    libs::colored::green(user.as_str()),
-                    libs::colored::green("cicada"),
-                    libs::colored::green(pwd.as_str()))
-        } else {
-            format!("{}@{}: {}$ ",
-                    libs::colored::red(user.as_str()),
-                    libs::colored::red("cicada"),
-                    libs::colored::red(pwd.as_str()))
-        };
-        match env::var("VIRTUAL_ENV") {
-            Ok(x) => {
-                if x != "" {
-                    let _tokens: Vec<&str> = x.split("/").collect();
-                    let env_name = _tokens.last().unwrap();
-                    prompt = format!("({}){}", libs::colored::green(env_name), prompt);
-                }
-            }
-            Err(_) => {}
-        }
+        let prompt = libs::prompt::get_prompt(status);
         rl.set_prompt(prompt.as_str());
-
         match rl.read_line() {
             Ok(ReadResult::Input(line)) => {
                 let mut cmd;
