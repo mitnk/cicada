@@ -240,6 +240,7 @@ fn run_pipeline(args: Vec<String>,
         let fds = pipe().expect("pipe error");
         pipes.push(fds);
     }
+    tools::rlog(format!("needs pipes count: {}\n", pipes.len()));
 
     let mut info = String::from("run: ");
     for cmd in &cmds {
@@ -271,8 +272,10 @@ fn run_pipeline(args: Vec<String>,
                         // set the first process as progress group leader
                         let pid = libc::getpid();
                         libc::setpgid(0, pid);
+                        tools::rlog(format!("set self as pgroup lead {}\n", pid));
                     } else {
                         libc::setpgid(0, pgid as i32);
+                        tools::rlog(format!("set pgroup to {}\n", pgid));
                     }
                 }
                 Ok(())
