@@ -27,6 +27,7 @@ pub unsafe fn give_terminal_to(gid: i32) -> bool {
         tools::rlog(format!("Error {}: {}\n", code, e));
     } else {
         given = true;
+        tools::rlog(format!("gave term to {}\n", gid));
     }
     let rcode = libc::pthread_sigmask(libc::SIG_SETMASK, &old_mask, &mut mask);
     if rcode != 0 {

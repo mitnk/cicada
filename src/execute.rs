@@ -169,6 +169,7 @@ pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
     if term_given {
         unsafe {
             let gid = libc::getpgid(0);
+            tools::rlog(format!("try return term to {}\n", gid));
             jobs::give_terminal_to(gid);
         }
     }
@@ -361,11 +362,13 @@ fn run_pipeline(args: Vec<String>,
         if isatty && !background && i == 0 {
             pgid = child.id();
             unsafe {
+                tools::rlog(format!("try give term to {} [{}]\n", program, pgid));
                 term_given = jobs::give_terminal_to(pgid as i32);
             }
         }
 
         if !background && i == length - 1 {
+            tools::rlog(format!("waiting pid {}: {}\n", child.id(), program));
             match child.wait() {
                 Ok(ecode) => {
                     if ecode.success() {
@@ -397,6 +400,7 @@ fn run_pipeline(args: Vec<String>,
                 unsafe {
                     let mut stat: i32 = 0;
                     let ptr: *mut i32 = &mut stat;
+                    tools::rlog(format!("waiting pid {}\n", pid));
                     libc::waitpid(*pid as i32, ptr, 0);
                 }
             }
