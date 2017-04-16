@@ -39,7 +39,10 @@ fn handle_env(line: &str) {
         let value = tools::unquote(&cap[2]);
         match shellexpand::env(value.as_str()) {
             Ok(x) => {
-                let value = x.to_string();
+                let mut value = x.to_string();
+                if tools::needs_extend_home(value.as_str()) {
+                    tools::extend_home(&mut value);
+                }
                 let name = &cap[1];
                 env::set_var(name, &value);
             }

@@ -97,7 +97,7 @@ fn main() {
             pwd = last.to_string();
         }
 
-        let prompt = if status == 0 {
+        let mut prompt = if status == 0 {
             format!("{}@{}: {}$ ",
                     libs::colored::green(user.as_str()),
                     libs::colored::green("cicada"),
@@ -108,6 +108,16 @@ fn main() {
                     libs::colored::red("cicada"),
                     libs::colored::red(pwd.as_str()))
         };
+        match env::var("VIRTUAL_ENV") {
+            Ok(x) => {
+                if x != "" {
+                    let _tokens: Vec<&str> = x.split("/").collect();
+                    let env_name = _tokens.last().unwrap();
+                    prompt = format!("({}){}", libs::colored::green(env_name), prompt);
+                }
+            }
+            Err(_) => {}
+        }
         rl.set_prompt(prompt.as_str());
 
         match rl.read_line() {

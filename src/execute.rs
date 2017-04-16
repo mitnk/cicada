@@ -119,13 +119,15 @@ pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
     }
     extend_alias(sh, &mut args);
 
-    // for the builtins "cd"
+    // for built-ins
     if args[0] == "cd" {
         return builtins::cd::run(sh, args);
     }
-    // for the builtins "export"
     if args[0] == "export" {
         return builtins::export::run(line.as_str());
+    }
+    if args[0] == "vox" {
+        return builtins::vox::run(args);
     }
     // for any other situations
     let mut background = false;

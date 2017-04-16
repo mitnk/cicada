@@ -91,7 +91,7 @@ pub fn needs_extend_home(line: &str) -> bool {
     return re.is_match(line);
 }
 
-fn extend_env(line: &mut String) {
+pub fn extend_env(line: &mut String) {
     let mut result: Vec<String> = Vec::new();
     let _line = line.clone();
     let _tokens: Vec<&str> = _line.split(" ").collect();
@@ -199,6 +199,7 @@ pub fn is_alias(line: &str) -> bool {
     }
     return re.is_match(line);
 }
+
 
 #[cfg(test)]
 mod tests {
