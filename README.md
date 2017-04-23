@@ -1,6 +1,6 @@
 # Cicada
 
-A simple, semi-toy Unix shell written in Rust. (Currently only tested on Mac)
+A simple, semi-toy Unix shell written in Rust.
 
 
 ## Install Cicada Shell

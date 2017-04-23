@@ -10,7 +10,6 @@ use std::process::{Command, Stdio};
 use nix::unistd::pipe;
 use nix::sys::signal;
 use nom::IResult;
-use regex::Regex;
 use libc;
 use shlex;
 
@@ -39,11 +38,20 @@ fn args_to_cmds(args: Vec<String>) -> Vec<Vec<String>> {
     let mut cmds: Vec<Vec<String>> = Vec::new();
     for token in &args {
         if token != "|" {
+            if token.trim() == "" {
+                return Vec::new();
+            }
             cmd.push(token.trim().to_string());
         } else {
+            if cmd.len() == 0 {
+                return Vec::new();
+            }
             cmds.push(cmd.clone());
             cmd = Vec::new();
         }
+    }
+    if cmd.len() == 0 {
+        return Vec::new();
     }
     cmds.push(cmd.clone());
     cmds
@@ -79,14 +87,7 @@ fn args_to_redirections(args: Vec<String>) -> (Vec<String>, Vec<i32>) {
 }
 
 pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
-    let re;
-    if let Ok(x) = Regex::new(r"^[ 0-9\.\(\)\+\-\*/]+$") {
-        re = x;
-    } else {
-        println!("regex error for arithmetic");
-        return 1;
-    }
-    if re.is_match(line.as_str()) {
+    if tools::is_arithmetic(line.as_str()) {
         if line.contains(".") {
             match parsers::parser_float::expr_float(line.as_bytes()) {
                 IResult::Done(_, x) => {
@@ -235,10 +236,18 @@ fn run_pipeline(args: Vec<String>,
     let (args_new, vec_redirected) = args_to_redirections(args);
     let mut cmds = args_to_cmds(args_new);
     let length = cmds.len();
+    if length == 0 {
+        println!("cicada: invalid command");
+        return (1, false);
+    }
     let mut pipes = Vec::new();
     for _ in 0..length - 1 {
         let fds = pipe().expect("pipe error");
         pipes.push(fds);
+    }
+    if pipes.len() + 1 != length {
+        println!("cicada: invalid command");
+        return (1, false);
     }
     tools::rlog(format!("needs pipes count: {}\n", pipes.len()));
 

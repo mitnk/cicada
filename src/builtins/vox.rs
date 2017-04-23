@@ -105,6 +105,7 @@ pub fn run(args: Vec<String>) -> i32 {
     }
     else {
         println!("vox: invalid command");
+        println!("vox (ls | enter <env-name> | exit)");
         return 1;
     }
 }

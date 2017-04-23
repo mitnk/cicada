@@ -114,6 +114,9 @@ pub fn extend_env(line: &mut String) {
 }
 
 fn needs_globbing(line: &str) -> bool {
+    if is_arithmetic(line) {
+        return false;
+    }
     let re;
     if let Ok(x) = Regex::new(r"[\*]+") {
         re = x;
@@ -129,8 +132,7 @@ fn extend_glob(line: &mut String) {
     let _tokens: Vec<&str> = _line.split(" ").collect();
     let mut result: Vec<String> = Vec::new();
     for item in &_tokens {
-        if item.trim().starts_with("'") || item.trim().starts_with("\"")
-                || !needs_globbing(item) {
+        if item.trim().starts_with("'") || item.trim().starts_with("\"") {
             result.push(item.to_string());
         } else {
             match glob::glob(item) {
@@ -237,10 +239,22 @@ pub fn get_hostname() -> String {
     }
 }
 
+pub fn is_arithmetic(line: &str) -> bool {
+    let re;
+    if let Ok(x) = Regex::new(r"^[ 0-9\.\(\)\+\-\*/]+$") {
+        re = x;
+    } else {
+        println!("regex error for arithmetic");
+        return false;
+    }
+    return re.is_match(line);
+}
+
 
 #[cfg(test)]
 mod tests {
     use super::needs_extend_home;
+    use super::needs_globbing;
     use super::is_alias;
     use super::extend_env;
 
@@ -255,6 +269,13 @@ mod tests {
         assert!(!needs_extend_home("echo '~'"));
         assert!(!needs_extend_home("echo \"~\""));
         assert!(!needs_extend_home("echo ~~"));
+    }
+
+    #[test]
+    fn test_needs_globbing() {
+        assert!(needs_globbing("ls *"));
+        assert!(needs_globbing("ls  *.txt"));
+        assert!(!needs_globbing("2 * 3"));
     }
 
     #[test]
