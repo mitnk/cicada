@@ -83,7 +83,40 @@ alias ll="ls -lh"
 
 ## Completions
 
-see doc (to add)
+Cicada currently only support simplifed completion. It uses YMAL files
+to define completion. Put your completion files under `~/.cicada/completers/`.
+And one completion file is like this:
+
+```
+$ ls ~/.cicada/completers/
+brew.yaml git.yaml  pip.yaml  vox.yaml
+
+$ cat ~/.cicada/completers/pip.yaml
+- install:
+    - --force-reinstall
+    - -U
+    - --upgrade
+    - -r
+    - --requirement
+    - --user
+- download
+- uninstall
+- freeze
+- list
+- show
+- check
+- search:
+    - --no-cache-dir
+    - --timeout
+- wheel
+- hash
+- completion
+- help
+```
+
+After define this file, you can complete `pip` with `$ pip ins<Tab>` to get
+`$ pip install`, and `$ pip install --re<Tab>` to get
+`$ pip install --requirement`.
 
 
 ## To do list
