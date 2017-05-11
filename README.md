@@ -1,5 +1,7 @@
 # Cicada
 
+[Latest Version](https://img.shields.io/crates/v/rusqlite.svg)](https://crates.io/crates/rusqlite)
+
 A simple, semi-toy Unix shell written in Rust.
 
 
