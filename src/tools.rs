@@ -1,3 +1,4 @@
+use std;
 use std::env;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -250,6 +251,9 @@ pub fn is_arithmetic(line: &str) -> bool {
     return re.is_match(line);
 }
 
+pub fn println_stderr(msg: &str) {
+    writeln!(&mut std::io::stderr(), "{}", msg).expect("write to stderr failed");
+}
 
 #[cfg(test)]
 mod tests {

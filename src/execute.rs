@@ -130,6 +130,9 @@ pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
     if args[0] == "vox" {
         return builtins::vox::run(args);
     }
+    if args[0] == "history" {
+        return builtins::history::run(args);
+    }
     // for any other situations
     let mut background = false;
     let mut len = args.len();
