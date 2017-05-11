@@ -8,8 +8,9 @@ use regex::Regex;
 use shellexpand;
 
 use libc;
+use parsers;
 use shlex;
-
+use tools;
 
 pub fn rlog(s: String) {
     let mut file = OpenOptions::new()
@@ -95,6 +96,29 @@ pub fn needs_extend_home(line: &str) -> bool {
 pub fn extend_env(line: &mut String) {
     let mut result: Vec<String> = Vec::new();
     let _line = line.clone();
+    let args = parsers::parser_line::parser_args(_line.as_str());
+
+    for (sep, token) in args {
+        if sep == "`" {
+            tools::println_stderr("cicada: does not support \"`\" yet");
+            result.push(format!("{}{}{}", sep, token, sep));
+        } else if sep == "'" {
+            result.push(format!("{}{}{}", sep, token, sep));
+        } else {
+            match shellexpand::env(token.as_str()) {
+                Ok(x) => {
+                    result.push(format!("{}{}{}", sep, x.into_owned(), sep));
+                }
+                Err(e) => {
+                    println!("cicada: shellexpand error: {:?}", e);
+                    result.push(format!("{}{}{}", sep, token, sep));
+                }
+            }
+        }
+    }
+
+
+    /*
     let _tokens: Vec<&str> = _line.split(" ").collect();
     for item in &_tokens {
         if item.trim().starts_with("'") {
@@ -111,6 +135,8 @@ pub fn extend_env(line: &mut String) {
             }
         }
     }
+    */
+
     *line = result.join(" ");
 }
 
@@ -292,5 +318,9 @@ mod tests {
         let mut s = String::from("echo '$PATH'");
         extend_env(&mut s);
         assert_eq!(s, "echo '$PATH'");
+
+        let mut s = String::from("echo 'hi $PATH'");
+        extend_env(&mut s);
+        assert_eq!(s, "echo 'hi $PATH'");
     }
 }
