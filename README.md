@@ -8,12 +8,28 @@ A simple, semi-toy Unix shell written in Rust.
 
 ## Install Cicada Shell
 
-Note: [Rust environment](https://rustup.rs/) is needed for installation
+Note: [Rust environment](https://rustup.rs/) is needed for installation.
 
 You can try `cicada` out without installing it by checking out the repository
 and run `cargo run` in its root directory.
 
-### install cicada
+```
+$ git clone https://github.com/mitnk/cicada
+$ cd cicada
+$ cargo run
+```
+
+### install from code repository
+
+If you've checked out the cicada repository, you can do this:
+
+```
+$ make install
+```
+
+This will install `cicada` under your `/usr/local/bin`. Use `sudo` if needed.
+
+### install via cargo crates
 
 ```
 $ cargo install -f cicada
@@ -21,23 +37,12 @@ $ cargo install -f cicada
 
 This will install cicada into `~/.cargo/bin/`.
 
-Or, if you've checked out the cicada repository, you can do this:
-
-```
-$ git clone https://github.com/mitnk/cicada
-$ cd cicada
-$ make install
-```
-
-This will install `cicada` under your `/usr/local/bin`. Use `sudo` if needed.
-
-### Set cicada as your login shell
+## Set cicada as your login shell
 
 Appending `/usr/local/bin/cicada` into your `/etc/shells`, then run
 ```
 $ chsh -s /usr/local/bin/cicada
 ```
-
 
 ## Usage (Features so far)
 
@@ -96,8 +101,8 @@ alias ll="ls -lh"
 
 ## Completions
 
-Cicada currently only support simplifed completion. It uses YMAL files
-to define completion. Put your completion files under `~/.cicada/completers/`.
+Cicada currently only support simplifed completion. It uses YAML files
+to define two level completion. Put your completion files under `~/.cicada/completers/`.
 And one completion file is like this:
 
 ```
@@ -130,6 +135,21 @@ $ cat ~/.cicada/completers/pip.yaml
 After define this file, you can complete `pip` with `$ pip ins<Tab>` to get
 `$ pip install`, and `$ pip install --re<Tab>` to get
 `$ pip install --requirement`.
+
+```
+$ cat ~/.cicada/completers/brew.yaml
+- doctor
+- info
+- install
+- list
+- search
+- uninstall
+- update
+- upgrade
+
+$ brew u<Tab><Tab>
+uninstall  update  upgrade
+```
 
 
 ## To do list
