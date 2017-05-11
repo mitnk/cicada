@@ -8,8 +8,8 @@ pub fn run(sh: &mut shell::Shell, args: Vec<String>) -> i32 {
         return 1;
     } else {
         let mut dir_to: String;
-        let _current_dir = env::current_dir().unwrap();
-        let current_dir = _current_dir.to_str().unwrap();
+        let _current_dir = env::current_dir().expect("cd: get current_dir error");
+        let current_dir = _current_dir.to_str().expect("cd: to_str error");
         if args.len() == 1 {
             let home = tools::get_user_home();
             dir_to = home.to_string();

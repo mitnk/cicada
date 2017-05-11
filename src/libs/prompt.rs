@@ -4,13 +4,13 @@ use tools;
 
 pub fn get_prompt(status: i32) -> String {
     let home = tools::get_user_home();
-    let user = env::var("USER").unwrap();
+    let user = env::var("USER").expect("cicada: env USER error");
     let hostname = tools::get_hostname();
-    let _current_dir = env::current_dir().unwrap();
-    let current_dir = _current_dir.to_str().unwrap();
+    let _current_dir = env::current_dir().expect("cicada: env current_dir error");
+    let current_dir = _current_dir.to_str().expect("cicada: to_str error");
     let _tokens: Vec<&str> = current_dir.split("/").collect();
 
-    let last = _tokens.last().unwrap();
+    let last = _tokens.last().expect("cicada: prompt token last error");
     let pwd: String;
     if last.to_string() == "" {
         pwd = String::from("/");
@@ -35,7 +35,7 @@ pub fn get_prompt(status: i32) -> String {
         Ok(x) => {
             if x != "" {
                 let _tokens: Vec<&str> = x.split("/").collect();
-                let env_name = _tokens.last().unwrap();
+                let env_name = _tokens.last().expect("prompt token last error");
                 prompt = format!("({}){}", libs::colored::green(env_name), prompt);
             }
         }

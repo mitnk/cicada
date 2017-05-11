@@ -14,32 +14,46 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
     let hfile = get_history_file();
     let path = Path::new(hfile.as_str());
     if !path.exists() {
-        let parent = path.parent().expect("no parent found");
-        fs::create_dir_all(parent.to_str().unwrap()).expect("dirs create failed");
+        let _parent = path.parent().expect("no parent found");
+        let parent = _parent.to_str().expect("parent to_str error");
+        fs::create_dir_all(parent).expect("dirs create failed");
         fs::File::create(hfile.as_str()).expect("file create failed");
     }
-
-    let conn = sqlite::open(hfile.clone()).unwrap();
-    conn.execute("
-        CREATE TABLE IF NOT EXISTS xonsh_history
-            (inp TEXT,
-             rtn INTEGER,
-             tsb REAL,
-             tse REAL,
-             sessionid TEXT,
-             out TEXT,
-             info TEXT
-            );
-    ").unwrap();
-    conn.iterate("SELECT inp FROM xonsh_history ORDER BY tsb;",
-                 |pairs| {
-            for &(_, value) in pairs.iter() {
-                let inp = value.unwrap();
-                rl.add_history(inp.trim().to_string());
+    match sqlite::open(hfile.clone()) {
+        Ok(conn) => {
+            match conn.execute("
+                CREATE TABLE IF NOT EXISTS xonsh_history
+                    (inp TEXT,
+                     rtn INTEGER,
+                     tsb REAL,
+                     tse REAL,
+                     sessionid TEXT,
+                     out TEXT,
+                     info TEXT
+                    );
+            ") {
+                Ok(_) => {}
+                Err(e) => tools::println_stderr(
+                    format!("cicada: sqlite exec error - {:?}", e).as_str())
             }
-            true
-        })
-        .unwrap();
+            match conn.iterate("SELECT inp FROM xonsh_history ORDER BY tsb;",
+                         |pairs| {
+                    for &(_, value) in pairs.iter() {
+                        let inp = value.expect("cicada: sqlite pairs error");
+                        rl.add_history(inp.trim().to_string());
+                    }
+                    true
+            }) {
+                Ok(_) => {}
+                Err(e) => tools::println_stderr(
+                    format!("cicada: sqlite select error - {:?}", e).as_str())
+            }
+        }
+        Err(e) => {
+            tools::println_stderr(
+                format!("cicada: sqlite conn error - {:?}", e).as_str());
+        }
+    }
 }
 
 pub fn get_history_file() -> String {

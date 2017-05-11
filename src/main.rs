@@ -42,7 +42,7 @@ mod tools;
 fn main() {
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
     let mut sh = shell::Shell::new();
-    let env_path = env::var("PATH").unwrap();
+    let env_path = env::var("PATH").expect("cicada: env PATH error");
     let env_path_new = ["/usr/local/bin".to_string(), env_path].join(":");
     env::set_var("PATH", &env_path_new);
     rcfile::load_rcfile(&mut sh);

@@ -34,7 +34,8 @@ fn handle_line(sh: &mut shell::Shell, line: &str) {
 }
 
 fn handle_env(line: &str) {
-    let re = Regex::new(r"^ *export +([a-zA-Z0-9_\.-]+)=(.*)$").unwrap();
+    let re = Regex::new(r"^ *export +([a-zA-Z0-9_\.-]+)=(.*)$")
+        .expect("cicada: Regex error");
     for cap in re.captures_iter(line) {
         let value = tools::unquote(&cap[2]);
         match shellexpand::env(value.as_str()) {
@@ -54,7 +55,8 @@ fn handle_env(line: &str) {
 }
 
 fn handle_alias(sh: &mut shell::Shell, line: &str) {
-    let re = Regex::new(r"^ *alias +([a-zA-Z0-9_\.-]+)=(.*)$").unwrap();
+    let re = Regex::new(r"^ *alias +([a-zA-Z0-9_\.-]+)=(.*)$")
+        .expect("cicada: Regex error");
     for cap in re.captures_iter(line) {
         let name = tools::unquote(&cap[1]);
         let value = tools::unquote(&cap[2]);

@@ -76,12 +76,14 @@ fn args_to_redirections(args: Vec<String>) -> (Vec<String>, Vec<i32>) {
     vec_redirected.push(redirected_to);
 
     while args_new.iter().position(|x| *x == "2>&1").is_some() {
-        let index = args_new.iter().position(|x| *x == "2>&1").unwrap();
-        args_new.remove(index);
+        if let Some(index) = args_new.iter().position(|x| *x == "2>&1") {
+            args_new.remove(index);
+        }
     }
     while args_new.iter().position(|x| *x == "1>&2").is_some() {
-        let index = args_new.iter().position(|x| *x == "1>&2").unwrap();
-        args_new.remove(index);
+        if let Some(index) = args_new.iter().position(|x| *x == "1>&2") {
+            args_new.remove(index);
+        }
     }
     (args_new, vec_redirected)
 }
@@ -146,15 +148,16 @@ pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
     let mut redirect_from = String::new();
     let has_redirect_from = args.iter().any(|x| x == "<");
     if has_redirect_from {
-        let idx = args.iter().position(|x| x == "<").unwrap();
-        args.remove(idx);
-        len -= 1;
-        if len >= idx + 1 {
-            redirect_from = args.remove(idx);
+        if let Some(idx) = args.iter().position(|x| x == "<") {
+            args.remove(idx);
             len -= 1;
-        } else {
-            println!("cicada: invalid command");
-            return 1;
+            if len >= idx + 1 {
+                redirect_from = args.remove(idx);
+                len -= 1;
+            } else {
+                println!("cicada: invalid command");
+                return 1;
+            }
         }
     }
     if len <= 0 {
@@ -164,7 +167,7 @@ pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
     let (result, term_given) = if len > 2 && (args[len - 2] == ">" || args[len - 2] == ">>") {
         let append = args[len - 2] == ">>";
         let mut args_new = args.clone();
-        let redirect_to = args_new.pop().unwrap();
+        let redirect_to = args_new.pop().expect("cicada: redirect_to pop error");
         args_new.pop();
         run_pipeline(args_new, redirect_from.as_str(), redirect_to.as_str(), append, background, tty)
     } else {
@@ -261,8 +264,8 @@ fn run_pipeline(args: Vec<String>,
         }
         info.push_str(format!("| ").as_str());
     }
-    info.pop().unwrap();
-    info.pop().unwrap();
+    info.pop().expect("cicada: debug pop error");
+    info.pop().expect("cicada: debug pop error");
     info.push_str("\n");
     tools::rlog(info);
 
@@ -354,9 +357,16 @@ fn run_pipeline(args: Vec<String>,
                 oos.write(true);
                 oos.truncate(true);
             }
-            let fd = oos.create(true).open(redirect_to).unwrap().into_raw_fd();
-            let file_out = unsafe { Stdio::from_raw_fd(fd) };
-            p.stdout(file_out);
+            match oos.create(true).open(redirect_to) {
+                Ok(x) => {
+                    let fd = x.into_raw_fd();
+                    let file_out = unsafe { Stdio::from_raw_fd(fd) };
+                    p.stdout(file_out);
+                }
+                Err(e) => {
+                    tools::println_stderr(format!("cicada: redirect file create error - {:?}", e).as_str());
+                }
+            }
         }
 
         let mut child;
@@ -368,7 +378,7 @@ fn run_pipeline(args: Vec<String>,
                 }
             }
             Err(e) => {
-                println!("process spawn error: {:?}", e.description());
+                println!("{}: {:?}", program, e.description());
                 status = 1;
                 continue;
             }

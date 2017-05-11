@@ -13,6 +13,16 @@ and run `cargo run` in its root directory.
 ### install cicada
 
 ```
+$ cargo install -f cicada
+```
+
+This will install cicada into `~/.cargo/bin/`.
+
+Or, if you've checked out the cicada repository, you can do this:
+
+```
+$ git clone https://github.com/mitnk/cicada
+$ cd cicada
 $ make install
 ```
 

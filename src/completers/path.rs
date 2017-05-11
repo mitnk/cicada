@@ -107,7 +107,7 @@ impl<Term: Terminal> Completer<Term> for BinCompleter {
 fn complete_bin(path: &str) -> Vec<Completion> {
     let (_, fname) = split_path(path);
 
-    let env_path = env::var("PATH").unwrap();
+    let env_path = env::var("PATH").expect("cicada: env error");
     let vec_path: Vec<&str> = env_path.split(":").collect();
     let path_list: HashSet<&str> = HashSet::from_iter(vec_path.iter().cloned());
 
@@ -119,7 +119,8 @@ fn complete_bin(path: &str) -> Vec<Completion> {
                 if let Ok(entry) = entry {
                     if let Ok(name) = entry.file_name().into_string() {
                         if name.starts_with(fname) {
-                            let mode = entry.metadata().unwrap().permissions().mode();
+                            let _mode = entry.metadata().expect("cicada: metadata error");
+                            let mode = _mode.permissions().mode();
                             if mode & 0o111 == 0 {
                                 // not binary
                                 continue;

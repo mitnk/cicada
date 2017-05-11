@@ -16,14 +16,14 @@ pub fn rlog(s: String) {
         .append(true)
         .create(true)
         .open("/tmp/cicada-debug.log")
-        .unwrap();
+        .expect("rlog: open /tmp/cicada-debug.log faild");
     let pid = unsafe { libc::getpid() };
     let s = format!("[{}] {}", pid, s);
-    file.write_all(s.as_bytes()).unwrap();
+    file.write_all(s.as_bytes()).expect("rlog: write_all failed");
 }
 
 pub fn get_user_home() -> String {
-    let home = env::var("HOME").unwrap();
+    let home = env::var("HOME").expect("cicada: env HOME error");
     return home;
 }
 

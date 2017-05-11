@@ -53,7 +53,8 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
     }
     let dir = tools::get_user_completer_dir();
     let dot_file = format!("{}/{}.yaml", dir, args[0]);
-    if !Path::new(dot_file.as_str()).exists() {
+    let dot_file = dot_file.as_str();
+    if !Path::new(dot_file).exists() {
         return res;
     }
     let mut sub_cmd = "";
@@ -64,11 +65,20 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
         sub_cmd = args[1].as_str();
     }
 
-    let mut f = File::open(dot_file).unwrap();
+    let mut f = File::open(dot_file).expect("cicada: open dot_file error");
     let mut s = String::new();
-    f.read_to_string(&mut s).unwrap();
+    f.read_to_string(&mut s).expect("cicada: read_to_string error");
 
-    let docs = YamlLoader::load_from_str(&s).unwrap();
+    let docs;
+    match YamlLoader::load_from_str(&s) {
+        Ok(x) => {
+            docs = x;
+        }
+        Err(_) => {
+            tools::println_stderr(format!("\ncicada: Bad Yaml file: {}?", dot_file).as_str());
+            return res;
+        }
+    }
     for doc in &docs {
         match doc {
             &yaml::Yaml::Array(ref v) => {

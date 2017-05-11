@@ -36,8 +36,10 @@ fn list_current_history(conn: sqlite::Connection) -> i32 {
     match conn.prepare(q) {
         Ok(mut statement) => {
             let mut vec = Vec::new();
-            while let State::Row = statement.next().unwrap() {
-                vec.push(statement.read::<String>(0).unwrap());
+            while let State::Row = statement.next().expect("history: statement next error") {
+                if let Ok(x) = statement.read::<String>(0) {
+                    vec.push(x);
+                }
             }
             for (i, elem) in vec.iter().rev().enumerate() {
                 println!("{}: {}", i, elem);
@@ -55,12 +57,21 @@ fn search_history(conn: sqlite::Connection, q: String) {
     let q = format!("SELECT inp FROM xonsh_history
                      WHERE inp like '%{}%'
                      ORDER BY tsb desc limit 20;", q);
-    let mut statement = conn.prepare(q).unwrap();
-    let mut vec = Vec::new();
-    while let State::Row = statement.next().unwrap() {
-        vec.push(statement.read::<String>(0).unwrap());
-    }
-    for (i, elem) in vec.iter().rev().enumerate() {
-        println!("{}: {}", i, elem);
+    match conn.prepare(q) {
+        Ok(mut statement) => {
+            let mut vec = Vec::new();
+            while let State::Row = statement.next()
+                    .expect("history: statement next error") {
+                if let Ok(x) = statement.read::<String>(0) {
+                    vec.push(x);
+                }
+            }
+            for (i, elem) in vec.iter().rev().enumerate() {
+                println!("{}: {}", i, elem);
+            }
+        }
+        Err(e) => {
+            tools::println_stderr(format!("history: prepare error - {:?}", e).as_str());
+        }
     }
 }

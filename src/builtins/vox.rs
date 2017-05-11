@@ -82,7 +82,7 @@ fn exit_env() -> i32 {
         println!("vox: not in an env");
         return 0;
     }
-    let env_path = env::var("PATH").unwrap();
+    let env_path = env::var("PATH").expect("vox: env error");
     let mut _tokens: Vec<&str> = env_path.split(":").collect();
     let mut path_virtual_env = String::from("${VIRTUAL_ENV}/bin");
     tools::extend_env(&mut path_virtual_env);
