@@ -44,99 +44,41 @@ pub fn parser_args(line: &str) -> Vec<(String, String)> {
 mod tests {
     use super::parser_args;
 
+    fn _assert_vec_eq(a: Vec<(String, String)>, b: Vec<(&str, &str)>) {
+        assert_eq!(a.len(), b.len());
+        for (i, item) in a.iter().enumerate() {
+            let (ref l, ref r) = *item;
+            assert_eq!(l, b[i].0);
+            assert_eq!(r, b[i].1);
+        }
+    }
+
     #[test]
     fn test_parser_args() {
-        assert_eq!(
-            parser_args("ls"),
-            vec![
-                (String::from(""), String::from("ls")),
-            ]
-        );
-        assert_eq!(
-            parser_args("  ls  "),
-            vec![
-                (String::from(""), String::from("ls")),
-            ]
-        );
-        assert_eq!(
-            parser_args("ls -lh"),
-            vec![
-                ("".to_string(), "ls".to_string()),
-                ("".to_string(), "-lh".to_string()),
-            ]
-        );
-        assert_eq!(
-            parser_args(" ls    -lh  "),
-            vec![
-                ("".to_string(), "ls".to_string()),
-                ("".to_string(), "-lh".to_string()),
-            ]
-        );
-        assert_eq!(
-            parser_args("ls 'abc'"),
-            vec![
-                ("".to_string(), "ls".to_string()),
-                ("\'".to_string(), "abc".to_string()),
-            ]
-        );
-        assert_eq!(
-            parser_args("ls \"abc\""),
-            vec![
-                ("".to_string(), "ls".to_string()),
-                ("\"".to_string(), "abc".to_string()),
-            ]
-        );
-        assert_eq!(
-            parser_args("echo \"hi $USER\""),
-            vec![
-                ("".to_string(), "echo".to_string()),
-                ("\"".to_string(), "hi $USER".to_string()),
-            ]
-        );
-        assert_eq!(
-            parser_args("echo \'hi $USER\'"),
-            vec![
-                ("".to_string(), "echo".to_string()),
-                ("\'".to_string(), "hi $USER".to_string()),
-            ]
-        );
-        assert_eq!(
-            parser_args(" echo  \'hi $USER\'  |  wc  -l "),
-            vec![
-                ("".to_string(), "echo".to_string()),
-                ("\'".to_string(), "hi $USER".to_string()),
-                ("".to_string(), "|".to_string()),
-                ("".to_string(), "wc".to_string()),
-                ("".to_string(), "-l".to_string()),
-            ]
-        );
-        assert_eq!(
-            parser_args("echo `uname -m` | wc"),
-            vec![
-                ("".to_string(), "echo".to_string()),
-                ("`".to_string(), "uname -m".to_string()),
-                ("".to_string(), "|".to_string()),
-                ("".to_string(), "wc".to_string()),
-            ]
-        );
-        assert_eq!(
-            parser_args("echo '`uname -m`'"),
-            vec![
-                ("".to_string(), "echo".to_string()),
-                ("'".to_string(), "`uname -m`".to_string()),
-            ]
-        );
-        assert_eq!(
-            parser_args("'\"\"\"\"'"),
-            vec![
-                ("'".to_string(), "\"\"\"\"".to_string()),
-            ]
-        );
-        assert_eq!(
-            parser_args("\"\'\'\'\'\""),
-            vec![
-                ("\"".to_string(), "''''".to_string()),
-            ]
-        );
+        let v = vec![
+            ("ls", vec![("", "ls")]),
+            ("  ls   ", vec![("", "ls")]),
+            ("ls -lh", vec![("", "ls"), ("", "-lh")]),
+            ("  ls   -lh   ", vec![("", "ls"), ("", "-lh")]),
+            ("ls 'abc'", vec![("", "ls"), ("'", "abc")]),
+            ("ls \"abc\"", vec![("", "ls"), ("\"", "abc")]),
+            ("echo \"hi $USER\"", vec![("", "echo"), ("\"", "hi $USER")]),
+            ("echo 'hi $USER'", vec![("", "echo"), ("'", "hi $USER")]),
+            ("echo 'hi $USER' |  wc  -l ", vec![("", "echo"),
+                                                ("'", "hi $USER"),
+                                                ("", "|"),
+                                                ("", "wc"),
+                                                ("", "-l")]),
+            ("echo `uname -m` | wc", vec![("", "echo"),
+                                                ("`", "uname -m"),
+                                                ("", "|"),
+                                                ("", "wc")]),
+            ("echo '`uname -m`'", vec![("", "echo"), ("'", "`uname -m`")]),
+            ("'\"\"\"\"'", vec![("'", "\"\"\"\"")]),
+            ("\"\'\'\'\'\"", vec![("\"", "''''")]),
+        ];
+        for (left, right) in v {
+            _assert_vec_eq(parser_args(left), right);
+        }
     }
 }
