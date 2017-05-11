@@ -1,5 +1,6 @@
 # Cicada
 
+[![Travis Build Status](https://api.travis-ci.org/mitnk/cicada.svg?branch=master)](https://travis-ci.org/mitnk/cicada)
 [![Latest Version](https://img.shields.io/crates/v/cicada.svg)](https://crates.io/crates/cicada)
 
 A simple, semi-toy Unix shell written in Rust.
