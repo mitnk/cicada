@@ -9,7 +9,7 @@ use shellexpand;
 
 use libc;
 use parsers;
-use tools;
+use execute;
 
 pub fn rlog(s: String) {
     let mut file = OpenOptions::new()
@@ -98,13 +98,42 @@ pub fn wrap_sep_string(sep: String, s: String) -> String {
     return format!("{}{}{}", sep, _token, sep);
 }
 
+pub fn do_command_substitution(line: &mut String) {
+    let _line = line.clone();
+    let args = parsers::parser_line::parse_args(_line.as_str());
+    let mut result: Vec<String> = Vec::new();
+    for (sep, token) in args {
+        if sep == "`" {
+            let _args = parsers::parser_line::parse_line(token.as_str());
+            let (_, _, output) = execute::run_pipeline(_args, "", "", false,
+                                                       false, false, true);
+            if let Some(x) = output {
+                match String::from_utf8(x.stdout) {
+                    Ok(stdout) => {
+                        result.push(wrap_sep_string(sep, stdout));
+                    }
+                    Err(_) => {
+                        println_stderr("cicada: from_utf8 error");
+                        result.push(wrap_sep_string(sep, token));
+                    }
+                }
+            } else {
+                println_stderr("cicada: command error");
+                result.push(wrap_sep_string(sep, token));
+            }
+        } else {
+            result.push(wrap_sep_string(sep, token));
+        }
+    }
+    *line = result.join(" ");
+}
+
 pub fn extend_env(line: &mut String) {
     let mut result: Vec<String> = Vec::new();
     let _line = line.clone();
     let args = parsers::parser_line::parse_args(_line.as_str());
     for (sep, token) in args {
         if sep == "`" {
-            tools::println_stderr("cicada: does not support \"`\" yet");
             result.push(wrap_sep_string(sep, token));
         } else if sep == "'" {
             result.push(wrap_sep_string(sep, token));
@@ -184,6 +213,7 @@ pub fn pre_handle_cmd_line(line: &mut String) {
         extend_glob(line);
     }
     extend_env(line);
+    do_command_substitution(line);
 }
 
 pub fn env_args_to_command_line() -> String {

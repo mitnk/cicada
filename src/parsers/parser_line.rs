@@ -154,6 +154,7 @@ mod tests {
             ("  ls   ", vec!["ls"]),
             ("ls -lh", vec!["ls", "-lh"]),
             ("ls 'abc'", vec!["ls", "abc"]),
+            ("ls a\\ c", vec!["ls", "a c"]),
             ("ls \"abc\"", vec!["ls", "abc"]),
             ("ls \"Hi 你好\"", vec!["ls", "Hi 你好"]),
             ("echo \"hi $USER\"", vec!["echo", "hi $USER"]),

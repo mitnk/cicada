@@ -5,7 +5,7 @@ use std::io::Error;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::os::unix::process::CommandExt;
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::{Command, Stdio, Output};
 
 use nix::unistd::pipe;
 use nix::sys::signal;
@@ -157,14 +157,16 @@ pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
         return 0;
     }
 
-    let (result, term_given) = if len > 2 && (args[len - 2] == ">" || args[len - 2] == ">>") {
+    let (result, term_given, _) = if len > 2 && (args[len - 2] == ">" || args[len - 2] == ">>") {
         let append = args[len - 2] == ">>";
         let mut args_new = args.clone();
         let redirect_to = args_new.pop().expect("cicada: redirect_to pop error");
         args_new.pop();
-        run_pipeline(args_new, redirect_from.as_str(), redirect_to.as_str(), append, background, tty)
+        run_pipeline(args_new, redirect_from.as_str(), redirect_to.as_str(),
+                     append, background, tty, false)
     } else {
-        run_pipeline(args.clone(), redirect_from.as_str(), "", false, background, tty)
+        run_pipeline(args.clone(), redirect_from.as_str(), "", false,
+                     background, tty, false)
     };
     if term_given {
         unsafe {
@@ -214,12 +216,13 @@ fn extend_alias(sh: &mut shell::Shell, args: &mut Vec<String>) {
     }
 }
 
-fn run_pipeline(args: Vec<String>,
+pub fn run_pipeline(args: Vec<String>,
                 redirect_from: &str,
                 redirect_to: &str,
                 append: bool,
                 background: bool,
-                tty: bool) -> (i32, bool) {
+                tty: bool,
+                capture_stdout: bool) -> (i32, bool, Option<Output>) {
     let sig_action = signal::SigAction::new(signal::SigHandler::Handler(handle_sigchld),
                                             signal::SaFlags::empty(),
                                             signal::SigSet::empty());
@@ -233,7 +236,7 @@ fn run_pipeline(args: Vec<String>,
     let length = cmds.len();
     if length == 0 {
         println!("cicada: invalid command");
-        return (1, false);
+        return (1, false, None);
     }
     let mut pipes = Vec::new();
     for _ in 0..length - 1 {
@@ -242,7 +245,7 @@ fn run_pipeline(args: Vec<String>,
     }
     if pipes.len() + 1 != length {
         println!("cicada: invalid command");
-        return (1, false);
+        return (1, false, None);
     }
     tools::rlog(format!("needs pipes count: {}\n", pipes.len()));
 
@@ -263,6 +266,7 @@ fn run_pipeline(args: Vec<String>,
     let mut pgid: u32 = 0;
     let mut children: Vec<u32> = Vec::new();
     let mut status = 0;
+    let mut output = None;
     for cmd in &mut cmds {
         let program = &cmd[0];
         // treat `(ls)` as `ls`
@@ -291,6 +295,8 @@ fn run_pipeline(args: Vec<String>,
             let fds = pipes[i];
             let pipe_out = unsafe { Stdio::from_raw_fd(fds.1) };
             p.stdout(pipe_out);
+        } else if capture_stdout && i == length - 1 {
+            p.stdout(Stdio::piped());
         }
 
         if vec_redirected[i] > 0 {
@@ -383,25 +389,37 @@ fn run_pipeline(args: Vec<String>,
 
         if !background && i == length - 1 {
             tools::rlog(format!("waiting pid {}: {}\n", child.id(), program));
-            match child.wait() {
-                Ok(ecode) => {
-                    if ecode.success() {
-                        status = 0;
-                    } else {
-                        status = 1;
+            if capture_stdout {
+                match child.wait_with_output() {
+                    Ok(x) => {
+                        output = Some(x);
+                    }
+                    Err(e) => {
+                        tools::println_stderr(format!("cicada: {:?}", e).as_str());
+                        output = None;
                     }
                 }
-                Err(_) => {
-                    match Error::last_os_error().raw_os_error() {
-                        Some(10) => {
-                            // no such process; it's already done
+            } else {
+                match child.wait() {
+                    Ok(ecode) => {
+                        if ecode.success() {
                             status = 0;
-                        }
-                        Some(e) => {
-                            status = e;
-                        }
-                        None => {
+                        } else {
                             status = 1;
+                        }
+                    }
+                    Err(_) => {
+                        match Error::last_os_error().raw_os_error() {
+                            Some(10) => {
+                                // no such process; it's already done
+                                status = 0;
+                            }
+                            Some(e) => {
+                                status = e;
+                            }
+                            None => {
+                                status = 1;
+                            }
                         }
                     }
                 }
@@ -421,7 +439,7 @@ fn run_pipeline(args: Vec<String>,
         }
         i += 1;
     }
-    return (status, term_given);
+    return(status, term_given, output);
 }
 
 
@@ -429,6 +447,7 @@ fn run_pipeline(args: Vec<String>,
 mod tests {
     use super::args_to_cmds;
     use super::extend_alias;
+    use super::run_pipeline;
     use shell;
 
     #[test]
@@ -574,5 +593,77 @@ mod tests {
             "--exclude-dir=.git".to_string(),
             "foo".to_string(),
         ]);
+    }
+
+    #[test]
+    fn test_run_pipeline() {
+        let cmd = vec![
+            String::from("ls"),
+        ];
+        let (result, term_given, output) = run_pipeline(
+            cmd, "", "", false, false, false, true);
+        assert_eq!(result, 0);
+        assert_eq!(term_given, false);
+        if let Some(x) = output {
+            let stdout = String::from_utf8(x.stdout).expect("from_utf8 error");
+            assert!(stdout.contains("README.md"));
+            assert!(stdout.contains("Cargo.toml"));
+            assert!(stdout.contains("src"));
+            assert!(stdout.contains("LICENSE"));
+        } else {
+            assert_eq!(1, 2);
+        }
+
+        let cmd = "ls | cat".split(" ").map(|s| s.to_string()).collect();
+        let (result, term_given, output) = run_pipeline(
+            cmd, "", "", false, false, false, true);
+        assert_eq!(result, 0);
+        assert_eq!(term_given, false);
+        if let Some(x) = output {
+            let stdout = String::from_utf8(x.stdout).expect("from_utf8 error");
+            assert!(stdout.contains("README.md"));
+            assert!(stdout.contains("Cargo.toml"));
+            assert!(stdout.contains("src"));
+            assert!(stdout.contains("LICENSE"));
+        } else {
+            assert_eq!(1, 2);
+        }
+
+        let cmd = "ls | cat | cat | more".split(" ").map(|s| s.to_string()).collect();
+        let (result, term_given, output) = run_pipeline(
+            cmd, "", "", false, false, false, true);
+        assert_eq!(result, 0);
+        assert_eq!(term_given, false);
+        if let Some(x) = output {
+            let stdout = String::from_utf8(x.stdout).expect("from_utf8 error");
+            assert!(stdout.contains("README.md"));
+            assert!(stdout.contains("Cargo.toml"));
+            assert!(stdout.contains("src"));
+            assert!(stdout.contains("LICENSE"));
+        } else {
+            assert_eq!(1, 2);
+        }
+
+        let cmd = vec![
+            String::from("echo"),
+            String::from("foo"),
+            String::from("bar"),
+            String::from("\"baz"),
+            String::from("|"),
+            String::from("awk"),
+            String::from("-F"),
+            String::from("[ \"]+"),
+            String::from("{print $3, $2, $1}"),
+        ];
+        let (result, term_given, output) = run_pipeline(
+            cmd, "", "", false, false, false, true);
+        assert_eq!(result, 0);
+        assert_eq!(term_given, false);
+        if let Some(x) = output {
+            let stdout = String::from_utf8(x.stdout).expect("from_utf8 error");
+            assert_eq!(stdout, "baz bar foo\n");
+        } else {
+            assert_eq!(1, 2);
+        }
     }
 }
