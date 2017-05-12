@@ -9,7 +9,6 @@ use shellexpand;
 
 use libc;
 use parsers;
-use shlex;
 use tools;
 
 pub fn rlog(s: String) {
@@ -39,12 +38,7 @@ pub fn get_rc_file() -> String {
 }
 
 pub fn unquote(s: &str) -> String {
-    let args;
-    if let Some(x) = shlex::split(s.trim()) {
-        args = x;
-    } else {
-        return String::new();
-    }
+    let args = parsers::parser_line::parse_line(s);
     if args.len() == 0 {
         return String::new();
     }

@@ -5,13 +5,13 @@ use linefeed::Reader;
 use linefeed::complete::{Completer, Completion};
 use linefeed::terminal::Terminal;
 use regex::Regex;
-use shlex;
 
 pub mod path;
 pub mod dots;
 pub struct CCDCompleter;
 
 use tools;
+use parsers;
 
 fn for_bin(line: &str) -> bool {
     let re;
@@ -24,12 +24,7 @@ fn for_bin(line: &str) -> bool {
 }
 
 fn for_dots(line: &str) -> bool {
-    let args;
-    if let Some(x) = shlex::split(line.trim()) {
-        args = x;
-    } else {
-        return false;
-    }
+    let args = parsers::parser_line::parse_line(line);
     let len = args.len();
     if len == 0 {
         return false;

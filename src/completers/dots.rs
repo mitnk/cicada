@@ -11,11 +11,11 @@ use linefeed::complete::escape;
 use linefeed::complete::unescape;
 use linefeed::complete::escaped_word_start;
 
-use shlex;
 use yaml_rust::{YamlLoader};
 use yaml_rust::yaml;
 
 use tools;
+use parsers;
 
 /// Performs completion by searching dotfiles
 pub struct DotsCompleter;
@@ -42,12 +42,7 @@ impl<Term: Terminal> Completer<Term> for DotsCompleter {
 
 fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
     let mut res = Vec::new();
-    let args;
-    if let Some(x) = shlex::split(line.trim()) {
-        args = x;
-    } else {
-        return res;
-    }
+    let args = parsers::parser_line::parse_line(line);
     if args.len() == 0 {
         return res;
     }

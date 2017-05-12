@@ -11,7 +11,6 @@ use nix::unistd::pipe;
 use nix::sys::signal;
 use nom::IResult;
 use libc;
-use shlex;
 
 use builtins;
 use jobs;
@@ -110,13 +109,7 @@ pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
         return 0;
     }
 
-    let mut args;
-    if let Some(x) = shlex::split(line.trim()) {
-        args = x;
-    } else {
-        println!("shlex split error: does not support multiple line");
-        return 1;
-    }
+    let mut args = parsers::parser_line::parse_line(line.as_str());
     if args.len() == 0 {
         return 0;
     }
@@ -204,18 +197,14 @@ fn extend_alias(sh: &mut shell::Shell, args: &mut Vec<String>) {
         let program = arg;
         let extended = sh.extend_alias(program.as_str());
         if extended != *program {
-            if let Some(_args) = shlex::split(extended.trim()) {
-                for (i, item) in _args.iter().enumerate() {
-                    if i == 0 {
-                        args[insert_pos] = item.clone();
-                        insert_pos += 1;
-                        continue;
-                    }
-                    args.insert(insert_pos, item.clone());
+            let _args = parsers::parser_line::parse_line(extended.as_str());
+            for (i, item) in _args.iter().enumerate() {
+                if i == 0 {
+                    args[insert_pos] = item.clone();
                     insert_pos += 1;
+                    continue;
                 }
-            } else {
-                args[insert_pos] = extended;
+                args.insert(insert_pos, item.clone());
                 insert_pos += 1;
             }
             continue;

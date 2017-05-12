@@ -5,7 +5,6 @@ extern crate linefeed;
 extern crate nix;
 extern crate regex;
 extern crate shellexpand;
-extern crate shlex;
 extern crate sqlite;
 extern crate time;
 extern crate yaml_rust;

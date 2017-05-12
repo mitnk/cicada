@@ -5,7 +5,6 @@ pub fn parse_line(line: &str) -> Vec<String> {
     for (_, r) in v {
         result.push(r);
     }
-    println!("v: {:?}", result);
     return result;
 }
 
