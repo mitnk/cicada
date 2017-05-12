@@ -93,50 +93,38 @@ pub fn needs_extend_home(line: &str) -> bool {
     return re.is_match(line);
 }
 
+pub fn wrap_sep_string(sep: String, s: String) -> String {
+    let mut _token = String::new();
+    for c in s.chars() {
+        if c.to_string() == sep {
+            _token.push('\\');
+        }
+        _token.push(c);
+    }
+    return format!("{}{}{}", sep, _token, sep);
+}
+
 pub fn extend_env(line: &mut String) {
     let mut result: Vec<String> = Vec::new();
     let _line = line.clone();
-    let args = parsers::parser_line::parser_args(_line.as_str());
-
+    let args = parsers::parser_line::parse_args(_line.as_str());
     for (sep, token) in args {
         if sep == "`" {
             tools::println_stderr("cicada: does not support \"`\" yet");
-            result.push(format!("{}{}{}", sep, token, sep));
+            result.push(wrap_sep_string(sep, token));
         } else if sep == "'" {
-            result.push(format!("{}{}{}", sep, token, sep));
+            result.push(wrap_sep_string(sep, token));
         } else {
             match shellexpand::env(token.as_str()) {
                 Ok(x) => {
-                    result.push(format!("{}{}{}", sep, x.into_owned(), sep));
+                    result.push(wrap_sep_string(sep, x.into_owned()));
                 }
-                Err(e) => {
-                    println!("cicada: shellexpand error: {:?}", e);
-                    result.push(format!("{}{}{}", sep, token, sep));
-                }
-            }
-        }
-    }
-
-
-    /*
-    let _tokens: Vec<&str> = _line.split(" ").collect();
-    for item in &_tokens {
-        if item.trim().starts_with("'") {
-            result.push(item.to_string());
-        } else {
-            match shellexpand::env(item) {
-                Ok(x) => {
-                    result.push(x.into_owned());
-                }
-                Err(e) => {
-                    println!("shellexpand error: {:?}", e);
-                    result.push(item.to_string());
+                Err(_) => {
+                    result.push(wrap_sep_string(sep, token.clone()));
                 }
             }
         }
     }
-    */
-
     *line = result.join(" ");
 }
 
@@ -322,5 +310,9 @@ mod tests {
         let mut s = String::from("echo 'hi $PATH'");
         extend_env(&mut s);
         assert_eq!(s, "echo 'hi $PATH'");
+
+        let mut s = String::from("echo '\\\''");
+        extend_env(&mut s);
+        assert_eq!(s, "echo '\\\''");
     }
 }

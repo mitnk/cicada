@@ -38,7 +38,7 @@ fn args_to_cmds(args: Vec<String>) -> Vec<Vec<String>> {
     let mut cmds: Vec<Vec<String>> = Vec::new();
     for token in &args {
         if token != "|" {
-            if token.trim() == "" {
+            if token == "" {
                 return Vec::new();
             }
             cmd.push(token.trim().to_string());
