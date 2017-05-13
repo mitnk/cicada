@@ -1,48 +1,10 @@
-# Cicada
+# Cicada Shell
 
 [![Travis Build Status](https://api.travis-ci.org/mitnk/cicada.svg?branch=master)](https://travis-ci.org/mitnk/cicada)
 [![Latest Version](https://img.shields.io/crates/v/cicada.svg)](https://crates.io/crates/cicada)
 
-A simple, semi-toy Unix shell written in Rust. And I use it as my default
-login shell.
-
-## Install Cicada Shell
-
-Note: [Rust environment](https://rustup.rs/) is needed for installation.
-
-You can try `cicada` out without installing it by checking out the repository
-and run `cargo run` in its root directory.
-
-```
-$ git clone https://github.com/mitnk/cicada
-$ cd cicada
-$ cargo run
-```
-
-### install from code repository
-
-If you've checked out the cicada repository, you can do this:
-
-```
-$ make install
-```
-
-This will install `cicada` under your `/usr/local/bin`. Use `sudo` if needed.
-
-### install via cargo crates
-
-```
-$ cargo install -f cicada
-```
-
-This will install cicada into `~/.cargo/bin/`.
-
-## Set cicada as your login shell
-
-Appending `/usr/local/bin/cicada` into your `/etc/shells`, then run
-```
-$ chsh -s /usr/local/bin/cicada
-```
+Cicada is a simple, semi-toy Unix shell written in Rust. And I use it as
+my default login shell.
 
 ## Features so far
 
@@ -165,6 +127,44 @@ $ pip install
 
 $ pip install --re<Tab>
 $ pip install --requirement
+```
+
+## Install Cicada
+
+Note: [Rust environment](https://rustup.rs/) is needed for installation.
+
+You can try `cicada` out without installing it by checking out the repository
+and run `cargo run` in its root directory.
+
+```
+$ git clone https://github.com/mitnk/cicada
+$ cd cicada
+$ cargo run
+```
+
+### install from code repository
+
+If you've checked out the cicada repository, you can do this:
+
+```
+$ make install
+```
+
+This will install `cicada` under your `/usr/local/bin`. Use `sudo` if needed.
+
+### install via cargo crates
+
+```
+$ cargo install -f cicada
+```
+
+This will install cicada into `~/.cargo/bin/`.
+
+### Set cicada as your login shell
+
+Appending `/usr/local/bin/cicada` into your `/etc/shells`, then run
+```
+$ chsh -s /usr/local/bin/cicada
 ```
 
 ## To do list
