@@ -110,7 +110,8 @@ pub fn do_command_substitution(line: &mut String) {
             if let Some(x) = output {
                 match String::from_utf8(x.stdout) {
                     Ok(stdout) => {
-                        result.push(wrap_sep_string(sep, stdout));
+                        let _txt = wrap_sep_string(sep, stdout.trim().to_string());
+                        result.push(_txt);
                     }
                     Err(_) => {
                         println_stderr("cicada: from_utf8 error");

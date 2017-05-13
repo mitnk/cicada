@@ -5,7 +5,6 @@
 
 A simple, semi-toy Unix shell written in Rust.
 
-
 ## Install Cicada Shell
 
 Note: [Rust environment](https://rustup.rs/) is needed for installation.
@@ -44,35 +43,53 @@ Appending `/usr/local/bin/cicada` into your `/etc/shells`, then run
 $ chsh -s /usr/local/bin/cicada
 ```
 
-## Usage (Features so far)
+## Features so far
+
+### run programs and pipelines
 
 ```
-# run programs
-$ ls
+$ ls | head -n3
 Desktop
 Documents
 Downloads
-Dropbox
-Movies
-Music
 
-# with pipeline
 $ echo foo bar | awk -F " " '{print $2, $1}'
-the 70
-of 40
-a 27
-is 27
-and 24
-are 21
-in 21
-to 21
+bar foo
+```
 
-# with redirections
+### with redirections
+
+```
 $ ls file-not-exist 2>&1 | wc > e.txt
 $ cat e.txt
        1       7      46
+```
 
-# do math arithmetic
+### command substitution
+
+```
+$ ls -l `which sh`
+-r-xr-xr-x  1 root  wheel  630464 Mar 23 07:57 /bin/sh
+```
+
+### run multiple commands (with logical)
+
+```
+$ echo foo; echo bar
+foo
+bar
+
+$ echo foo && echo bar
+foo
+bar
+
+$ echo foo || echo bar
+foo
+```
+
+### do math arithmetic directly in the shell!
+
+```
 $ 1 + 2 * 3 - 4
 3
 $ (1 + 2) * (3 - 4) / 8.0
