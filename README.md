@@ -3,7 +3,8 @@
 [![Travis Build Status](https://api.travis-ci.org/mitnk/cicada.svg?branch=master)](https://travis-ci.org/mitnk/cicada)
 [![Latest Version](https://img.shields.io/crates/v/cicada.svg)](https://crates.io/crates/cicada)
 
-A simple, semi-toy Unix shell written in Rust.
+A simple, semi-toy Unix shell written in Rust. And I use it as my default
+login shell.
 
 ## Install Cicada Shell
 
@@ -101,16 +102,10 @@ $ (1 + 2) * (3 - 4) / 8.0
 Cicada use RC file: "~/.cicadarc". Currently only support ENVs and aliases:
 
 ```
-# A sample RC file
+# A sample of RC file
 export RUST_BACKTRACE='full'
-export LESS="-R"
 export COPYFILE_DISABLE=1
-
 export PATH="/usr/local/bin:$PATH"
-
-# specify the history file,
-# its default path is "~/.local/share/cicada/history.sqlite"
-export HISTORY_FILE=/Users/mitnk/.local/share/xonsh/xonsh-history.sqlite
 
 alias ls="ls -G"
 alias ll="ls -lh"
@@ -118,9 +113,9 @@ alias ll="ls -lh"
 
 ## Completions
 
-Cicada currently only support simplifed completion. It uses YAML files
-to define two level completion. Put your completion files under
-`~/.cicada/completers/`. And the completion files look like this:
+Path completion is available out of box. In addition to this, cicada also
+supports simplifed customized completion using YAML file. Put your completion
+files under `~/.cicada/completers/`. The completion files look like this:
 
 ```
 $ ls ~/.cicada/completers/
@@ -182,8 +177,3 @@ $ pip install --requirement
 - functions
 - Windows support
 - and more...
-
-## Related projects
-
-- [xonsh](https://github.com/xonsh/xonsh) - A python-powered, cross-platform,
-Unix-gazing shell.
