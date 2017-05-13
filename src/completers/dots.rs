@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::path::Path;
 
 use linefeed::Reader;
@@ -70,7 +70,7 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
             docs = x;
         }
         Err(_) => {
-            tools::println_stderr(format!("\ncicada: Bad Yaml file: {}?", dot_file).as_str());
+            println_stderr!("\ncicada: Bad Yaml file: {}?", dot_file);
             return res;
         }
     }

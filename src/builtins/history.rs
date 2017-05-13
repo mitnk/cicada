@@ -1,17 +1,17 @@
+use std::io::Write;
 use std::path::Path;
 
 use sqlite;
 use sqlite::State;
 
 use history;
-use tools;
 
 pub fn run(args: Vec<String>) -> i32 {
 
     let hfile = history::get_history_file();
     let path = Path::new(hfile.as_str());
     if !path.exists() {
-        tools::println_stderr("no history file.");
+        println_stderr!("no history file.");
         return 1;
     }
 
@@ -22,10 +22,10 @@ pub fn run(args: Vec<String>) -> i32 {
         else if args.len() == 2 {
             search_history(conn, args[1].clone());
         } else {
-            tools::println_stderr("history: only take one arg");
+            println_stderr!("history: only take one arg");
         }
     } else {
-        tools::println_stderr("history: history file open error.");
+        println_stderr!("history: history file open error.");
         return 1;
     }
     return 0;
@@ -46,7 +46,7 @@ fn list_current_history(conn: sqlite::Connection) -> i32 {
             }
         }
         Err(e) => {
-            tools::println_stderr(format!("history: prepare error - {:?}", e).as_str());
+            println_stderr!("history: prepare error - {:?}", e);
             return 1;
         }
     }
@@ -71,7 +71,7 @@ fn search_history(conn: sqlite::Connection, q: String) {
             }
         }
         Err(e) => {
-            tools::println_stderr(format!("history: prepare error - {:?}", e).as_str());
+            println_stderr!("history: prepare error - {:?}", e);
         }
     }
 }

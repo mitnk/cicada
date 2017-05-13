@@ -1,7 +1,7 @@
 use std::error::Error as STDError;
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::io::Error;
+use std::io::{Error, Write};
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::os::unix::process::CommandExt;
 use std::path::Path;
@@ -12,11 +12,11 @@ use nix::sys::signal;
 use nom::IResult;
 use libc;
 
+use tools;
 use builtins;
 use jobs;
 use parsers;
 use shell;
-use tools;
 
 extern "C" fn handle_sigchld(_: i32) {
     // When handle waitpid here & for commands like `ls | cmd-not-exist`
@@ -378,7 +378,7 @@ pub fn run_pipeline(args: Vec<String>,
                     p.stdout(file_out);
                 }
                 Err(e) => {
-                    tools::println_stderr(format!("cicada: redirect file create error - {:?}", e).as_str());
+                    println_stderr!("cicada: redirect file create error - {:?}", e);
                 }
             }
         }
@@ -414,7 +414,7 @@ pub fn run_pipeline(args: Vec<String>,
                         output = Some(x);
                     }
                     Err(e) => {
-                        tools::println_stderr(format!("cicada: {:?}", e).as_str());
+                        println_stderr!("cicada: {:?}", e);
                         output = None;
                     }
                 }

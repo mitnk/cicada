@@ -25,6 +25,8 @@ use linefeed::{Reader, ReadResult};
 
 use std::io::{self, Read};
 
+#[macro_use]
+mod tools;
 mod binds;
 mod builtins;
 mod completers;
@@ -35,7 +37,6 @@ mod parsers;
 mod history;
 mod rcfile;
 mod shell;
-mod tools;
 
 
 fn main() {

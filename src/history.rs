@@ -1,5 +1,6 @@
 use std::env;
 use std::fs;
+use std::io::Write;
 use std::path::Path;
 
 use linefeed::Reader;
@@ -33,8 +34,7 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
                     );
             ") {
                 Ok(_) => {}
-                Err(e) => tools::println_stderr(
-                    format!("cicada: sqlite exec error - {:?}", e).as_str())
+                Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e)
             }
             match conn.iterate("SELECT inp FROM xonsh_history ORDER BY tsb;",
                          |pairs| {
@@ -45,13 +45,11 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
                     true
             }) {
                 Ok(_) => {}
-                Err(e) => tools::println_stderr(
-                    format!("cicada: sqlite select error - {:?}", e).as_str())
+                Err(e) => println_stderr!("cicada: sqlite select error - {:?}", e)
             }
         }
         Err(e) => {
-            tools::println_stderr(
-                format!("cicada: sqlite conn error - {:?}", e).as_str());
+            println_stderr!("cicada: sqlite conn error - {:?}", e);
         }
     }
 }

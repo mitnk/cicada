@@ -1,4 +1,3 @@
-use std;
 use std::env;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -10,6 +9,20 @@ use shellexpand;
 use libc;
 use parsers;
 use execute;
+
+macro_rules! println_stderr {
+    ($fmt:expr) => (
+        writeln!(&mut ::std::io::stderr(), concat!($fmt, "\n"))
+            .expect("write to stderr failed");
+    );
+    ($fmt:expr, $($arg:tt)*) => (
+        writeln!(
+            &mut ::std::io::stderr(),
+            concat!($fmt, "\n"),
+            $($arg)*
+        ).expect("write to stderr failed");
+    );
+}
 
 pub fn rlog(s: String) {
     let mut file = OpenOptions::new()
@@ -114,12 +127,12 @@ pub fn do_command_substitution(line: &mut String) {
                         result.push(_txt);
                     }
                     Err(_) => {
-                        println_stderr("cicada: from_utf8 error");
+                        println_stderr!("cicada: from_utf8 error");
                         result.push(wrap_sep_string(sep, token));
                     }
                 }
             } else {
-                println_stderr("cicada: command error");
+                println_stderr!("cicada: command error");
                 result.push(wrap_sep_string(sep, token));
             }
         } else {
@@ -288,10 +301,6 @@ pub fn is_arithmetic(line: &str) -> bool {
         return false;
     }
     return re.is_match(line);
-}
-
-pub fn println_stderr(msg: &str) {
-    writeln!(&mut std::io::stderr(), "{}", msg).expect("write to stderr failed");
 }
 
 #[cfg(test)]
