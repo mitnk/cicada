@@ -1,9 +1,82 @@
-#[allow(dead_code)]
 pub fn parse_line(line: &str) -> Vec<String> {
     let mut result = Vec::new();
     let v = parse_args(line);
     for (_, r) in v {
         result.push(r);
+    }
+    return result;
+}
+
+pub fn parse_commands(line: &str) -> Vec<String> {
+    // Special characters: http://tldp.org/LDP/abs/html/special-chars.html
+    let mut result = Vec::new();
+    let mut sep = String::new();
+    let mut token = String::new();
+    let len = line.len();
+    for (i, c) in line.chars().enumerate() {
+        if c == '#' {
+            if sep.is_empty() {
+                break;
+            } else {
+                token.push(c);
+                continue;
+            }
+        }
+        if c == '\'' || c == '"' || c == '`' {
+            if sep.is_empty() {
+                sep.push(c);
+                token.push(c);
+                continue;
+            } else if sep == c.to_string() {
+                token.push(c);
+                sep = String::new();
+                continue;
+            } else {
+                token.push(c);
+                continue;
+            }
+        }
+        if c == '&' || c == '|' {
+            // needs watch ahead here
+            if sep.is_empty() && i + 1 <= len - 1 {
+                let c_next = line.chars().nth(i + 1).expect("chars nth error");
+                if c_next != c {
+                    token.push(c);
+                    continue;
+                }
+            }
+
+            if sep.is_empty() {
+                sep.push(c);
+                continue;
+            } else {
+                if c.to_string() == sep {
+                    result.push(token.trim().to_string());
+                    token = String::new();
+                    result.push(format!("{}{}", sep, sep));
+                    sep = String::new();
+                    continue;
+                } else {
+                    token.push(c);
+                    continue;
+                }
+            }
+        }
+        if c == ';' {
+            if sep.is_empty() {
+                result.push(token.trim().to_string());
+                result.push(String::from(";"));
+                token = String::new();
+                continue;
+            } else {
+                token.push(c);
+                continue;
+            }
+        }
+        token.push(c);
+    }
+    if !token.is_empty() {
+        result.push(token.trim().to_string());
     }
     return result;
 }
@@ -91,6 +164,7 @@ pub fn parse_args(line: &str) -> Vec<(String, String)> {
 mod tests {
     use super::parse_args;
     use super::parse_line;
+    use super::parse_commands;
 
     fn _assert_vec_tuple_eq(a: Vec<(String, String)>, b: Vec<(&str, &str)>) {
         assert_eq!(a.len(), b.len());
@@ -167,6 +241,29 @@ mod tests {
 
         for (left, right) in v {
             _assert_vec_str_eq(parse_line(left), right);
+        }
+    }
+
+    #[test]
+    fn test_parse_commands() {
+        let v = vec![
+            ("ls", vec!["ls"]),
+            ("ls -lh", vec!["ls -lh"]),
+            ("awk -F \" \" '{print $1}' README.md", vec!["awk -F \" \" '{print $1}' README.md"]),
+            ("ls | wc", vec!["ls | wc"]),
+            ("echo #foo; echo bar", vec!["echo"]),
+            ("echo foo; echo bar", vec!["echo foo", ";", "echo bar"]),
+            ("echo 'foo; echo bar'", vec!["echo 'foo; echo bar'"]),
+            ("echo \"foo; echo bar\"", vec!["echo \"foo; echo bar\""]),
+            ("echo `foo; echo bar`", vec!["echo `foo; echo bar`"]),
+            ("echo foo && echo bar", vec!["echo foo", "&&", "echo bar"]),
+            ("echo foo && echo bar && echo baz", vec!["echo foo", "&&", "echo bar", "&&", "echo baz"]),
+            ("echo foo || echo bar", vec!["echo foo", "||", "echo bar"]),
+            ("echo foo && echo bar; echo end", vec!["echo foo", "&&", "echo bar", ";", "echo end"]),
+        ];
+
+        for (left, right) in v {
+            _assert_vec_str_eq(parse_commands(left), right);
         }
     }
 }

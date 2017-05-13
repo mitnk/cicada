@@ -40,7 +40,7 @@ fn args_to_cmds(args: Vec<String>) -> Vec<Vec<String>> {
             if token == "" {
                 return Vec::new();
             }
-            cmd.push(token.trim().to_string());
+            cmd.push(token.clone());
         } else {
             if cmd.len() == 0 {
                 return Vec::new();
@@ -108,7 +108,25 @@ pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
         }
         return 0;
     }
+    let mut status = 0;
+    let mut sep = String::new();
+    for token in parsers::parser_line::parse_commands(line.as_str()) {
+        if token == ";" || token == "&&" || token == "||" {
+            sep = token.clone();
+            continue;
+        }
+        if sep == "&&" && status != 0 {
+            break;
+        }
+        if sep == "||" && status == 0 {
+            break;
+        }
+        status = run_proc(sh, token, tty);
+    }
+    return status;
+}
 
+pub fn run_proc(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
     let mut args = parsers::parser_line::parse_line(line.as_str());
     if args.len() == 0 {
         return 0;
@@ -128,6 +146,7 @@ pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
     if args[0] == "history" {
         return builtins::history::run(args);
     }
+
     // for any other situations
     let mut background = false;
     let mut len = args.len();
@@ -473,13 +492,24 @@ mod tests {
         }
 
         let s = vec![
-            String::from("  ls   "),
+            String::from("echo"),
+            String::from(" "),
+        ];
+        let result = args_to_cmds(s);
+        let expected = vec![vec!["echo".to_string(), " ".to_string()]];
+        assert_eq!(result.len(), expected.len());
+        for (i, item) in result.iter().enumerate() {
+            assert_eq!(*item, expected[i]);
+        }
+
+        let s = vec![
+            String::from("ls"),
             String::from("-lh"),
             String::from("|"),
-            String::from("wc  "),
+            String::from("wc"),
             String::from("-l"),
             String::from("|"),
-            String::from("  less"),
+            String::from("less"),
         ];
         let result = args_to_cmds(s);
         let expected = vec![

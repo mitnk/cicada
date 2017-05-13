@@ -57,7 +57,7 @@ Movies
 Music
 
 # with pipeline
-$ man awk | awk -F "[ ,.\"]+" '{for(i=1;i<=NF;i++)A[$i]++}END{for(k in A)print k, A[k]}' | sort -k2nr | head -n8
+$ echo foo bar | awk -F " " '{print $2, $1}'
 the 70
 of 40
 a 27
@@ -102,13 +102,30 @@ alias ll="ls -lh"
 ## Completions
 
 Cicada currently only support simplifed completion. It uses YAML files
-to define two level completion. Put your completion files under `~/.cicada/completers/`.
-And one completion file is like this:
+to define two level completion. Put your completion files under
+`~/.cicada/completers/`. And the completion files look like this:
 
 ```
 $ ls ~/.cicada/completers/
 brew.yaml git.yaml  pip.yaml  vox.yaml
 
+$ cat ~/.cicada/completers/brew.yaml
+- doctor
+- info
+- install
+- list
+- search
+- uninstall
+- update
+- upgrade
+
+$ brew u<Tab><Tab>
+uninstall  update  upgrade
+```
+
+Currently, cicada supports maximum 2 level completion:
+
+```
 $ cat ~/.cicada/completers/pip.yaml
 - install:
     - --force-reinstall
@@ -130,42 +147,24 @@ $ cat ~/.cicada/completers/pip.yaml
 - hash
 - completion
 - help
+
+$ pip ins<Tab>
+$ pip install
+
+$ pip install --re<Tab>
+$ pip install --requirement
 ```
-
-After define this file, you can complete `pip` with `$ pip ins<Tab>` to get
-`$ pip install`, and `$ pip install --re<Tab>` to get
-`$ pip install --requirement`.
-
-```
-$ cat ~/.cicada/completers/brew.yaml
-- doctor
-- info
-- install
-- list
-- search
-- uninstall
-- update
-- upgrade
-
-$ brew u<Tab><Tab>
-uninstall  update  upgrade
-```
-
 
 ## To do list
 
-- [Special characters](http://tldp.org/LDP/abs/html/special-chars.html)
-- [Shell](http://tldp.org/LDP/Bash-Beginners-Guide/html/sect_03_04.html) [expansion](http://wiki.bash-hackers.org/syntax/expansion/globs)
 - job controls (`Ctrl-Z`, `fg`, `bg` etc)
 - and less...
-
 
 ## Won't do list
 
 - functions
 - Windows support
 - and more...
-
 
 ## Related projects
 
