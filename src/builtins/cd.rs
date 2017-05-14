@@ -23,7 +23,7 @@ pub fn run(sh: &mut shell::Shell, args: Vec<String>) -> i32 {
             }
             dir_to = sh.previous_dir.clone();
         } else {
-            if !dir_to.starts_with("/") {
+            if !dir_to.starts_with('/') {
                 dir_to = format!("{}/{}", current_dir.to_string(), dir_to);
             }
         }

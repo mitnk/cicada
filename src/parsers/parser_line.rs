@@ -78,7 +78,7 @@ pub fn parse_commands(line: &str) -> Vec<String> {
     if !token.is_empty() {
         result.push(token.trim().to_string());
     }
-    return result;
+    result
 }
 
 pub fn parse_args(line: &str) -> Vec<(String, String)> {
@@ -125,9 +125,8 @@ pub fn parse_args(line: &str) -> Vec<(String, String)> {
                 result.push((String::from(""), token));
                 token = String::new();
                 continue;
-            } else {
-                continue;
             }
+            continue;
         }
         if c == '\'' || c == '"' || c == '`' {
             if has_backslash {
@@ -157,7 +156,7 @@ pub fn parse_args(line: &str) -> Vec<(String, String)> {
     if !token.is_empty() {
         result.push((String::from(""), token));
     }
-    return result;
+    result
 }
 
 #[cfg(test)]

@@ -5,13 +5,10 @@ use std::path::Path;
 use tools;
 
 fn in_env() -> bool {
-    match env::var("VIRTUAL_ENV") {
-        Ok(x) => {
-            if x != "" {
-                return true;
-            }
+    if let Ok(x) = env::var("VIRTUAL_ENV") {
+        if x != "" {
+            return true;
         }
-        Err(_) => {}
     }
     return false;
 }
@@ -58,7 +55,7 @@ fn list_envs() -> i32 {
     return 0;
 }
 
-fn enter_env(path: String) -> i32 {
+fn enter_env(path: &str) -> i32 {
     if in_env() {
         println!("vox: already in env");
         return 1;
@@ -83,7 +80,7 @@ fn exit_env() -> i32 {
         return 0;
     }
     let env_path = env::var("PATH").expect("vox: env error");
-    let mut _tokens: Vec<&str> = env_path.split(":").collect();
+    let mut _tokens: Vec<&str> = env_path.split(':').collect();
     let mut path_virtual_env = String::from("${VIRTUAL_ENV}/bin");
     tools::extend_env(&mut path_virtual_env);
     _tokens.iter().position(|&n| n == path_virtual_env).map(|e| _tokens.remove(e));
@@ -98,7 +95,7 @@ pub fn run(args: Vec<String>) -> i32 {
         return list_envs();
     }
     else if args.len() == 3 && args[1] == "enter" {
-        return enter_env(args[2].clone());
+        return enter_env(args[2].as_str());
     }
     else if args.len() == 2 && args[1] == "exit" {
         return exit_env();

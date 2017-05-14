@@ -108,7 +108,7 @@ fn complete_bin(path: &str) -> Vec<Completion> {
     let (_, fname) = split_path(path);
 
     let env_path = env::var("PATH").expect("cicada: env error");
-    let vec_path: Vec<&str> = env_path.split(":").collect();
+    let vec_path: Vec<&str> = env_path.split(':').collect();
     let path_list: HashSet<&str> = HashSet::from_iter(vec_path.iter().cloned());
 
     let mut res = Vec::new();

@@ -29,6 +29,6 @@ impl Shell {
                 result = name.to_string();
             }
         }
-        return result;
+        result
     }
 }

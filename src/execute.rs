@@ -42,14 +42,14 @@ fn args_to_cmds(args: Vec<String>) -> Vec<Vec<String>> {
             }
             cmd.push(token.clone());
         } else {
-            if cmd.len() == 0 {
+            if cmd.is_empty() {
                 return Vec::new();
             }
             cmds.push(cmd.clone());
             cmd = Vec::new();
         }
     }
-    if cmd.len() == 0 {
+    if cmd.is_empty() {
         return Vec::new();
     }
     cmds.push(cmd.clone());
@@ -74,12 +74,12 @@ fn args_to_redirections(args: Vec<String>) -> (Vec<String>, Vec<i32>) {
     }
     vec_redirected.push(redirected_to);
 
-    while args_new.iter().position(|x| *x == "2>&1").is_some() {
+    while args_new.iter().any(|x| *x == "2>&1") {
         if let Some(index) = args_new.iter().position(|x| *x == "2>&1") {
             args_new.remove(index);
         }
     }
-    while args_new.iter().position(|x| *x == "1>&2").is_some() {
+    while args_new.iter().any(|x| *x == "1>&2") {
         if let Some(index) = args_new.iter().position(|x| *x == "1>&2") {
             args_new.remove(index);
         }
@@ -87,9 +87,9 @@ fn args_to_redirections(args: Vec<String>) -> (Vec<String>, Vec<i32>) {
     (args_new, vec_redirected)
 }
 
-pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
-    if tools::is_arithmetic(line.as_str()) {
-        if line.contains(".") {
+pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
+    if tools::is_arithmetic(line) {
+        if line.contains('.') {
             match parsers::parser_float::expr_float(line.as_bytes()) {
                 IResult::Done(_, x) => {
                     println!("{:?}", x);
@@ -110,7 +110,7 @@ pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
     }
     let mut status = 0;
     let mut sep = String::new();
-    for token in parsers::parser_line::parse_commands(line.as_str()) {
+    for token in parsers::parser_line::parse_commands(line) {
         if token == ";" || token == "&&" || token == "||" {
             sep = token.clone();
             continue;
@@ -121,14 +121,14 @@ pub fn run_procs(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
         if sep == "||" && status == 0 {
             break;
         }
-        status = run_proc(sh, token, tty);
+        status = run_proc(sh, token.as_str(), tty);
     }
     return status;
 }
 
-pub fn run_proc(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
-    let mut args = parsers::parser_line::parse_line(line.as_str());
-    if args.len() == 0 {
+pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
+    let mut args = parsers::parser_line::parse_line(line);
+    if args.is_empty() {
         return 0;
     }
     extend_alias(sh, &mut args);
@@ -138,7 +138,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
         return builtins::cd::run(sh, args);
     }
     if args[0] == "export" {
-        return builtins::export::run(line.as_str());
+        return builtins::export::run(line);
     }
     if args[0] == "vox" {
         return builtins::vox::run(args);
@@ -172,7 +172,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
             }
         }
     }
-    if len <= 0 {
+    if len == 0 {
         return 0;
     }
 
@@ -194,7 +194,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
             jobs::give_terminal_to(gid);
         }
     }
-    return result;
+    result
 }
 
 fn extend_alias(sh: &mut shell::Shell, args: &mut Vec<String>) {
@@ -457,7 +457,7 @@ pub fn run_pipeline(args: Vec<String>,
         }
         i += 1;
     }
-    return(status, term_given, output);
+    (status, term_given, output)
 }
 
 

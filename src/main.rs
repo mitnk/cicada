@@ -49,7 +49,7 @@ fn main() {
 
     if env::args().len() > 1 {
         let line = tools::env_args_to_command_line();
-        execute::run_procs(&mut sh, line, false);
+        execute::run_procs(&mut sh, line.as_str(), false);
         return;
     }
 
@@ -60,7 +60,7 @@ fn main() {
         let stdin = io::stdin();
         let mut handle = stdin.lock();
         handle.read_to_string(&mut buffer).expect("read to str error");
-        execute::run_procs(&mut sh, buffer, false);
+        execute::run_procs(&mut sh, buffer.as_str(), false);
         return;
     }
 
@@ -102,7 +102,7 @@ fn main() {
                 let tsb_spec = time::get_time();
                 let tsb = (tsb_spec.sec as f64) + tsb_spec.nsec as f64 / 1000000000.0;
                 tools::pre_handle_cmd_line(&mut cmd);
-                status = execute::run_procs(&mut sh, cmd, true);
+                status = execute::run_procs(&mut sh, cmd.as_str(), true);
                 let tse_spec = time::get_time();
                 let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1000000000.0;
                 history::add(&mut sh, &mut rl, line.as_str(), status, tsb, tse);

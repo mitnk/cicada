@@ -33,5 +33,5 @@ pub unsafe fn give_terminal_to(gid: i32) -> bool {
     if rcode != 0 {
         log!("failed to call pthread_sigmask");
     }
-    return given;
+    given
 }

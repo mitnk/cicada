@@ -45,26 +45,25 @@ macro_rules! log {
 }
 
 pub fn get_user_home() -> String {
-    let home = env::var("HOME").expect("cicada: env HOME error");
-    return home;
+    env::var("HOME").expect("cicada: env HOME error")
 }
 
 pub fn get_user_completer_dir() -> String {
     let home = get_user_home();
-    return format!("{}/.cicada/completers", home);
+    format!("{}/.cicada/completers", home)
 }
 
 pub fn get_rc_file() -> String {
     let home = get_user_home();
-    return format!("{}/{}", home, ".cicadarc");
+    format!("{}/{}", home, ".cicadarc")
 }
 
 pub fn unquote(s: &str) -> String {
     let args = parsers::parser_line::parse_line(s);
-    if args.len() == 0 {
+    if args.is_empty() {
         return String::new();
     }
-    return args[0].clone();
+    args[0].clone()
 }
 
 pub fn is_env(line: &str) -> bool {
@@ -74,7 +73,7 @@ pub fn is_env(line: &str) -> bool {
     } else {
         return false;
     }
-    return re.is_match(line);
+    re.is_match(line)
 }
 
 pub fn extend_home(s: &mut String) {
@@ -106,7 +105,7 @@ pub fn needs_extend_home(line: &str) -> bool {
     } else {
         return false;
     }
-    return re.is_match(line);
+    re.is_match(line)
 }
 
 pub fn wrap_sep_string(sep: String, s: String) -> String {
@@ -117,7 +116,7 @@ pub fn wrap_sep_string(sep: String, s: String) -> String {
         }
         _token.push(c);
     }
-    return format!("{}{}{}", sep, _token, sep);
+    format!("{}{}{}", sep, _token, sep)
 }
 
 pub fn do_command_substitution(line: &mut String) {
@@ -184,16 +183,16 @@ fn needs_globbing(line: &str) -> bool {
     } else {
         return false;
     }
-    return re.is_match(line);
+    re.is_match(line)
 }
 
 fn extend_glob(line: &mut String) {
     let _line = line.clone();
     // XXX: spliting needs to consider cases like `echo 'a * b'`
-    let _tokens: Vec<&str> = _line.split(" ").collect();
+    let _tokens: Vec<&str> = _line.split(' ').collect();
     let mut result: Vec<String> = Vec::new();
     for item in &_tokens {
-        if item.trim().starts_with("'") || item.trim().starts_with("\"") {
+        if item.trim().starts_with('\'') || item.trim().starts_with('"') {
             result.push(item.to_string());
         } else {
             match glob::glob(item) {
@@ -203,7 +202,7 @@ fn extend_glob(line: &mut String) {
                         match entry {
                             Ok(path) => {
                                 let s = path.to_string_lossy();
-                                if s.starts_with(".") {
+                                if s.starts_with('.') {
                                     continue;
                                 }
                                 result.push(s.into_owned());
@@ -251,7 +250,7 @@ pub fn env_args_to_command_line() -> String {
         }
         result.push_str(arg.as_str());
     }
-    return result;
+    result
 }
 
 pub fn is_alias(line: &str) -> bool {
@@ -261,7 +260,7 @@ pub fn is_alias(line: &str) -> bool {
     } else {
         return false;
     }
-    return re.is_match(line);
+    re.is_match(line)
 }
 
 extern {
@@ -309,7 +308,7 @@ pub fn is_arithmetic(line: &str) -> bool {
         println!("regex error for arithmetic");
         return false;
     }
-    return re.is_match(line);
+    re.is_match(line)
 }
 
 #[cfg(test)]

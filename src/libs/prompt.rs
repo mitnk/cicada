@@ -8,7 +8,7 @@ pub fn get_prompt(status: i32) -> String {
     let hostname = tools::get_hostname();
     let _current_dir = env::current_dir().expect("cicada: env current_dir error");
     let current_dir = _current_dir.to_str().expect("cicada: to_str error");
-    let _tokens: Vec<&str> = current_dir.split("/").collect();
+    let _tokens: Vec<&str> = current_dir.split('/').collect();
 
     let last = _tokens.last().expect("cicada: prompt token last error");
     let pwd: String;
@@ -31,15 +31,12 @@ pub fn get_prompt(status: i32) -> String {
                 libs::colored::red(hostname.as_str()),
                 libs::colored::red(pwd.as_str()))
     };
-    match env::var("VIRTUAL_ENV") {
-        Ok(x) => {
-            if x != "" {
-                let _tokens: Vec<&str> = x.split("/").collect();
-                let env_name = _tokens.last().expect("prompt token last error");
-                prompt = format!("({}){}", libs::colored::green(env_name), prompt);
-            }
+    if let Ok(x) = env::var("VIRTUAL_ENV") {
+        if x != "" {
+            let _tokens: Vec<&str> = x.split('/').collect();
+            let env_name = _tokens.last().expect("prompt token last error");
+            prompt = format!("({}){}", libs::colored::green(env_name), prompt);
         }
-        Err(_) => {}
     }
     prompt
 }

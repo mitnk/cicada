@@ -20,7 +20,7 @@ fn for_bin(line: &str) -> bool {
     } else {
         return false;
     }
-    return re.is_match(line);
+    re.is_match(line)
 }
 
 fn for_dots(line: &str) -> bool {
@@ -31,7 +31,7 @@ fn for_dots(line: &str) -> bool {
     }
     let dir = tools::get_user_completer_dir();
     let dot_file = format!("{}/{}.yaml", dir, args[0]);
-    return Path::new(dot_file.as_str()).exists()
+    Path::new(dot_file.as_str()).exists()
 }
 
 impl<Term: Terminal> Completer<Term> for CCDCompleter {
@@ -44,16 +44,13 @@ impl<Term: Terminal> Completer<Term> for CCDCompleter {
         }
         if for_dots(line) {
             let cpl = Rc::new(dots::DotsCompleter);
-            match cpl.complete(word, reader, start, _end) {
-                Some(x) => {
-                    if x.len() > 0 {
-                        return Some(x);
-                    }
+            if let Some(x) = cpl.complete(word, reader, start, _end) {
+                if !x.is_empty() {
+                    return Some(x);
                 }
-                None => {}
             }
         }
         let cpl = Rc::new(path::PathCompleter);
-        return cpl.complete(word, reader, start, _end);
+        cpl.complete(word, reader, start, _end)
     }
 }
