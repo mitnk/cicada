@@ -12,7 +12,7 @@ use nix::sys::signal;
 use nom::IResult;
 use libc;
 
-use tools;
+use tools::{self, rlog};
 use builtins;
 use jobs;
 use parsers;
@@ -190,7 +190,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: String, tty: bool) -> i32 {
     if term_given {
         unsafe {
             let gid = libc::getpgid(0);
-            tools::rlog(format!("try return term to {}\n", gid));
+            log!("try return term to {}", gid);
             jobs::give_terminal_to(gid);
         }
     }
@@ -266,7 +266,7 @@ pub fn run_pipeline(args: Vec<String>,
         println!("cicada: invalid command");
         return (1, false, None);
     }
-    tools::rlog(format!("needs pipes count: {}\n", pipes.len()));
+    log!("needs pipes count: {}", pipes.len());
 
     let mut info = String::from("run: ");
     for cmd in &cmds {
@@ -277,8 +277,7 @@ pub fn run_pipeline(args: Vec<String>,
     }
     info.pop().expect("cicada: debug pop error");
     info.pop().expect("cicada: debug pop error");
-    info.push_str("\n");
-    tools::rlog(info);
+    log!("{}", info);
 
     let isatty = if tty { unsafe { libc::isatty(0) == 1 } } else { false };
     let mut i = 0;
@@ -299,10 +298,10 @@ pub fn run_pipeline(args: Vec<String>,
                         // set the first process as progress group leader
                         let pid = libc::getpid();
                         libc::setpgid(0, pid);
-                        tools::rlog(format!("set self as pgroup lead {}\n", pid));
+                        log!("set self as pgroup lead {}", pid);
                     } else {
                         libc::setpgid(0, pgid as i32);
-                        tools::rlog(format!("set pgroup to {}\n", pgid));
+                        log!("set pgroup to {}", pgid);
                     }
                 }
                 Ok(())
@@ -401,13 +400,13 @@ pub fn run_pipeline(args: Vec<String>,
         if isatty && !background && i == 0 {
             pgid = child.id();
             unsafe {
-                tools::rlog(format!("try give term to {} [{}]\n", program, pgid));
+                log!("try give term to {} [{}]", program, pgid);
                 term_given = jobs::give_terminal_to(pgid as i32);
             }
         }
 
         if !background && i == length - 1 {
-            tools::rlog(format!("waiting pid {}: {}\n", child.id(), program));
+            log!("waiting pid {}: {}", child.id(), program);
             if capture_stdout {
                 match child.wait_with_output() {
                     Ok(x) => {
@@ -451,7 +450,7 @@ pub fn run_pipeline(args: Vec<String>,
                 unsafe {
                     let mut stat: i32 = 0;
                     let ptr: *mut i32 = &mut stat;
-                    tools::rlog(format!("waiting pid {}\n", pid));
+                    log!("waiting pid {}", pid);
                     libc::waitpid(*pid as i32, ptr, 0);
                 }
             }

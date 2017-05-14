@@ -35,6 +35,15 @@ pub fn rlog(s: String) {
     file.write_all(s.as_bytes()).expect("rlog: write_all failed");
 }
 
+macro_rules! log {
+    ($fmt:expr) => (
+        rlog(format!(concat!($fmt, "\n")));
+    );
+    ($fmt:expr, $($arg:tt)*) => (
+        rlog(format!(concat!($fmt, "\n"), $($arg)*));
+    );
+}
+
 pub fn get_user_home() -> String {
     let home = env::var("HOME").expect("cicada: env HOME error");
     return home;
