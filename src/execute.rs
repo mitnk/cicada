@@ -150,12 +150,10 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     // for any other situations
     let mut background = false;
     let mut len = args.len();
-    if len > 1 {
-        if args[len - 1] == "&" {
-            args.pop().expect("args pop error");
-            background = true;
-            len -= 1;
-        }
+    if len > 1 && args[len - 1] == "&" {
+        args.pop().expect("args pop error");
+        background = true;
+        len -= 1;
     }
     let mut redirect_from = String::new();
     let has_redirect_from = args.iter().any(|x| x == "<");

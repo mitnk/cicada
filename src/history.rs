@@ -57,13 +57,11 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
 pub fn get_history_file() -> String {
     if let Ok(hfile) = env::var("HISTORY_FILE") {
         return hfile;
+    } else if let Ok(d) = env::var("XDG_DATA_HOME") {
+        return format!("{}/{}", d, "cicada/history.sqlite");
     } else {
-        if let Ok(d) = env::var("XDG_DATA_HOME") {
-            return format!("{}/{}", d, "cicada/history.sqlite");
-        } else {
-            let home = tools::get_user_home();
-            return format!("{}/{}", home, ".local/share/cicada/history.sqlite");
-        }
+        let home = tools::get_user_home();
+        return format!("{}/{}", home, ".local/share/cicada/history.sqlite");
     }
 }
 

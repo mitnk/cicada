@@ -49,17 +49,15 @@ pub fn parse_commands(line: &str) -> Vec<String> {
             if sep.is_empty() {
                 sep.push(c);
                 continue;
+            } else if c.to_string() == sep {
+                result.push(token.trim().to_string());
+                token = String::new();
+                result.push(format!("{}{}", sep, sep));
+                sep = String::new();
+                continue;
             } else {
-                if c.to_string() == sep {
-                    result.push(token.trim().to_string());
-                    token = String::new();
-                    result.push(format!("{}{}", sep, sep));
-                    sep = String::new();
-                    continue;
-                } else {
-                    token.push(c);
-                    continue;
-                }
+                token.push(c);
+                continue;
             }
         }
         if c == ';' {
