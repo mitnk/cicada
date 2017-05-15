@@ -1,6 +1,6 @@
 [package]
 name = "cicada"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Hugo Wang <w@mitnk.com>"]
 
 description = "A simple Unix shell."
@@ -13,7 +13,7 @@ license = "MIT"
 linefeed = "0.2.0"
 libc = "0.2.0"
 errno = "0.2.0"
-nom = "2.1.0"
+nom = "^3.0"
 regex = "0.2.0"
 nix = "0.8.0"
 sqlite = "0.23.0"

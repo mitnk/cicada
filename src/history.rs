@@ -11,7 +11,15 @@ use tools;
 use shell;
 
 pub fn init(rl: &mut Reader<DefaultTerminal>) {
-    rl.set_history_size(9999);  // make it bigger but not huge
+    let mut hist_size: usize = 9999;  // make default bigger but not huge
+    if let Ok(x) = env::var("HISTORY_SIZE") {
+        if let Ok(y) = x.parse::<usize>() {
+            hist_size = y;
+        }
+    }
+    rl.set_history_size(hist_size);
+
+    let history_table = get_history_table();
     let hfile = get_history_file();
     let path = Path::new(hfile.as_str());
     if !path.exists() {
@@ -22,8 +30,8 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
     }
     match sqlite::open(hfile.clone()) {
         Ok(conn) => {
-            match conn.execute("
-                CREATE TABLE IF NOT EXISTS xonsh_history
+            let sql_create = format!("
+                CREATE TABLE IF NOT EXISTS {}
                     (inp TEXT,
                      rtn INTEGER,
                      tsb REAL,
@@ -32,17 +40,21 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
                      out TEXT,
                      info TEXT
                     );
-            ") {
+            ", history_table);
+            match conn.execute(sql_create) {
                 Ok(_) => {}
                 Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e)
             }
-            match conn.iterate("SELECT inp FROM xonsh_history ORDER BY tsb;",
-                         |pairs| {
-                    for &(_, value) in pairs.iter() {
-                        let inp = value.expect("cicada: sqlite pairs error");
-                        rl.add_history(inp.trim().to_string());
-                    }
-                    true
+            let sql_select = format!(
+                "SELECT inp FROM {} ORDER BY tsb;",
+                history_table,
+            );
+            match conn.iterate(sql_select, |pairs| {
+                for &(_, value) in pairs.iter() {
+                    let inp = value.expect("cicada: sqlite pairs error");
+                    rl.add_history(inp.trim().to_string());
+                }
+                true
             }) {
                 Ok(_) => {}
                 Err(e) => println_stderr!("cicada: sqlite select error - {:?}", e)
@@ -65,6 +77,14 @@ pub fn get_history_file() -> String {
     }
 }
 
+pub fn get_history_table() -> String {
+    if let Ok(hfile) = env::var("HISTORY_TABLE") {
+        return hfile;
+    } else {
+        return String::from("cicada_history");
+    }
+}
+
 pub fn add(sh: &mut shell::Shell, rl: &mut Reader<DefaultTerminal>, line: &str, status: i32, tsb: f64, tse: f64) {
     rl.add_history(line.to_string());
     if line == sh.previous_cmd {
@@ -73,10 +93,12 @@ pub fn add(sh: &mut shell::Shell, rl: &mut Reader<DefaultTerminal>, line: &str, 
 
     sh.previous_cmd = line.to_string();
     let hfile = get_history_file();
+    let history_table = get_history_table();
     let conn = sqlite::open(hfile).expect("sqlite open error");
     let sql = format!("INSERT INTO \
-        xonsh_history (inp, rtn, tsb, tse, sessionid) \
+        {} (inp, rtn, tsb, tse, sessionid) \
         VALUES('{}', {}, {}, {}, '{}');",
+        history_table,
         str::replace(line.trim(), "'", "''"),
         status, tsb, tse, "cicada");
     match conn.execute(sql) {

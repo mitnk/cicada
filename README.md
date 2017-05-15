@@ -129,6 +129,20 @@ $ pip install --re<Tab>
 $ pip install --requirement
 ```
 
+## History
+
+Shell history items are stored with sqlite database. Like bash, you can use
+`Ctrl-R`, `Ctrl-P`, `Ctrl-N`, `Arrow-UP`, `Arrow-DOWN` keys to access history.
+
+You can modify the settings of history related value in `~/.cicadarc`. These
+values on the right side are the default ones.
+
+```
+export HISTORY_FILE="~/.local/share/cicada/history.sqlite"
+export HISTORY_SIZE=9999
+export HISTORY_TABLE="cicada_history"
+```
+
 ## Install Cicada
 
 Note: [Rust environment](https://rustup.rs/) is needed for installation.

@@ -7,7 +7,6 @@ use sqlite::State;
 use history;
 
 pub fn run(args: Vec<String>) -> i32 {
-
     let hfile = history::get_history_file();
     let path = Path::new(hfile.as_str());
     if !path.exists() {
@@ -32,7 +31,8 @@ pub fn run(args: Vec<String>) -> i32 {
 }
 
 fn list_current_history(conn: &sqlite::Connection) -> i32 {
-    let q = "SELECT inp FROM xonsh_history ORDER BY tsb desc limit 10;";
+    let history_table = history::get_history_table();
+    let q = format!("SELECT inp FROM {} ORDER BY tsb desc limit 10;", history_table);
     match conn.prepare(q) {
         Ok(mut statement) => {
             let mut vec = Vec::new();
@@ -54,9 +54,11 @@ fn list_current_history(conn: &sqlite::Connection) -> i32 {
 }
 
 fn search_history(conn: &sqlite::Connection, q: &str) {
-    let q = format!("SELECT inp FROM xonsh_history
+    let history_table = history::get_history_table();
+    let q = format!("SELECT inp FROM {}
                      WHERE inp like '%{}%'
-                     ORDER BY tsb desc limit 20;", q);
+                     ORDER BY tsb desc limit 20;",
+                    history_table, q);
     match conn.prepare(q) {
         Ok(mut statement) => {
             let mut vec = Vec::new();
