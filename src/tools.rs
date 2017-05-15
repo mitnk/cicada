@@ -76,6 +76,16 @@ pub fn is_env(line: &str) -> bool {
     re.is_match(line)
 }
 
+fn should_extend_brace(line: &str) -> bool {
+    let re;
+    if let Ok(x) = Regex::new(r"\{.*,.*\}") {
+        re = x;
+    } else {
+        return false;
+    }
+    re.is_match(line)
+}
+
 pub fn extend_home(s: &mut String) {
     let v = vec![
         r"(?P<head> +)~(?P<tail> +)",
@@ -143,6 +153,58 @@ pub fn do_command_substitution(line: &mut String) {
                 println_stderr!("cicada: command error");
                 result.push(wrap_sep_string(sep, token));
             }
+        } else {
+            result.push(wrap_sep_string(sep, token));
+        }
+    }
+    *line = result.join(" ");
+}
+
+pub fn do_brace_expansion(line: &mut String) {
+    let _line = line.clone();
+    let args = parsers::parser_line::parse_args(_line.as_str());
+    let mut result: Vec<String> = Vec::new();
+    for (sep, token) in args {
+        if sep.is_empty() && should_extend_brace(token.as_str()) {
+            let mut _prefix = String::new();
+            let mut _token = String::new();
+            let mut _result = Vec::new();
+            let mut only_tail_left = false;
+            let mut start_sign_found = false;
+            for c in token.chars() {
+                if c == '{' {
+                    start_sign_found = true;
+                    continue;
+                }
+                if !start_sign_found {
+                    _prefix.push(c);
+                    continue;
+                }
+                if only_tail_left {
+                    _token.push(c);
+                    continue;
+                }
+                if c == '}' {
+                    if !_token.is_empty() {
+                        _result.push(_token);
+                        _token = String::new();
+                    }
+                    only_tail_left = true;
+                    continue;
+                }
+                if c == ',' {
+                    if !_token.is_empty() {
+                        _result.push(_token);
+                        _token = String::new();
+                    }
+                } else {
+                    _token.push(c);
+                }
+            }
+            for item in &mut _result {
+                *item = format!("{}{}{}", _prefix, item, _token);
+            }
+            result.push(wrap_sep_string(sep, _result.join(" ")));
         } else {
             result.push(wrap_sep_string(sep, token));
         }
@@ -236,6 +298,7 @@ pub fn pre_handle_cmd_line(line: &mut String) {
     }
     extend_env(line);
     do_command_substitution(line);
+    do_brace_expansion(line);
 }
 
 pub fn env_args_to_command_line() -> String {
@@ -317,6 +380,7 @@ mod tests {
     use super::needs_globbing;
     use super::is_alias;
     use super::extend_env;
+    use super::do_brace_expansion;
 
     #[test]
     fn dots_test() {
@@ -356,5 +420,20 @@ mod tests {
         let mut s = String::from("echo '\\\''");
         extend_env(&mut s);
         assert_eq!(s, "echo '\\\''");
+    }
+
+    #[test]
+    fn test_do_brace_expansion() {
+        let mut s = String::from("echo {foo,bar,baz}.txt");
+        do_brace_expansion(&mut s);
+        assert_eq!(s, "echo foo.txt bar.txt baz.txt");
+
+        let mut s = String::from("echo foo.{txt,py}");
+        do_brace_expansion(&mut s);
+        assert_eq!(s, "echo foo.txt foo.py");
+
+        let mut s = String::from("echo foo.{cpp,py}.txt");
+        do_brace_expansion(&mut s);
+        assert_eq!(s, "echo foo.cpp.txt foo.py.txt");
     }
 }
