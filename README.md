@@ -1,4 +1,4 @@
-# Cicada Shell
+# Cicada Unix Shell
 
 [![Travis Build Status](https://api.travis-ci.org/mitnk/cicada.svg?branch=master)](https://travis-ci.org/mitnk/cicada)
 [![Latest Version](https://img.shields.io/crates/v/cicada.svg)](https://crates.io/crates/cicada)
@@ -48,6 +48,19 @@ bar
 
 $ echo foo || echo bar
 foo
+```
+
+### shell expansions
+
+```
+$ echo sp{el,il,al}l
+spell spill spall
+
+$ echo $SHELL
+/usr/local/bin/cicada
+
+$ echo *
+Cargo.lock Cargo.toml LICENSE Makefile README.md src target
 ```
 
 ### do math arithmetic directly in the shell!
