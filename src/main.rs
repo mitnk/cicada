@@ -78,6 +78,8 @@ fn main() {
 
     rl.define_function("up-key-function", Rc::new(binds::UpKeyFunction));
     rl.bind_sequence(binds::SEQ_UP_KEY, Command::from_str("up-key-function"));
+    rl.define_function("down-key-function", Rc::new(binds::DownKeyFunction));
+    rl.bind_sequence(binds::SEQ_DOWN_KEY, Command::from_str("down-key-function"));
 
     let mut status = 0;
     loop {

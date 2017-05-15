@@ -10,14 +10,14 @@ categories = ["command-line-utilities", "command-line-interface", "development-t
 license = "MIT"
 
 [dependencies]
-linefeed = "0.2"
+linefeed = "0.2.0"
 libc = "0.2.0"
 errno = "0.2.0"
-nom = "2.1"
-regex = "0.2"
+nom = "2.1.0"
+regex = "0.2.0"
 nix = "0.8.0"
 sqlite = "0.23.0"
 time = "0.1.0"
 yaml-rust = "0.3.0"
 shellexpand = "1.0.0"
-glob = "0.2"
+glob = "0.2.0"
