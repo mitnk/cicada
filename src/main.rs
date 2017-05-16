@@ -59,7 +59,9 @@ fn main() {
         let mut buffer = String::new();
         let stdin = io::stdin();
         let mut handle = stdin.lock();
-        handle.read_to_string(&mut buffer).expect("read to str error");
+        handle
+            .read_to_string(&mut buffer)
+            .expect("read to str error");
         execute::run_procs(&mut sh, buffer.as_str(), false);
         return;
     }

@@ -11,7 +11,7 @@ use tools;
 use shell;
 
 pub fn init(rl: &mut Reader<DefaultTerminal>) {
-    let mut hist_size: usize = 9999;  // make default bigger but not huge
+    let mut hist_size: usize = 9999; // make default bigger but not huge
     if let Ok(x) = env::var("HISTORY_SIZE") {
         if let Ok(y) = x.parse::<usize>() {
             hist_size = y;
@@ -40,10 +40,11 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
                      out TEXT,
                      info TEXT
                     );
-            ", history_table);
+            ",
+                                     history_table);
             match conn.execute(sql_create) {
                 Ok(_) => {}
-                Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e)
+                Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e),
             }
             let sql_select = format!(
                 "SELECT inp FROM {} ORDER BY tsb;",
@@ -57,7 +58,7 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
                 true
             }) {
                 Ok(_) => {}
-                Err(e) => println_stderr!("cicada: sqlite select error - {:?}", e)
+                Err(e) => println_stderr!("cicada: sqlite select error - {:?}", e),
             }
         }
         Err(e) => {
@@ -85,7 +86,12 @@ pub fn get_history_table() -> String {
     }
 }
 
-pub fn add(sh: &mut shell::Shell, rl: &mut Reader<DefaultTerminal>, line: &str, status: i32, tsb: f64, tse: f64) {
+pub fn add(sh: &mut shell::Shell,
+           rl: &mut Reader<DefaultTerminal>,
+           line: &str,
+           status: i32,
+           tsb: f64,
+           tse: f64) {
     rl.add_history(line.to_string());
     if line == sh.previous_cmd {
         return;
@@ -98,11 +104,14 @@ pub fn add(sh: &mut shell::Shell, rl: &mut Reader<DefaultTerminal>, line: &str, 
     let sql = format!("INSERT INTO \
         {} (inp, rtn, tsb, tse, sessionid) \
         VALUES('{}', {}, {}, {}, '{}');",
-        history_table,
-        str::replace(line.trim(), "'", "''"),
-        status, tsb, tse, "cicada");
+                      history_table,
+                      str::replace(line.trim(), "'", "''"),
+                      status,
+                      tsb,
+                      tse,
+                      "cicada");
     match conn.execute(sql) {
         Ok(_) => {}
-        Err(e) => println!("failed to save history: {:?}", e)
+        Err(e) => println!("failed to save history: {:?}", e),
     }
 }

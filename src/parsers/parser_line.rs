@@ -254,7 +254,8 @@ mod tests {
             ("echo \"foo; echo bar\"", vec!["echo \"foo; echo bar\""]),
             ("echo `foo; echo bar`", vec!["echo `foo; echo bar`"]),
             ("echo foo && echo bar", vec!["echo foo", "&&", "echo bar"]),
-            ("echo foo && echo bar && echo baz", vec!["echo foo", "&&", "echo bar", "&&", "echo baz"]),
+            ("echo foo && echo bar && echo baz",
+             vec!["echo foo", "&&", "echo bar", "&&", "echo baz"]),
             ("echo foo || echo bar", vec!["echo foo", "||", "echo bar"]),
             ("echo foo && echo bar; echo end", vec!["echo foo", "&&", "echo bar", ";", "echo end"]),
         ];

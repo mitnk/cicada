@@ -17,8 +17,7 @@ pub fn run(args: Vec<String>) -> i32 {
     if let Ok(conn) = sqlite::open(hfile.clone()) {
         if args.len() == 1 {
             return list_current_history(&conn);
-        }
-        else if args.len() == 2 {
+        } else if args.len() == 2 {
             search_history(&conn, args[1].as_str());
         } else {
             println_stderr!("history: only take one arg");
@@ -32,7 +31,8 @@ pub fn run(args: Vec<String>) -> i32 {
 
 fn list_current_history(conn: &sqlite::Connection) -> i32 {
     let history_table = history::get_history_table();
-    let q = format!("SELECT inp FROM {} ORDER BY tsb desc limit 10;", history_table);
+    let q = format!("SELECT inp FROM {} ORDER BY tsb desc limit 10;",
+                    history_table);
     match conn.prepare(q) {
         Ok(mut statement) => {
             let mut vec = Vec::new();
@@ -58,12 +58,12 @@ fn search_history(conn: &sqlite::Connection, q: &str) {
     let q = format!("SELECT inp FROM {}
                      WHERE inp like '%{}%'
                      ORDER BY tsb desc limit 20;",
-                    history_table, q);
+                    history_table,
+                    q);
     match conn.prepare(q) {
         Ok(mut statement) => {
             let mut vec = Vec::new();
-            while let State::Row = statement.next()
-                    .expect("history: statement next error") {
+            while let State::Row = statement.next().expect("history: statement next error") {
                 if let Ok(x) = statement.read::<String>(0) {
                     vec.push(x);
                 }

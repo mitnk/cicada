@@ -11,7 +11,7 @@ use linefeed::complete::escape;
 use linefeed::complete::unescape;
 use linefeed::complete::escaped_word_start;
 
-use yaml_rust::{YamlLoader};
+use yaml_rust::YamlLoader;
 use yaml_rust::yaml;
 
 use tools;
@@ -21,8 +21,12 @@ use parsers;
 pub struct DotsCompleter;
 
 impl<Term: Terminal> Completer<Term> for DotsCompleter {
-    fn complete(&self, word: &str, reader: &Reader<Term>, _start: usize, _end: usize)
-            -> Option<Vec<Completion>> {
+    fn complete(&self,
+                word: &str,
+                reader: &Reader<Term>,
+                _start: usize,
+                _end: usize)
+                -> Option<Vec<Completion>> {
         let line = reader.buffer();
         Some(complete_dots(line, word))
     }
@@ -62,7 +66,8 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
 
     let mut f = File::open(dot_file).expect("cicada: open dot_file error");
     let mut s = String::new();
-    f.read_to_string(&mut s).expect("cicada: read_to_string error");
+    f.read_to_string(&mut s)
+        .expect("cicada: read_to_string error");
 
     let docs;
     match YamlLoader::load_from_str(&s) {
@@ -86,11 +91,11 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
 
                             let display = None;
                             let suffix = Suffix::Default;
-                            res.push(Completion{
-                                completion: name.to_string(),
-                                display: display,
-                                suffix: suffix,
-                            });
+                            res.push(Completion {
+                                         completion: name.to_string(),
+                                         display: display,
+                                         suffix: suffix,
+                                     });
                         }
                         &yaml::Yaml::Hash(ref h) => {
                             for (k, v) in h.iter() {
@@ -108,11 +113,11 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
                                             let name = name.clone();
                                             let display = None;
                                             let suffix = Suffix::Default;
-                                            res.push(Completion{
-                                                completion: name,
-                                                display: display,
-                                                suffix: suffix,
-                                            });
+                                            res.push(Completion {
+                                                         completion: name,
+                                                         display: display,
+                                                         suffix: suffix,
+                                                     });
                                         } else {
                                             match v {
                                                 &yaml::Yaml::Array(ref v) => {
@@ -126,11 +131,11 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
                                                                 let name = name.clone();
                                                                 let display = None;
                                                                 let suffix = Suffix::Default;
-                                                                res.push(Completion{
-                                                                    completion: name,
-                                                                    display: display,
-                                                                    suffix: suffix,
-                                                                });
+                                                                res.push(Completion {
+                                                                             completion: name,
+                                                                             display: display,
+                                                                             suffix: suffix,
+                                                                         });
                                                             }
                                                             _ => {}
                                                         }

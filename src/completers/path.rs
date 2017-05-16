@@ -21,8 +21,12 @@ use tools;
 pub struct PathCompleter;
 
 impl<Term: Terminal> Completer<Term> for PathCompleter {
-    fn complete(&self, word: &str, _reader: &Reader<Term>, _start: usize, _end: usize)
-            -> Option<Vec<Completion>> {
+    fn complete(&self,
+                word: &str,
+                _reader: &Reader<Term>,
+                _start: usize,
+                _end: usize)
+                -> Option<Vec<Completion>> {
         Some(complete_path(word))
     }
 
@@ -59,14 +63,12 @@ fn complete_path(path: &str) -> Vec<Completion> {
                 if let Ok(path) = ent_name.into_string() {
                     if path.starts_with(fname) {
                         let (name, display) = if let Some(dir) = base_dir {
-                            (format!("{}{}{}", dir, MAIN_SEPARATOR, path),
-                                Some(path))
+                            (format!("{}{}{}", dir, MAIN_SEPARATOR, path), Some(path))
                         } else {
                             (path, None)
                         };
                         let name = str::replace(name.as_str(), "//", "/");
-                        let is_dir = ent.metadata().ok()
-                            .map_or(false, |m| m.is_dir());
+                        let is_dir = ent.metadata().ok().map_or(false, |m| m.is_dir());
 
                         let suffix = if is_dir {
                             Suffix::Some(MAIN_SEPARATOR)
@@ -74,11 +76,11 @@ fn complete_path(path: &str) -> Vec<Completion> {
                             Suffix::Default
                         };
 
-                        res.push(Completion{
-                            completion: name,
-                            display: display,
-                            suffix: suffix,
-                        });
+                        res.push(Completion {
+                                     completion: name,
+                                     display: display,
+                                     suffix: suffix,
+                                 });
                     }
                 }
             }
@@ -90,15 +92,19 @@ fn complete_path(path: &str) -> Vec<Completion> {
 fn split_path(path: &str) -> (Option<&str>, &str) {
     match path.rfind(is_separator) {
         Some(pos) => (Some(&path[..pos + 1]), &path[pos + 1..]),
-        None => (None, path)
+        None => (None, path),
     }
 }
 
 pub struct BinCompleter;
 
 impl<Term: Terminal> Completer<Term> for BinCompleter {
-    fn complete(&self, word: &str, _reader: &Reader<Term>, _start: usize, _end: usize)
-            -> Option<Vec<Completion>> {
+    fn complete(&self,
+                word: &str,
+                _reader: &Reader<Term>,
+                _start: usize,
+                _end: usize)
+                -> Option<Vec<Completion>> {
         Some(complete_bin(word))
     }
 }
@@ -132,11 +138,11 @@ fn complete_bin(path: &str) -> Vec<Completion> {
                             let display = None;
                             let suffix = Suffix::Default;
                             checker.insert(name.clone());
-                            res.push(Completion{
-                                completion: name,
-                                display: display,
-                                suffix: suffix,
-                            });
+                            res.push(Completion {
+                                         completion: name,
+                                         display: display,
+                                         suffix: suffix,
+                                     });
                         }
                     }
                 }

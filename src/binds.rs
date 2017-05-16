@@ -34,7 +34,9 @@ impl<Term: Terminal> Function<Term> for UpKeyFunction {
             }
         }
         if n < len {
-            reader.select_history_entry(Some(n)).expect("select_history_entry error");
+            reader
+                .select_history_entry(Some(n))
+                .expect("select_history_entry error");
         }
         Ok(())
     }
@@ -63,7 +65,9 @@ impl<Term: Terminal> Function<Term> for DownKeyFunction {
             }
         }
         if n < len {
-            reader.select_history_entry(Some(n)).expect("select_history_entry error");
+            reader
+                .select_history_entry(Some(n))
+                .expect("select_history_entry error");
         }
         Ok(())
     }

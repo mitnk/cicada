@@ -32,7 +32,8 @@ pub fn rlog(s: String) {
         .expect("rlog: open /tmp/cicada-debug.log faild");
     let pid = unsafe { libc::getpid() };
     let s = format!("[{}] {}", pid, s);
-    file.write_all(s.as_bytes()).expect("rlog: write_all failed");
+    file.write_all(s.as_bytes())
+        .expect("rlog: write_all failed");
 }
 
 macro_rules! log {
@@ -87,12 +88,10 @@ fn should_extend_brace(line: &str) -> bool {
 }
 
 pub fn extend_home(s: &mut String) {
-    let v = vec![
-        r"(?P<head> +)~(?P<tail> +)",
-        r"(?P<head> +)~(?P<tail>/)",
-        r"^(?P<head> *)~(?P<tail>/)",
-        r"(?P<head> +)~(?P<tail> *$)",
-    ];
+    let v = vec![r"(?P<head> +)~(?P<tail> +)",
+                 r"(?P<head> +)~(?P<tail>/)",
+                 r"^(?P<head> *)~(?P<tail>/)",
+                 r"(?P<head> +)~(?P<tail> *$)"];
     for item in &v {
         let re;
         if let Ok(x) = Regex::new(item) {
@@ -136,8 +135,7 @@ pub fn do_command_substitution(line: &mut String) {
     for (sep, token) in args {
         if sep == "`" {
             let _args = parsers::parser_line::parse_line(token.as_str());
-            let (_, _, output) = execute::run_pipeline(_args, "", "", false,
-                                                       false, false, true);
+            let (_, _, output) = execute::run_pipeline(_args, "", "", false, false, false, true);
             if let Some(x) = output {
                 match String::from_utf8(x.stdout) {
                     Ok(stdout) => {
@@ -326,7 +324,7 @@ pub fn is_alias(line: &str) -> bool {
     re.is_match(line)
 }
 
-extern {
+extern "C" {
     fn gethostname(name: *mut libc::c_char, size: libc::size_t) -> libc::c_int;
 }
 
@@ -337,9 +335,7 @@ pub fn get_hostname() -> String {
 
     let ptr = buf.as_mut_slice().as_mut_ptr();
 
-    let err = unsafe {
-        gethostname(ptr as *mut libc::c_char, len as libc::size_t)
-    } as i32;
+    let err = unsafe { gethostname(ptr as *mut libc::c_char, len as libc::size_t) } as i32;
 
     match err {
         0 => {
@@ -356,10 +352,8 @@ pub fn get_hostname() -> String {
             }
             unsafe { buf.set_len(real_len) }
             String::from_utf8_lossy(buf.as_slice()).into_owned()
-        },
-        _ => {
-            String::from("unknown")
         }
+        _ => String::from("unknown"),
     }
 }
 

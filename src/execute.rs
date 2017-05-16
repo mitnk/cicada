@@ -179,11 +179,21 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         let mut args_new = args.clone();
         let redirect_to = args_new.pop().expect("cicada: redirect_to pop error");
         args_new.pop();
-        run_pipeline(args_new, redirect_from.as_str(), redirect_to.as_str(),
-                     append, background, tty, false)
+        run_pipeline(args_new,
+                     redirect_from.as_str(),
+                     redirect_to.as_str(),
+                     append,
+                     background,
+                     tty,
+                     false)
     } else {
-        run_pipeline(args.clone(), redirect_from.as_str(), "", false,
-                     background, tty, false)
+        run_pipeline(args.clone(),
+                     redirect_from.as_str(),
+                     "",
+                     false,
+                     background,
+                     tty,
+                     false)
     };
     if term_given {
         unsafe {
@@ -202,8 +212,7 @@ fn extend_alias(sh: &mut shell::Shell, args: &mut Vec<String>) {
     for (i, arg) in args_new.iter().enumerate() {
         if i == 0 {
             is_cmd = true;
-        }
-        else if arg == "|" {
+        } else if arg == "|" {
             is_cmd = true;
             insert_pos += 1;
             continue;
@@ -234,12 +243,13 @@ fn extend_alias(sh: &mut shell::Shell, args: &mut Vec<String>) {
 }
 
 pub fn run_pipeline(args: Vec<String>,
-                redirect_from: &str,
-                redirect_to: &str,
-                append: bool,
-                background: bool,
-                tty: bool,
-                capture_stdout: bool) -> (i32, bool, Option<Output>) {
+                    redirect_from: &str,
+                    redirect_to: &str,
+                    append: bool,
+                    background: bool,
+                    tty: bool,
+                    capture_stdout: bool)
+                    -> (i32, bool, Option<Output>) {
     let sig_action = signal::SigAction::new(signal::SigHandler::Handler(handle_sigchld),
                                             signal::SaFlags::empty(),
                                             signal::SigSet::empty());
@@ -277,7 +287,11 @@ pub fn run_pipeline(args: Vec<String>,
     info.pop().expect("cicada: debug pop error");
     log!("{}", info);
 
-    let isatty = if tty { unsafe { libc::isatty(0) == 1 } } else { false };
+    let isatty = if tty {
+        unsafe { libc::isatty(0) == 1 }
+    } else {
+        false
+    };
     let mut i = 0;
     let mut pgid: u32 = 0;
     let mut children: Vec<u32> = Vec::new();
@@ -349,9 +363,7 @@ pub fn run_pipeline(args: Vec<String>,
             let path = Path::new(redirect_from);
             let display = path.display();
             let file = match File::open(&path) {
-                Err(why) => panic!("couldn't open {}: {}",
-                                   display,
-                                   why.description()),
+                Err(why) => panic!("couldn't open {}: {}", display, why.description()),
                 Ok(file) => file,
             };
             let fd = file.into_raw_fd();
@@ -476,11 +488,7 @@ mod tests {
             assert_eq!(*item, expected[i]);
         }
 
-        let s = vec![
-            String::from("ls"),
-            String::from("|"),
-            String::from("wc"),
-        ];
+        let s = vec![String::from("ls"), String::from("|"), String::from("wc")];
         let result = args_to_cmds(s);
         let expected = vec![vec!["ls".to_string()], vec!["wc".to_string()]];
         assert_eq!(result.len(), expected.len());
@@ -488,10 +496,7 @@ mod tests {
             assert_eq!(*item, expected[i]);
         }
 
-        let s = vec![
-            String::from("echo"),
-            String::from(" "),
-        ];
+        let s = vec![String::from("echo"), String::from(" ")];
         let result = args_to_cmds(s);
         let expected = vec![vec!["echo".to_string(), " ".to_string()]];
         assert_eq!(result.len(), expected.len());
@@ -499,21 +504,17 @@ mod tests {
             assert_eq!(*item, expected[i]);
         }
 
-        let s = vec![
-            String::from("ls"),
-            String::from("-lh"),
-            String::from("|"),
-            String::from("wc"),
-            String::from("-l"),
-            String::from("|"),
-            String::from("less"),
-        ];
+        let s = vec![String::from("ls"),
+                     String::from("-lh"),
+                     String::from("|"),
+                     String::from("wc"),
+                     String::from("-l"),
+                     String::from("|"),
+                     String::from("less")];
         let result = args_to_cmds(s);
-        let expected = vec![
-            vec!["ls".to_string(), "-lh".to_string()],
-            vec!["wc".to_string(), "-l".to_string()],
-            vec!["less".to_string()],
-        ];
+        let expected = vec![vec!["ls".to_string(), "-lh".to_string()],
+                            vec!["wc".to_string(), "-l".to_string()],
+                            vec!["less".to_string()]];
         assert_eq!(result.len(), expected.len());
         for (i, item) in result.iter().enumerate() {
             assert_eq!(*item, expected[i]);
@@ -532,103 +533,86 @@ mod tests {
 
         args = vec!["ll".to_string(), "|".to_string(), "wc".to_string()];
         extend_alias(&mut sh, &mut args);
-        assert_eq!(args, vec![
-           "ls".to_string(),
-           "-lh".to_string(),
-           "|".to_string(),
-           "wc".to_string(),
-           "-l".to_string(),
-        ]);
+        assert_eq!(args,
+                   vec!["ls".to_string(),
+                        "-lh".to_string(),
+                        "|".to_string(),
+                        "wc".to_string(),
+                        "-l".to_string()]);
 
         args = vec!["ls".to_string(), "|".to_string(), "wc".to_string()];
         extend_alias(&mut sh, &mut args);
-        assert_eq!(args, vec![
-           "ls".to_string(),
-           "|".to_string(),
-           "wc".to_string(),
-           "-l".to_string(),
-        ]);
+        assert_eq!(args,
+                   vec!["ls".to_string(),
+                        "|".to_string(),
+                        "wc".to_string(),
+                        "-l".to_string()]);
 
-        args = vec![
-            "ls".to_string(),
-            "|".to_string(),
-            "cat".to_string(),
-            "|".to_string(),
-            "wc".to_string(),
-        ];
+        args = vec!["ls".to_string(),
+                    "|".to_string(),
+                    "cat".to_string(),
+                    "|".to_string(),
+                    "wc".to_string()];
         extend_alias(&mut sh, &mut args);
-        assert_eq!(args, vec![
-            "ls".to_string(),
-            "|".to_string(),
-            "cat".to_string(),
-            "|".to_string(),
-            "wc".to_string(),
-            "-l".to_string(),
-        ]);
+        assert_eq!(args,
+                   vec!["ls".to_string(),
+                        "|".to_string(),
+                        "cat".to_string(),
+                        "|".to_string(),
+                        "wc".to_string(),
+                        "-l".to_string()]);
 
-        args = vec![
-            "ls".to_string(),
-            "|".to_string(),
-            "wc".to_string(),
-            "|".to_string(),
-            "cat".to_string(),
-        ];
+        args = vec!["ls".to_string(),
+                    "|".to_string(),
+                    "wc".to_string(),
+                    "|".to_string(),
+                    "cat".to_string()];
         extend_alias(&mut sh, &mut args);
-        assert_eq!(args, vec![
-            "ls".to_string(),
-            "|".to_string(),
-            "wc".to_string(),
-            "-l".to_string(),
-            "|".to_string(),
-            "cat".to_string(),
-        ]);
+        assert_eq!(args,
+                   vec!["ls".to_string(),
+                        "|".to_string(),
+                        "wc".to_string(),
+                        "-l".to_string(),
+                        "|".to_string(),
+                        "cat".to_string()]);
 
-        args = vec![
-            "ll".to_string(),
-            "|".to_string(),
-            "cat".to_string(),
-            "|".to_string(),
-            "wc".to_string(),
-        ];
+        args = vec!["ll".to_string(),
+                    "|".to_string(),
+                    "cat".to_string(),
+                    "|".to_string(),
+                    "wc".to_string()];
         extend_alias(&mut sh, &mut args);
-        assert_eq!(args, vec![
-            "ls".to_string(),
-            "-lh".to_string(),
-            "|".to_string(),
-            "cat".to_string(),
-            "|".to_string(),
-            "wc".to_string(),
-            "-l".to_string(),
-        ]);
+        assert_eq!(args,
+                   vec!["ls".to_string(),
+                        "-lh".to_string(),
+                        "|".to_string(),
+                        "cat".to_string(),
+                        "|".to_string(),
+                        "wc".to_string(),
+                        "-l".to_string()]);
 
         sh.add_alias("grep", "grep -I --color=auto --exclude-dir=.git");
-        args = vec![
-            "ps".to_string(),
-            "ax".to_string(),
-            "|".to_string(),
-            "grep".to_string(),
-            "foo".to_string(),
-        ];
+        args = vec!["ps".to_string(),
+                    "ax".to_string(),
+                    "|".to_string(),
+                    "grep".to_string(),
+                    "foo".to_string()];
         extend_alias(&mut sh, &mut args);
-        assert_eq!(args, vec![
-            "ps".to_string(),
-            "ax".to_string(),
-            "|".to_string(),
-            "grep".to_string(),
-            "-I".to_string(),
-            "--color=auto".to_string(),
-            "--exclude-dir=.git".to_string(),
-            "foo".to_string(),
-        ]);
+        assert_eq!(args,
+                   vec!["ps".to_string(),
+                        "ax".to_string(),
+                        "|".to_string(),
+                        "grep".to_string(),
+                        "-I".to_string(),
+                        "--color=auto".to_string(),
+                        "--exclude-dir=.git".to_string(),
+                        "foo".to_string()]);
     }
 
     #[test]
     fn test_run_pipeline() {
-        let cmd = vec![
-            String::from("ls"),
-        ];
-        let (result, term_given, output) = run_pipeline(
-            cmd, "", "", false, false, false, true);
+        let cmd = vec![String::from("ls")];
+        let (result, term_given, output) = run_pipeline(cmd, "", "", false, false, false, true);
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {
@@ -642,8 +626,7 @@ mod tests {
         }
 
         let cmd = "ls | cat".split(" ").map(|s| s.to_string()).collect();
-        let (result, term_given, output) = run_pipeline(
-            cmd, "", "", false, false, false, true);
+        let (result, term_given, output) = run_pipeline(cmd, "", "", false, false, false, true);
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {
@@ -656,9 +639,11 @@ mod tests {
             assert_eq!(1, 2);
         }
 
-        let cmd = "ls | cat | cat | more".split(" ").map(|s| s.to_string()).collect();
-        let (result, term_given, output) = run_pipeline(
-            cmd, "", "", false, false, false, true);
+        let cmd = "ls | cat | cat | more"
+            .split(" ")
+            .map(|s| s.to_string())
+            .collect();
+        let (result, term_given, output) = run_pipeline(cmd, "", "", false, false, false, true);
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {
@@ -671,19 +656,16 @@ mod tests {
             assert_eq!(1, 2);
         }
 
-        let cmd = vec![
-            String::from("echo"),
-            String::from("foo"),
-            String::from("bar"),
-            String::from("\"baz"),
-            String::from("|"),
-            String::from("awk"),
-            String::from("-F"),
-            String::from("[ \"]+"),
-            String::from("{print $3, $2, $1}"),
-        ];
-        let (result, term_given, output) = run_pipeline(
-            cmd, "", "", false, false, false, true);
+        let cmd = vec![String::from("echo"),
+                       String::from("foo"),
+                       String::from("bar"),
+                       String::from("\"baz"),
+                       String::from("|"),
+                       String::from("awk"),
+                       String::from("-F"),
+                       String::from("[ \"]+"),
+                       String::from("{print $3, $2, $1}")];
+        let (result, term_given, output) = run_pipeline(cmd, "", "", false, false, false, true);
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {

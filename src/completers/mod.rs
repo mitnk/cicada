@@ -35,8 +35,12 @@ fn for_dots(line: &str) -> bool {
 }
 
 impl<Term: Terminal> Completer<Term> for CCDCompleter {
-    fn complete(&self, word: &str, reader: &Reader<Term>,
-            start: usize, _end: usize) -> Option<Vec<Completion>> {
+    fn complete(&self,
+                word: &str,
+                reader: &Reader<Term>,
+                start: usize,
+                _end: usize)
+                -> Option<Vec<Completion>> {
         let line = reader.buffer();
         if for_bin(line) {
             let cpl = Rc::new(path::BinCompleter);
