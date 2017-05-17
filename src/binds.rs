@@ -24,11 +24,9 @@ impl<Term: Terminal> Function<Term> for UpKeyFunction {
             let s = x.to_string();
             if s.starts_with(line.as_str()) {
                 n = len - i - 1;
-                if history_index == len {
-                    // first time typing <UP> key; return directly
-                    break;
-                } else if n < history_index {
-                    // means it's not the first search
+                // first time typing <UP> key; return directly
+                // conditions are first time up key, and contined ones
+                if history_index == len || n < history_index {
                     break;
                 }
             }

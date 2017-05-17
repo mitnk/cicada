@@ -24,7 +24,7 @@ macro_rules! println_stderr {
     );
 }
 
-pub fn rlog(s: String) {
+pub fn rlog(s: &str) {
     let mut file = OpenOptions::new()
         .append(true)
         .create(true)
@@ -38,10 +38,10 @@ pub fn rlog(s: String) {
 
 macro_rules! log {
     ($fmt:expr) => (
-        rlog(format!(concat!($fmt, "\n")));
+        rlog(format!(concat!($fmt, "\n")).as_str());
     );
     ($fmt:expr, $($arg:tt)*) => (
-        rlog(format!(concat!($fmt, "\n"), $($arg)*));
+        rlog(format!(concat!($fmt, "\n"), $($arg)*).as_str());
     );
 }
 
@@ -117,7 +117,7 @@ pub fn needs_extend_home(line: &str) -> bool {
     re.is_match(line)
 }
 
-pub fn wrap_sep_string(sep: String, s: String) -> String {
+pub fn wrap_sep_string(sep: &str, s: &str) -> String {
     let mut _token = String::new();
     for c in s.chars() {
         if c.to_string() == sep {
@@ -139,20 +139,21 @@ pub fn do_command_substitution(line: &mut String) {
             if let Some(x) = output {
                 match String::from_utf8(x.stdout) {
                     Ok(stdout) => {
-                        let _txt = wrap_sep_string(sep, stdout.trim().to_string());
+                        let _txt = wrap_sep_string(sep.as_str(),
+                                                   stdout.trim());
                         result.push(_txt);
                     }
                     Err(_) => {
                         println_stderr!("cicada: from_utf8 error");
-                        result.push(wrap_sep_string(sep, token));
+                        result.push(wrap_sep_string(sep.as_str(), token.as_str()));
                     }
                 }
             } else {
                 println_stderr!("cicada: command error");
-                result.push(wrap_sep_string(sep, token));
+                result.push(wrap_sep_string(sep.as_str(), token.as_str()));
             }
         } else {
-            result.push(wrap_sep_string(sep, token));
+            result.push(wrap_sep_string(sep.as_str(), token.as_str()));
         }
     }
     *line = result.join(" ");
@@ -202,9 +203,9 @@ pub fn do_brace_expansion(line: &mut String) {
             for item in &mut _result {
                 *item = format!("{}{}{}", _prefix, item, _token);
             }
-            result.push(wrap_sep_string(sep, _result.join(" ")));
+            result.push(wrap_sep_string(sep.as_str(), _result.join(" ").as_str()));
         } else {
-            result.push(wrap_sep_string(sep, token));
+            result.push(wrap_sep_string(sep.as_str(), token.as_str()));
         }
     }
     *line = result.join(" ");
@@ -215,17 +216,15 @@ pub fn extend_env(line: &mut String) {
     let _line = line.clone();
     let args = parsers::parser_line::parse_args(_line.as_str());
     for (sep, token) in args {
-        if sep == "`" {
-            result.push(wrap_sep_string(sep, token));
-        } else if sep == "'" {
-            result.push(wrap_sep_string(sep, token));
+        if sep == "`" || sep == "'" {
+            result.push(wrap_sep_string(sep.as_str(), token.as_str()));
         } else {
             match shellexpand::env(token.as_str()) {
                 Ok(x) => {
-                    result.push(wrap_sep_string(sep, x.into_owned()));
+                    result.push(wrap_sep_string(sep.as_str(), x.into_owned().as_str()));
                 }
                 Err(_) => {
-                    result.push(wrap_sep_string(sep, token.clone()));
+                    result.push(wrap_sep_string(sep.as_str(), token.as_str()));
                 }
             }
         }
