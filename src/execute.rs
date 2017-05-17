@@ -32,6 +32,7 @@ extern "C" fn handle_sigchld(_: i32) {
     */
 }
 
+#[allow(needless_pass_by_value)]
 fn args_to_cmds(args: Vec<String>) -> Vec<Vec<String>> {
     let mut cmd: Vec<String> = Vec::new();
     let mut cmds: Vec<Vec<String>> = Vec::new();
@@ -56,6 +57,7 @@ fn args_to_cmds(args: Vec<String>) -> Vec<Vec<String>> {
     cmds
 }
 
+#[allow(needless_pass_by_value)]
 fn args_to_redirections(args: Vec<String>) -> (Vec<String>, Vec<i32>) {
     let mut vec_redirected = Vec::new();
     let mut args_new = args.clone();
@@ -242,6 +244,7 @@ fn extend_alias(sh: &mut shell::Shell, args: &mut Vec<String>) {
     }
 }
 
+#[allow(cyclomatic_complexity)]
 pub fn run_pipeline(args: Vec<String>,
                     redirect_from: &str,
                     redirect_to: &str,

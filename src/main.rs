@@ -1,3 +1,4 @@
+#![allow(unknown_lints)]
 extern crate errno;
 extern crate glob;
 extern crate libc;

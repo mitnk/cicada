@@ -2,6 +2,7 @@ use std::env;
 use shell;
 use tools;
 
+#[allow(needless_pass_by_value)]
 pub fn run(sh: &mut shell::Shell, args: Vec<String>) -> i32 {
     if args.len() > 2 {
         println!("invalid cd command");

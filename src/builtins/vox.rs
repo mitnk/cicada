@@ -93,6 +93,7 @@ fn exit_env() -> i32 {
     0
 }
 
+#[allow(needless_pass_by_value)]
 pub fn run(args: Vec<String>) -> i32 {
     if args.len() == 2 && args[1] == "ls" {
         list_envs()

@@ -6,6 +6,7 @@ use sqlite::State;
 
 use history;
 
+#[allow(needless_pass_by_value)]
 pub fn run(args: Vec<String>) -> i32 {
     let hfile = history::get_history_file();
     let path = Path::new(hfile.as_str());
