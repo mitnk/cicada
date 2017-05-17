@@ -49,6 +49,13 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
                 Ok(_) => {}
                 Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e),
             }
+
+            if let Ok(x) = env::var("HISTORY_DELETE_DUPS") {
+                if x == "1" {
+                    delete_duplicated_histories();
+                }
+            }
+
             let sql_select = format!(
                 "SELECT inp FROM {} ORDER BY tsb;",
                 history_table,
@@ -91,6 +98,23 @@ pub fn get_history_table() -> String {
         return hfile;
     } else {
         return String::from("cicada_history");
+    }
+}
+
+fn delete_duplicated_histories() {
+    let hfile = get_history_file();
+    let history_table = get_history_table();
+    match sqlite::open(hfile.clone()) {
+        Ok(conn) => {
+            let sql = format!("DELETE FROM {} WHERE rowid NOT IN (
+                SELECT MAX(rowid) FROM {} GROUP BY inp)",
+                history_table, history_table);
+            match conn.execute(sql) {
+                Ok(_) => {}
+                Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e)
+            }
+        }
+        Err(e) => println_stderr!("cicada: sqlite open file error - {:?}", e)
     }
 }
 
