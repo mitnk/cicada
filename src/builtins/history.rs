@@ -26,7 +26,7 @@ pub fn run(args: Vec<String>) -> i32 {
         println_stderr!("history: history file open error.");
         return 1;
     }
-    return 0;
+    0
 }
 
 fn list_current_history(conn: &sqlite::Connection) -> i32 {
@@ -50,7 +50,7 @@ fn list_current_history(conn: &sqlite::Connection) -> i32 {
             return 1;
         }
     }
-    return 0;
+    0
 }
 
 fn search_history(conn: &sqlite::Connection, q: &str) {

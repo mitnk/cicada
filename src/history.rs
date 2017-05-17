@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::io::Write;
@@ -28,6 +29,8 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
         fs::create_dir_all(parent).expect("dirs create failed");
         fs::File::create(hfile.as_str()).expect("file create failed");
     }
+
+    let mut histories: HashMap<String, bool> = HashMap::new();
     match sqlite::open(hfile.clone()) {
         Ok(conn) => {
             let sql_create = format!("
@@ -53,6 +56,11 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
             match conn.iterate(sql_select, |pairs| {
                 for &(_, value) in pairs.iter() {
                     let inp = value.expect("cicada: sqlite pairs error");
+                    let _k = inp.to_string();
+                    if histories.contains_key(&_k) {
+                        continue;
+                    }
+                    histories.insert(_k, true);
                     rl.add_history(inp.trim().to_string());
                 }
                 true

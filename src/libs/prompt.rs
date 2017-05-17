@@ -12,7 +12,7 @@ pub fn get_prompt(status: i32) -> String {
 
     let last = _tokens.last().expect("cicada: prompt token last error");
     let pwd: String;
-    if last.to_string() == "" {
+    if last.is_empty() {
         pwd = String::from("/");
     } else if current_dir == home {
         pwd = String::from("~");

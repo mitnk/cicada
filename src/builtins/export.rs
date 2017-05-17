@@ -12,5 +12,5 @@ pub fn run(line: &str) -> i32 {
         let value = tools::unquote(&cap[2]);
         env::set_var(&cap[1], &value);
     }
-    return 0;
+    0
 }

@@ -57,11 +57,9 @@ impl<Term: Terminal> Function<Term> for DownKeyFunction {
         let mut n = len;
         for (i, x) in reader.history().enumerate() {
             let s = x.to_string();
-            if s.starts_with(line.as_str()) {
-                if i > history_index {
-                    n = i;
-                    break;
-                }
+            if s.starts_with(line.as_str()) && i > history_index {
+                n = i;
+                break;
             }
         }
         if n < len {

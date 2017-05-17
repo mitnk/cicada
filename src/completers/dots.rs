@@ -56,13 +56,13 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
     if !Path::new(dot_file).exists() {
         return res;
     }
-    let mut sub_cmd = "";
-    if args.len() >= 2 && !args[1].starts_with("-") && line.ends_with(" ") {
-        sub_cmd = args[1].as_str();
-    }
-    if args.len() >= 3 && !args[1].starts_with("-") {
-        sub_cmd = args[1].as_str();
-    }
+    let sub_cmd = if (args.len() >= 3 && !args[1].starts_with('-')) || (
+            args.len() >= 2 && !args[1].starts_with('-') && line.ends_with(' ')
+        ) {
+        args[1].as_str()
+    } else {
+        ""
+    };
 
     let mut f = File::open(dot_file).expect("cicada: open dot_file error");
     let mut s = String::new();
@@ -80,11 +80,11 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
         }
     }
     for doc in &docs {
-        match doc {
-            &yaml::Yaml::Array(ref v) => {
+        match *doc {
+            yaml::Yaml::Array(ref v) => {
                 for x in v {
-                    match x {
-                        &yaml::Yaml::String(ref name) => {
+                    match *x {
+                        yaml::Yaml::String(ref name) => {
                             if sub_cmd != "" || !name.starts_with(word) {
                                 continue;
                             }
@@ -97,55 +97,44 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
                                          suffix: suffix,
                                      });
                         }
-                        &yaml::Yaml::Hash(ref h) => {
+                        yaml::Yaml::Hash(ref h) => {
                             for (k, v) in h.iter() {
-                                // println!("k:{:?} v:{:?}", k, v);
-                                match k {
-                                    &yaml::Yaml::String(ref name) => {
-                                        if sub_cmd != "" && sub_cmd != name {
+                                if let yaml::Yaml::String(ref name) = *k {
+                                    if sub_cmd != "" && sub_cmd != name {
+                                        continue;
+                                    }
+                                    if sub_cmd == "" {
+                                        if !name.starts_with(word) {
                                             continue;
                                         }
-                                        if sub_cmd == "" {
-                                            if !name.starts_with(word) {
-                                                continue;
-                                            }
 
-                                            let name = name.clone();
-                                            let display = None;
-                                            let suffix = Suffix::Default;
-                                            res.push(Completion {
-                                                         completion: name,
-                                                         display: display,
-                                                         suffix: suffix,
-                                                     });
-                                        } else {
-                                            match v {
-                                                &yaml::Yaml::Array(ref v) => {
-                                                    for x in v {
-                                                        match x {
-                                                            &yaml::Yaml::String(ref name) => {
-                                                                if !name.starts_with(word) {
-                                                                    continue;
-                                                                }
-
-                                                                let name = name.clone();
-                                                                let display = None;
-                                                                let suffix = Suffix::Default;
-                                                                res.push(Completion {
-                                                                             completion: name,
-                                                                             display: display,
-                                                                             suffix: suffix,
-                                                                         });
-                                                            }
-                                                            _ => {}
-                                                        }
-                                                    }
+                                        let name = name.clone();
+                                        let display = None;
+                                        let suffix = Suffix::Default;
+                                        res.push(Completion {
+                                                     completion: name,
+                                                     display: display,
+                                                     suffix: suffix,
+                                                 });
+                                    } else if let yaml::Yaml::Array(ref v) = *v {
+                                        for x in v {
+                                            if let yaml::Yaml::String(ref name) = *x {
+                                                if !name.starts_with(word) {
+                                                    continue;
                                                 }
-                                                _ => {}
+
+                                                let name = name.clone();
+                                                let display = None;
+                                                let suffix = Suffix::Default;
+                                                res.push(Completion {
+                                                             completion: name,
+                                                             display: display,
+                                                             suffix: suffix,
+                                                         });
                                             }
                                         }
                                     }
-                                    _ => {}
+
                                 }
                             }
                         }

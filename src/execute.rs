@@ -123,7 +123,7 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         }
         status = run_proc(sh, token.as_str(), tty);
     }
-    return status;
+    status
 }
 
 pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
@@ -281,7 +281,7 @@ pub fn run_pipeline(args: Vec<String>,
         for x in cmd {
             info.push_str(format!("{} ", x).as_str());
         }
-        info.push_str(format!("| ").as_str());
+        info.push_str("| ");
     }
     info.pop().expect("cicada: debug pop error");
     info.pop().expect("cicada: debug pop error");

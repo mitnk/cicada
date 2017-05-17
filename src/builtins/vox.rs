@@ -10,7 +10,7 @@ fn in_env() -> bool {
             return true;
         }
     }
-    return false;
+    false
 }
 
 fn get_envs_home() -> String {
@@ -23,7 +23,7 @@ fn get_envs_home() -> String {
             home_envs = String::new();
         }
     }
-    return home_envs;
+    home_envs
 }
 
 fn list_envs() -> i32 {
@@ -52,7 +52,7 @@ fn list_envs() -> i32 {
             }
         }
     }
-    return 0;
+    0
 }
 
 fn enter_env(path: &str) -> i32 {
@@ -71,7 +71,7 @@ fn enter_env(path: &str) -> i32 {
     let mut path_new = String::from("${VIRTUAL_ENV}/bin:$PATH");
     tools::extend_env(&mut path_new);
     env::set_var("PATH", &path_new);
-    return 0;
+    0
 }
 
 fn exit_env() -> i32 {
@@ -90,19 +90,19 @@ fn exit_env() -> i32 {
     let env_path_new = _tokens.join(":");
     env::set_var("PATH", &env_path_new);
     env::set_var("VIRTUAL_ENV", "");
-    return 0;
+    0
 }
 
 pub fn run(args: Vec<String>) -> i32 {
     if args.len() == 2 && args[1] == "ls" {
-        return list_envs();
+        list_envs()
     } else if args.len() == 3 && args[1] == "enter" {
-        return enter_env(args[2].as_str());
+        enter_env(args[2].as_str())
     } else if args.len() == 2 && args[1] == "exit" {
-        return exit_env();
+        exit_env()
     } else {
         println!("vox: invalid command");
         println!("vox (ls | enter <env-name> | exit)");
-        return 1;
+        1
     }
 }

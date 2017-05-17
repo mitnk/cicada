@@ -4,7 +4,7 @@ pub fn parse_line(line: &str) -> Vec<String> {
     for (_, r) in v {
         result.push(r);
     }
-    return result;
+    result
 }
 
 pub fn parse_commands(line: &str) -> Vec<String> {
