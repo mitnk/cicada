@@ -9,6 +9,7 @@ extern crate shellexpand;
 extern crate sqlite;
 extern crate time;
 extern crate yaml_rust;
+extern crate exec;
 
 #[macro_use]
 extern crate nom;

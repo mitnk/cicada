@@ -148,6 +148,9 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     if args[0] == "history" {
         return builtins::history::run(args);
     }
+    if args[0] == "exec" {
+        return builtins::exec::run(args);
+    }
 
     // for any other situations
     let mut background = false;
