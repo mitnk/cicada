@@ -126,6 +126,7 @@ pub fn parse_args(line: &str) -> Vec<(String, String)> {
             }
             continue;
         }
+
         if c == '\'' || c == '"' || c == '`' {
             if has_backslash {
                 has_backslash = false;
@@ -147,6 +148,9 @@ pub fn parse_args(line: &str) -> Vec<(String, String)> {
         } else {
             if has_backslash {
                 has_backslash = false;
+                if sep == "\"" || sep == "'" {
+                    token.push('\\');
+                }
             }
             token.push(c);
         }
@@ -234,6 +238,9 @@ mod tests {
             ("echo `uname -m` | wc", vec!["echo", "uname -m", "|", "wc"]),
             ("echo `uptime` | wc # testing", vec!["echo", "uptime", "|", "wc"]),
             ("awk -F \"[ ,.\\\"]+\"", vec!["awk", "-F", "[ ,.\"]+"]),
+            ("echo foo\\|bar", vec!["echo", "foo|bar"]),
+            ("echo \"foo\\|bar\"", vec!["echo", "foo\\|bar"]),
+            ("echo 'foo\\|bar'", vec!["echo", "foo\\|bar"]),
         ];
 
         for (left, right) in v {
