@@ -203,7 +203,6 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     if term_given {
         unsafe {
             let gid = libc::getpgid(0);
-            log!("try return term to {}", gid);
             jobs::give_terminal_to(gid);
         }
     }
@@ -280,7 +279,6 @@ pub fn run_pipeline(args: Vec<String>,
         println!("cicada: invalid command");
         return (1, false, None);
     }
-    log!("needs pipes count: {}", pipes.len());
 
     let mut info = String::from("run: ");
     for cmd in &cmds {
@@ -316,10 +314,8 @@ pub fn run_pipeline(args: Vec<String>,
                         // set the first process as progress group leader
                         let pid = libc::getpid();
                         libc::setpgid(0, pid);
-                        log!("set self as pgroup lead {}", pid);
                     } else {
                         libc::setpgid(0, pgid as i32);
-                        log!("set pgroup to {}", pgid);
                     }
                 }
                 Ok(())
@@ -416,13 +412,11 @@ pub fn run_pipeline(args: Vec<String>,
         if isatty && !background && i == 0 {
             pgid = child.id();
             unsafe {
-                log!("try give term to {} [{}]", program, pgid);
                 term_given = jobs::give_terminal_to(pgid as i32);
             }
         }
 
         if !background && i == length - 1 {
-            log!("waiting pid {}: {}", child.id(), program);
             if capture_stdout {
                 match child.wait_with_output() {
                     Ok(x) => {
@@ -466,7 +460,6 @@ pub fn run_pipeline(args: Vec<String>,
                 unsafe {
                     let mut stat: i32 = 0;
                     let ptr: *mut i32 = &mut stat;
-                    log!("waiting pid {}", pid);
                     libc::waitpid(*pid as i32, ptr, 0);
                 }
             }
