@@ -56,9 +56,8 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
     if !Path::new(dot_file).exists() {
         return res;
     }
-    let sub_cmd = if (args.len() >= 3 && !args[1].starts_with('-')) || (
-            args.len() >= 2 && !args[1].starts_with('-') && line.ends_with(' ')
-        ) {
+    let sub_cmd = if (args.len() >= 3 && !args[1].starts_with('-')) ||
+                     (args.len() >= 2 && !args[1].starts_with('-') && line.ends_with(' ')) {
         args[1].as_str()
     } else {
         ""

@@ -30,9 +30,7 @@ pub fn run(sh: &mut shell::Shell, args: Vec<String>) -> i32 {
         sh.previous_dir = current_dir.to_string();
     }
     match env::set_current_dir(&dir_to) {
-        Ok(_) => {
-            0
-        }
+        Ok(_) => 0,
         Err(e) => {
             println!("{:?}", e);
             1

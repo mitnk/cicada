@@ -11,5 +11,5 @@ pub fn run(args: Vec<String>) -> i32 {
     let mut cmd = exec::Command::new(&args[1]);
     let err = cmd.args(&args[2..len]).exec();
     println!("exec error: {:?}", err);
-    return 0;
+    0
 }

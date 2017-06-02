@@ -108,13 +108,14 @@ fn delete_duplicated_histories() {
         Ok(conn) => {
             let sql = format!("DELETE FROM {} WHERE rowid NOT IN (
                 SELECT MAX(rowid) FROM {} GROUP BY inp)",
-                history_table, history_table);
+                              history_table,
+                              history_table);
             match conn.execute(sql) {
                 Ok(_) => {}
-                Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e)
+                Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e),
             }
         }
-        Err(e) => println_stderr!("cicada: sqlite open file error - {:?}", e)
+        Err(e) => println_stderr!("cicada: sqlite open file error - {:?}", e),
     }
 }
 

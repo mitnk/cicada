@@ -38,11 +38,17 @@ pub fn parse_commands(line: &str) -> Vec<String> {
         }
         if c == '&' || c == '|' {
             // needs watch ahead here
-            if sep.is_empty() && i + 1 <= len - 1 {
-                let c_next = line.chars().nth(i + 1).expect("chars nth error");
-                if c_next != c {
+            if sep.is_empty() {
+                if i + 1 == len {
+                    // for bg commands, e.g. `ls &`
                     token.push(c);
                     continue;
+                } else {
+                    let c_next = line.chars().nth(i + 1).expect("chars nth error");
+                    if c_next != c {
+                        token.push(c);
+                        continue;
+                    }
                 }
             }
 
@@ -252,6 +258,7 @@ mod tests {
     fn test_parse_commands() {
         let v = vec![
             ("ls", vec!["ls"]),
+            ("ls &", vec!["ls &"]),
             ("ls -lh", vec!["ls -lh"]),
             ("awk -F \" \" '{print $1}' README.md", vec!["awk -F \" \" '{print $1}' README.md"]),
             ("ls | wc", vec!["ls | wc"]),
