@@ -32,8 +32,9 @@ pub fn rlog(s: &str) {
         .expect("rlog: open /tmp/cicada-debug.log faild");
     let pid = unsafe { libc::getpid() };
     let s = format!("[{}] {}", pid, s);
-    file.write_all(s.as_bytes())
-        .expect("rlog: write_all failed");
+    file.write_all(s.as_bytes()).expect(
+        "rlog: write_all failed",
+    );
 }
 
 macro_rules! log {
@@ -88,10 +89,12 @@ fn should_extend_brace(line: &str) -> bool {
 }
 
 pub fn extend_home(s: &mut String) {
-    let v = vec![r"(?P<head> +)~(?P<tail> +)",
-                 r"(?P<head> +)~(?P<tail>/)",
-                 r"^(?P<head> *)~(?P<tail>/)",
-                 r"(?P<head> +)~(?P<tail> *$)"];
+    let v = vec![
+        r"(?P<head> +)~(?P<tail> +)",
+        r"(?P<head> +)~(?P<tail>/)",
+        r"^(?P<head> *)~(?P<tail>/)",
+        r"(?P<head> +)~(?P<tail> *$)",
+    ];
     for item in &v {
         let re;
         if let Ok(x) = Regex::new(item) {

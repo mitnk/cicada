@@ -206,19 +206,24 @@ mod tests {
             ("echo '###'", vec![("", "echo"), ("'", "###")]),
             ("echo a\\ bc", vec![("", "echo"), ("", "a bc")]),
             ("echo \\#", vec![("", "echo"), ("", "#")]),
-            ("echo 'hi $USER' |  wc  -l ", vec![("", "echo"),
-                                                ("'", "hi $USER"),
-                                                ("", "|"),
-                                                ("", "wc"),
-                                                ("", "-l")]),
-            ("echo `uname -m` | wc", vec![("", "echo"),
-                                                ("`", "uname -m"),
-                                                ("", "|"),
-                                                ("", "wc")]),
-            ("echo `uname -m` | wc # test it", vec![("", "echo"),
-                                                ("`", "uname -m"),
-                                                ("", "|"),
-                                                ("", "wc")]),
+            (
+                "echo 'hi $USER' |  wc  -l ",
+                vec![
+                    ("", "echo"),
+                    ("'", "hi $USER"),
+                    ("", "|"),
+                    ("", "wc"),
+                    ("", "-l"),
+                ]
+            ),
+            (
+                "echo `uname -m` | wc",
+                vec![("", "echo"), ("`", "uname -m"), ("", "|"), ("", "wc")]
+            ),
+            (
+                "echo `uname -m` | wc # test it",
+                vec![("", "echo"), ("`", "uname -m"), ("", "|"), ("", "wc")]
+            ),
             ("echo '`uname -m`'", vec![("", "echo"), ("'", "`uname -m`")]),
             ("'\"\"\"\"'", vec![("'", "\"\"\"\"")]),
             ("\"\'\'\'\'\"", vec![("\"", "''''")]),
@@ -240,9 +245,15 @@ mod tests {
             ("ls \"Hi 你好\"", vec!["ls", "Hi 你好"]),
             ("echo \"hi $USER\"", vec!["echo", "hi $USER"]),
             ("echo 'hi $USER'", vec!["echo", "hi $USER"]),
-            ("echo 'hi $USER' |  wc  -l ", vec!["echo", "hi $USER", "|", "wc", "-l"]),
+            (
+                "echo 'hi $USER' |  wc  -l ",
+                vec!["echo", "hi $USER", "|", "wc", "-l"]
+            ),
             ("echo `uname -m` | wc", vec!["echo", "uname -m", "|", "wc"]),
-            ("echo `uptime` | wc # testing", vec!["echo", "uptime", "|", "wc"]),
+            (
+                "echo `uptime` | wc # testing",
+                vec!["echo", "uptime", "|", "wc"]
+            ),
             ("awk -F \"[ ,.\\\"]+\"", vec!["awk", "-F", "[ ,.\"]+"]),
             ("echo foo\\|bar", vec!["echo", "foo|bar"]),
             ("echo \"foo\\|bar\"", vec!["echo", "foo\\|bar"]),
@@ -260,7 +271,10 @@ mod tests {
             ("ls", vec!["ls"]),
             ("ls &", vec!["ls &"]),
             ("ls -lh", vec!["ls -lh"]),
-            ("awk -F \" \" '{print $1}' README.md", vec!["awk -F \" \" '{print $1}' README.md"]),
+            (
+                "awk -F \" \" '{print $1}' README.md",
+                vec!["awk -F \" \" '{print $1}' README.md"]
+            ),
             ("ls | wc", vec!["ls | wc"]),
             ("echo #foo; echo bar", vec!["echo"]),
             ("echo foo; echo bar", vec!["echo foo", ";", "echo bar"]),
@@ -268,10 +282,15 @@ mod tests {
             ("echo \"foo; echo bar\"", vec!["echo \"foo; echo bar\""]),
             ("echo `foo; echo bar`", vec!["echo `foo; echo bar`"]),
             ("echo foo && echo bar", vec!["echo foo", "&&", "echo bar"]),
-            ("echo foo && echo bar && echo baz",
-             vec!["echo foo", "&&", "echo bar", "&&", "echo baz"]),
+            (
+                "echo foo && echo bar && echo baz",
+                vec!["echo foo", "&&", "echo bar", "&&", "echo baz"]
+            ),
             ("echo foo || echo bar", vec!["echo foo", "||", "echo bar"]),
-            ("echo foo && echo bar; echo end", vec!["echo foo", "&&", "echo bar", ";", "echo end"]),
+            (
+                "echo foo && echo bar; echo end",
+                vec!["echo foo", "&&", "echo bar", ";", "echo end"]
+            ),
         ];
 
         for (left, right) in v {

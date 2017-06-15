@@ -21,12 +21,13 @@ use tools;
 pub struct PathCompleter;
 
 impl<Term: Terminal> Completer<Term> for PathCompleter {
-    fn complete(&self,
-                word: &str,
-                _reader: &Reader<Term>,
-                _start: usize,
-                _end: usize)
-                -> Option<Vec<Completion>> {
+    fn complete(
+        &self,
+        word: &str,
+        _reader: &Reader<Term>,
+        _start: usize,
+        _end: usize,
+    ) -> Option<Vec<Completion>> {
         Some(complete_path(word))
     }
 
@@ -77,10 +78,10 @@ fn complete_path(path: &str) -> Vec<Completion> {
                         };
 
                         res.push(Completion {
-                                     completion: name,
-                                     display: display,
-                                     suffix: suffix,
-                                 });
+                            completion: name,
+                            display: display,
+                            suffix: suffix,
+                        });
                     }
                 }
             }
@@ -99,12 +100,13 @@ fn split_path(path: &str) -> (Option<&str>, &str) {
 pub struct BinCompleter;
 
 impl<Term: Terminal> Completer<Term> for BinCompleter {
-    fn complete(&self,
-                word: &str,
-                _reader: &Reader<Term>,
-                _start: usize,
-                _end: usize)
-                -> Option<Vec<Completion>> {
+    fn complete(
+        &self,
+        word: &str,
+        _reader: &Reader<Term>,
+        _start: usize,
+        _end: usize,
+    ) -> Option<Vec<Completion>> {
         Some(complete_bin(word))
     }
 }
@@ -139,10 +141,10 @@ fn complete_bin(path: &str) -> Vec<Completion> {
                             let suffix = Suffix::Default;
                             checker.insert(name.clone());
                             res.push(Completion {
-                                         completion: name,
-                                         display: display,
-                                         suffix: suffix,
-                                     });
+                                completion: name,
+                                display: display,
+                                suffix: suffix,
+                            });
                         }
                     }
                 }

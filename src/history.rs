@@ -33,7 +33,8 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
     let mut histories: HashMap<String, bool> = HashMap::new();
     match sqlite::open(hfile.clone()) {
         Ok(conn) => {
-            let sql_create = format!("
+            let sql_create = format!(
+                "
                 CREATE TABLE IF NOT EXISTS {}
                     (inp TEXT,
                      rtn INTEGER,
@@ -44,7 +45,8 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
                      info TEXT
                     );
             ",
-                                     history_table);
+                history_table
+            );
             match conn.execute(sql_create) {
                 Ok(_) => {}
                 Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e),
@@ -56,7 +58,8 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
                 }
             }
 
-            let sql_select = format!(
+            let sql_select =
+                format!(
                 "SELECT inp FROM {} ORDER BY tsb;",
                 history_table,
             );
@@ -106,10 +109,12 @@ fn delete_duplicated_histories() {
     let history_table = get_history_table();
     match sqlite::open(hfile.clone()) {
         Ok(conn) => {
-            let sql = format!("DELETE FROM {} WHERE rowid NOT IN (
+            let sql = format!(
+                "DELETE FROM {} WHERE rowid NOT IN (
                 SELECT MAX(rowid) FROM {} GROUP BY inp)",
-                              history_table,
-                              history_table);
+                history_table,
+                history_table
+            );
             match conn.execute(sql) {
                 Ok(_) => {}
                 Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e),
@@ -119,12 +124,14 @@ fn delete_duplicated_histories() {
     }
 }
 
-pub fn add(sh: &mut shell::Shell,
-           rl: &mut Reader<DefaultTerminal>,
-           line: &str,
-           status: i32,
-           tsb: f64,
-           tse: f64) {
+pub fn add(
+    sh: &mut shell::Shell,
+    rl: &mut Reader<DefaultTerminal>,
+    line: &str,
+    status: i32,
+    tsb: f64,
+    tse: f64,
+) {
     rl.add_history(line.to_string());
     if line == sh.previous_cmd {
         return;
@@ -134,15 +141,17 @@ pub fn add(sh: &mut shell::Shell,
     let hfile = get_history_file();
     let history_table = get_history_table();
     let conn = sqlite::open(hfile).expect("sqlite open error");
-    let sql = format!("INSERT INTO \
+    let sql = format!(
+        "INSERT INTO \
         {} (inp, rtn, tsb, tse, sessionid) \
         VALUES('{}', {}, {}, {}, '{}');",
-                      history_table,
-                      str::replace(line.trim(), "'", "''"),
-                      status,
-                      tsb,
-                      tse,
-                      "cicada");
+        history_table,
+        str::replace(line.trim(), "'", "''"),
+        status,
+        tsb,
+        tse,
+        "cicada"
+    );
     match conn.execute(sql) {
         Ok(_) => {}
         Err(e) => println!("failed to save history: {:?}", e),

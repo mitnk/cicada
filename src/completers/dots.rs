@@ -21,12 +21,13 @@ use parsers;
 pub struct DotsCompleter;
 
 impl<Term: Terminal> Completer<Term> for DotsCompleter {
-    fn complete(&self,
-                word: &str,
-                reader: &Reader<Term>,
-                _start: usize,
-                _end: usize)
-                -> Option<Vec<Completion>> {
+    fn complete(
+        &self,
+        word: &str,
+        reader: &Reader<Term>,
+        _start: usize,
+        _end: usize,
+    ) -> Option<Vec<Completion>> {
         let line = reader.buffer();
         Some(complete_dots(line, word))
     }
@@ -57,7 +58,8 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
         return res;
     }
     let sub_cmd = if (args.len() >= 3 && !args[1].starts_with('-')) ||
-                     (args.len() >= 2 && !args[1].starts_with('-') && line.ends_with(' ')) {
+        (args.len() >= 2 && !args[1].starts_with('-') && line.ends_with(' '))
+    {
         args[1].as_str()
     } else {
         ""
@@ -65,8 +67,9 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
 
     let mut f = File::open(dot_file).expect("cicada: open dot_file error");
     let mut s = String::new();
-    f.read_to_string(&mut s)
-        .expect("cicada: read_to_string error");
+    f.read_to_string(&mut s).expect(
+        "cicada: read_to_string error",
+    );
 
     let docs;
     match YamlLoader::load_from_str(&s) {
@@ -91,10 +94,10 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
                             let display = None;
                             let suffix = Suffix::Default;
                             res.push(Completion {
-                                         completion: name.to_string(),
-                                         display: display,
-                                         suffix: suffix,
-                                     });
+                                completion: name.to_string(),
+                                display: display,
+                                suffix: suffix,
+                            });
                         }
                         yaml::Yaml::Hash(ref h) => {
                             for (k, v) in h.iter() {
@@ -111,10 +114,10 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
                                         let display = None;
                                         let suffix = Suffix::Default;
                                         res.push(Completion {
-                                                     completion: name,
-                                                     display: display,
-                                                     suffix: suffix,
-                                                 });
+                                            completion: name,
+                                            display: display,
+                                            suffix: suffix,
+                                        });
                                     } else if let yaml::Yaml::Array(ref v) = *v {
                                         for x in v {
                                             if let yaml::Yaml::String(ref name) = *x {
@@ -126,10 +129,10 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
                                                 let display = None;
                                                 let suffix = Suffix::Default;
                                                 res.push(Completion {
-                                                             completion: name,
-                                                             display: display,
-                                                             suffix: suffix,
-                                                         });
+                                                    completion: name,
+                                                    display: display,
+                                                    suffix: suffix,
+                                                });
                                             }
                                         }
                                     }

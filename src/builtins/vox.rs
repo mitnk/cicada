@@ -83,10 +83,11 @@ fn exit_env() -> i32 {
     let mut _tokens: Vec<&str> = env_path.split(':').collect();
     let mut path_virtual_env = String::from("${VIRTUAL_ENV}/bin");
     tools::extend_env(&mut path_virtual_env);
-    _tokens
-        .iter()
-        .position(|&n| n == path_virtual_env)
-        .map(|e| _tokens.remove(e));
+    _tokens.iter().position(|&n| n == path_virtual_env).map(
+        |e| {
+            _tokens.remove(e)
+        },
+    );
     let env_path_new = _tokens.join(":");
     env::set_var("PATH", &env_path_new);
     env::set_var("VIRTUAL_ENV", "");

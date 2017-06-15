@@ -21,15 +21,19 @@ pub fn get_prompt(status: i32) -> String {
     }
 
     let mut prompt = if status == 0 {
-        format!("{}@{}: {}$ ",
-                libs::colored::green(user.as_str()),
-                libs::colored::green(hostname.as_str()),
-                libs::colored::green(pwd.as_str()))
+        format!(
+            "{}@{}: {}$ ",
+            libs::colored::green(user.as_str()),
+            libs::colored::green(hostname.as_str()),
+            libs::colored::green(pwd.as_str())
+        )
     } else {
-        format!("{}@{}: {}$ ",
-                libs::colored::red(user.as_str()),
-                libs::colored::red(hostname.as_str()),
-                libs::colored::red(pwd.as_str()))
+        format!(
+            "{}@{}: {}$ ",
+            libs::colored::red(user.as_str()),
+            libs::colored::red(hostname.as_str()),
+            libs::colored::red(pwd.as_str())
+        )
     };
     if let Ok(x) = env::var("VIRTUAL_ENV") {
         if x != "" {
