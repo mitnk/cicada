@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use tools;
 
 pub struct Shell {
     pub alias: HashMap<String, String>,
@@ -20,7 +21,7 @@ impl Shell {
     }
 
     pub fn extend_alias(&mut self, name: &str) -> String {
-        let result;
+        let mut result;
         match self.alias.get(name) {
             Some(x) => {
                 result = x.to_string();
@@ -29,6 +30,7 @@ impl Shell {
                 result = name.to_string();
             }
         }
+        tools::pre_handle_cmd_line(&mut result);
         result
     }
 }
