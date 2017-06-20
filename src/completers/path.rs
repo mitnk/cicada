@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::collections::HashSet;
 use std::env;
 use std::fs::read_dir;
@@ -10,15 +9,25 @@ use linefeed::Reader;
 use linefeed::terminal::Terminal;
 use linefeed::complete::{Completer, Completion};
 use linefeed::complete::Suffix;
-use linefeed::complete::escape;
-use linefeed::complete::unescape;
-use linefeed::complete::escaped_word_start;
 
 use tools;
 
-
-/// Performs completion by searching for filenames matching the word prefix.
+pub struct BinCompleter;
+pub struct CdCompleter;
 pub struct PathCompleter;
+
+impl<Term: Terminal> Completer<Term> for BinCompleter {
+    fn complete(
+        &self,
+        word: &str,
+        _reader: &Reader<Term>,
+        _start: usize,
+        _end: usize,
+    ) -> Option<Vec<Completion>> {
+        Some(complete_bin(word))
+    }
+}
+
 
 impl<Term: Terminal> Completer<Term> for PathCompleter {
     fn complete(
@@ -28,55 +37,62 @@ impl<Term: Terminal> Completer<Term> for PathCompleter {
         _start: usize,
         _end: usize,
     ) -> Option<Vec<Completion>> {
-        Some(complete_path(word))
+        Some(complete_path(word, false))
     }
+}
 
-    fn word_start(&self, line: &str, end: usize, _reader: &Reader<Term>) -> usize {
-        escaped_word_start(&line[..end])
-    }
-
-    fn quote<'a>(&self, word: &'a str) -> Cow<'a, str> {
-        escape(word)
-    }
-
-    fn unquote<'a>(&self, word: &'a str) -> Cow<'a, str> {
-        unescape(word)
+impl<Term: Terminal> Completer<Term> for CdCompleter {
+    fn complete(
+        &self,
+        word: &str,
+        _reader: &Reader<Term>,
+        _start: usize,
+        _end: usize,
+    ) -> Option<Vec<Completion>> {
+        Some(complete_path(word, true))
     }
 }
 
 /// Returns a sorted list of paths whose prefix matches the given path.
-fn complete_path(path: &str) -> Vec<Completion> {
-    let mut path_s = String::from(path);
-    if tools::needs_extend_home(path_s.as_str()) {
-        tools::extend_home(&mut path_s)
+fn complete_path(path: &str, for_dir: bool) -> Vec<Completion> {
+    let (_dir_orig, _) = split_path(path);
+    let dir_orig = if let Some(_dir) = _dir_orig { _dir } else { "" };
+    let mut path_extended = String::from(path);
+    if tools::needs_extend_home(path_extended.as_str()) {
+        tools::extend_home(&mut path_extended)
     }
-    let (base_dir, fname) = split_path(path_s.as_str());
+    let (_dir_lookup, file_name) = split_path(path_extended.as_str());
     let mut res = Vec::new();
+    let dir_lookup = _dir_lookup.unwrap_or(".");
+    if let Ok(entries) = read_dir(dir_lookup) {
+        for entry in entries {
+            let mut is_dir = false;
+            if let Ok(entry) = entry {
+                if let Ok(file_type) = entry.file_type() {
+                    is_dir = file_type.is_dir();
+                    if for_dir && !is_dir {
+                        continue;
+                    }
+                }
 
-    let lookup_dir = base_dir.unwrap_or(".");
-
-    if let Ok(list) = read_dir(lookup_dir) {
-        for ent in list {
-            if let Ok(ent) = ent {
-                let ent_name = ent.file_name();
-
+                let ent_name = entry.file_name();
                 // TODO: Deal with non-UTF8 paths in some way
-                if let Ok(path) = ent_name.into_string() {
-                    if path.starts_with(fname) {
-                        let (name, display) = if let Some(dir) = base_dir {
-                            (format!("{}{}{}", dir, MAIN_SEPARATOR, path), Some(path))
+                if let Ok(_path) = ent_name.into_string() {
+                    if _path.starts_with(file_name) {
+                        let (name, display) = if dir_orig != "" {
+                            (
+                                format!("{}{}{}", dir_orig, MAIN_SEPARATOR, _path),
+                                Some(_path),
+                            )
                         } else {
-                            (path, None)
+                            (_path, None)
                         };
                         let name = str::replace(name.as_str(), "//", "/");
-                        let is_dir = ent.metadata().ok().map_or(false, |m| m.is_dir());
-
                         let suffix = if is_dir {
                             Suffix::Some(MAIN_SEPARATOR)
                         } else {
                             Suffix::Default
                         };
-
                         res.push(Completion {
                             completion: name,
                             display: display,
@@ -94,20 +110,6 @@ fn split_path(path: &str) -> (Option<&str>, &str) {
     match path.rfind(is_separator) {
         Some(pos) => (Some(&path[..pos + 1]), &path[pos + 1..]),
         None => (None, path),
-    }
-}
-
-pub struct BinCompleter;
-
-impl<Term: Terminal> Completer<Term> for BinCompleter {
-    fn complete(
-        &self,
-        word: &str,
-        _reader: &Reader<Term>,
-        _start: usize,
-        _end: usize,
-    ) -> Option<Vec<Completion>> {
-        Some(complete_bin(word))
     }
 }
 

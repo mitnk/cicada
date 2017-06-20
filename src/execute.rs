@@ -14,7 +14,6 @@ use libc;
 
 use tools::{self, rlog};
 use builtins;
-use jobs;
 use parsers;
 use shell;
 
@@ -207,7 +206,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     if term_given {
         unsafe {
             let gid = libc::getpgid(0);
-            jobs::give_terminal_to(gid);
+            shell::give_terminal_to(gid);
         }
     }
     result
@@ -419,7 +418,7 @@ pub fn run_pipeline(
         if isatty && !background && i == 0 {
             pgid = child.id();
             unsafe {
-                term_given = jobs::give_terminal_to(pgid as i32);
+                term_given = shell::give_terminal_to(pgid as i32);
             }
         }
 

@@ -6,12 +6,22 @@ use linefeed::complete::{Completer, Completion};
 use linefeed::terminal::Terminal;
 use regex::Regex;
 
-pub mod path;
 pub mod dots;
+pub mod path;
 pub struct CCDCompleter;
 
 use tools;
 use parsers;
+
+fn for_cd(line: &str) -> bool {
+    let re;
+    if let Ok(x) = Regex::new(r"^ *cd +") {
+        re = x;
+    } else {
+        return false;
+    }
+    re.is_match(line)
+}
 
 fn for_bin(line: &str) -> bool {
     let re;
@@ -45,6 +55,10 @@ impl<Term: Terminal> Completer<Term> for CCDCompleter {
         let line = reader.buffer();
         if for_bin(line) {
             let cpl = Rc::new(path::BinCompleter);
+            return cpl.complete(word, reader, start, _end);
+        }
+        if for_cd(line) {
+            let cpl = Rc::new(path::CdCompleter);
             return cpl.complete(word, reader, start, _end);
         }
         if for_dots(line) {

@@ -33,7 +33,6 @@ mod binds;
 mod builtins;
 mod completers;
 mod execute;
-mod jobs;
 mod libs;
 mod parsers;
 mod history;
