@@ -12,7 +12,7 @@ use tools;
 use shell;
 
 pub fn init(rl: &mut Reader<DefaultTerminal>) {
-    let mut hist_size: usize = 9999; // make default bigger but not huge
+    let mut hist_size: usize = 999;
     if let Ok(x) = env::var("HISTORY_SIZE") {
         if let Ok(y) = x.parse::<usize>() {
             hist_size = y;
