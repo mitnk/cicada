@@ -7,8 +7,7 @@ use std::os::unix::fs::PermissionsExt;
 
 use linefeed::Reader;
 use linefeed::terminal::Terminal;
-use linefeed::complete::{Completer, Completion};
-use linefeed::complete::Suffix;
+use linefeed::complete::{Completer, Completion, Suffix};
 
 use tools;
 
@@ -54,7 +53,7 @@ impl<Term: Terminal> Completer<Term> for CdCompleter {
 }
 
 /// Returns a sorted list of paths whose prefix matches the given path.
-fn complete_path(path: &str, for_dir: bool) -> Vec<Completion> {
+pub fn complete_path(path: &str, for_dir: bool) -> Vec<Completion> {
     let (_dir_orig, _) = split_path(path);
     let dir_orig = if let Some(_dir) = _dir_orig { _dir } else { "" };
     let mut path_extended = String::from(path);
