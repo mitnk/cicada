@@ -9,6 +9,7 @@ my default login shell.
 ## Documents
 
 - [Environment Variables](https://github.com/mitnk/cicada/tree/master/docs/envs.md)
+- [Built-in Commands](https://github.com/mitnk/cicada/tree/master/docs/built-in-cmd.md)
 
 ## Features so far
 
