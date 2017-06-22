@@ -6,6 +6,10 @@
 Cicada is a simple, semi-toy Unix shell written in Rust. And I use it as
 my default login shell.
 
+## Documents
+
+- [Environment Variables](https://github.com/mitnk/cicada/tree/master/docs/envs.md)
+
 ## Features so far
 
 ### run programs and pipelines
