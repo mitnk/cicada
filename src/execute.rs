@@ -229,9 +229,16 @@ fn extend_alias(sh: &mut shell::Shell, args: &mut Vec<String>) {
             continue;
         }
 
-        let program = arg;
-        let extended = sh.extend_alias(program.as_str());
-        if extended != *program {
+        let extended;
+        match sh.extend_alias(arg) {
+            Some(_extended) => {
+                extended = _extended;
+            }
+            None => {
+                extended = arg.clone();
+            }
+        }
+        if extended != *arg {
             let _args = parsers::parser_line::parse_line(extended.as_str());
             for (i, item) in _args.iter().enumerate() {
                 if i == 0 {
@@ -646,6 +653,18 @@ mod tests {
                 "--color=auto".to_string(),
                 "--exclude-dir=.git".to_string(),
                 "foo".to_string(),
+            ]
+        );
+
+        sh.add_alias("ls", "ls -G");
+        args = vec!["ls".to_string(), "a\\.b".to_string()];
+        extend_alias(&mut sh, &mut args);
+        assert_eq!(
+            args,
+            vec![
+                "ls".to_string(),
+                "-G".to_string(),
+                "a\\.b".to_string(),
             ]
         );
     }

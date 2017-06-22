@@ -24,18 +24,22 @@ impl Shell {
         self.alias.insert(name.to_string(), value.to_string());
     }
 
-    pub fn extend_alias(&mut self, name: &str) -> String {
+    pub fn extend_alias(&mut self, name: &str) -> Option<String> {
         let mut result;
         match self.alias.get(name) {
             Some(x) => {
                 result = x.to_string();
             }
             None => {
-                result = name.to_string();
+                result = String::new();
             }
         }
         tools::pre_handle_cmd_line(&mut result);
-        result
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
+        }
     }
 }
 
