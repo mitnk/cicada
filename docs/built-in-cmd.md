@@ -38,6 +38,10 @@ $ history curl
 1: curl -x socks5://192.168.1.170:51080 https://hugo.wang/http/ip/
 ```
 
+## version
+
+Prints cicada's version info.
+
 ## vox
 
 First create your virtual envs under this directory:
