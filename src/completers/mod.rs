@@ -7,12 +7,23 @@ use linefeed::terminal::Terminal;
 use regex::Regex;
 
 pub mod dots;
+pub mod make;
 pub mod path;
 pub mod ssh;
 pub struct CCDCompleter;
 
 use tools;
 use parsers;
+
+fn for_make(line: &str) -> bool {
+    let re;
+    if let Ok(x) = Regex::new(r"^ *make ") {
+        re = x;
+    } else {
+        return false;
+    }
+    re.is_match(line)
+}
 
 fn for_ssh(line: &str) -> bool {
     let re;
@@ -74,6 +85,10 @@ impl<Term: Terminal> Completer<Term> for CCDCompleter {
         }
         if for_ssh(line) {
             let cpl = Rc::new(ssh::SshCompleter);
+            return cpl.complete(word, reader, start, _end);
+        }
+        if for_make(line) {
+            let cpl = Rc::new(make::MakeCompleter);
             return cpl.complete(word, reader, start, _end);
         }
         if for_dots(line) {
