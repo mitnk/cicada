@@ -661,11 +661,7 @@ mod tests {
         extend_alias(&mut sh, &mut args);
         assert_eq!(
             args,
-            vec![
-                "ls".to_string(),
-                "-G".to_string(),
-                "a\\.b".to_string(),
-            ]
+            vec!["ls".to_string(), "-G".to_string(), "a\\.b".to_string()]
         );
     }
 

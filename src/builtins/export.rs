@@ -4,6 +4,7 @@ use tools;
 
 pub fn run(line: &str) -> i32 {
     if !tools::is_env(line) {
+        println!("export: expected syntax like XXX=YYY");
         return 1;
     }
 

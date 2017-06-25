@@ -88,8 +88,13 @@ pub fn parse_commands(line: &str) -> Vec<String> {
 pub fn parse_args(line: &str) -> Vec<(String, String)> {
     let mut result = Vec::new();
     let mut sep = String::new();
+    // `sep_second` is for commands like this:
+    //    export DIR=`brew --prefix openssl`/include
+    // it only could have non-empty value when sep is `""`, or `"\""`.
+    let mut sep_second = String::new();
     let mut token = String::new();
     let mut has_backslash = false;
+    let mut new_round = true;
     for c in line.chars() {
         if c == '\\' {
             if !has_backslash {
@@ -100,37 +105,51 @@ pub fn parse_args(line: &str) -> Vec<(String, String)> {
             }
             continue;
         }
-        if c == '#' {
-            if has_backslash {
-                has_backslash = false;
-                token.push(c);
+
+        if new_round {
+            if c == ' ' {
                 continue;
-            }
-            if sep.is_empty() {
-                break;
+            } else if c == '"' || c == '\'' || c == '`' {
+                sep = c.to_string();
+
             } else {
+                sep = String::new();
+                if c == '#' {
+                    if has_backslash {
+                        has_backslash = false;
+                        token.push(c);
+                        continue;
+                    }
+                    break;
+                }
                 token.push(c);
-                continue;
             }
+            new_round = false;
+            continue;
         }
+
         if c == ' ' {
             if has_backslash {
                 has_backslash = false;
                 token.push(c);
                 continue;
             }
-            if !sep.is_empty() {
+            if sep.is_empty() {
+                if sep_second.is_empty() {
+                    result.push((String::from(""), token));
+                    sep = String::new();
+                    sep_second = String::new();
+                    token = String::new();
+                    new_round = true;
+                    continue;
+                } else {
+                    token.push(c);
+                    continue;
+                }
+            } else {
                 token.push(c);
                 continue;
             }
-            if token.is_empty() {
-                continue;
-            } else if sep.is_empty() {
-                result.push((String::from(""), token));
-                token = String::new();
-                continue;
-            }
-            continue;
         }
 
         if c == '\'' || c == '"' || c == '`' {
@@ -140,13 +159,20 @@ pub fn parse_args(line: &str) -> Vec<(String, String)> {
                 continue;
             }
 
-            if sep == "" {
-                sep.push(c);
+            if sep.is_empty() {
+                token.push(c);
+                if sep_second.is_empty() {
+                    sep_second = c.to_string();
+                } else if sep_second == c.to_string() {
+                    sep_second = String::new();
+                }
                 continue;
             } else if sep == c.to_string() {
                 result.push((c.to_string(), token));
                 sep = String::new();
+                sep_second = String::new();
                 token = String::new();
+                new_round = true;
                 continue;
             } else {
                 token.push(c);
@@ -196,6 +222,7 @@ mod tests {
         let v = vec![
             ("ls", vec![("", "ls")]),
             ("  ls   ", vec![("", "ls")]),
+            ("ls ' a '", vec![("", "ls"), ("'", " a ")]),
             ("ls -lh", vec![("", "ls"), ("", "-lh")]),
             ("  ls   -lh   ", vec![("", "ls"), ("", "-lh")]),
             ("ls 'abc'", vec![("", "ls"), ("'", "abc")]),
@@ -227,9 +254,21 @@ mod tests {
             ("echo '`uname -m`'", vec![("", "echo"), ("'", "`uname -m`")]),
             ("'\"\"\"\"'", vec![("'", "\"\"\"\"")]),
             ("\"\'\'\'\'\"", vec![("\"", "''''")]),
+            (
+                "export DIR=`brew --prefix openssl`/include",
+                vec![("", "export"), ("", "DIR=`brew --prefix openssl`/include")]
+            ),
+            (
+                "export FOO=\"`date` and `go version`\"",
+                vec![("", "export"), ("", "FOO=\"`date` and `go version`\"")]
+            ),
         ];
         for (left, right) in v {
-            _assert_vec_tuple_eq(parse_args(left), right);
+            println!("\ninput: {:?}", left);
+            println!("expected: {:?}", right);
+            let args = parse_args(left);
+            println!("real: {:?}", args);
+            _assert_vec_tuple_eq(args, right);
         }
     }
 

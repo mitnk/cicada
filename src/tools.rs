@@ -154,6 +154,60 @@ pub fn do_command_substitution(line: &mut String) {
                 println_stderr!("cicada: command error");
                 result.push(wrap_sep_string(sep.as_str(), token.as_str()));
             }
+        } else if sep == "\"" || sep.is_empty() {
+            let re;
+            if let Ok(x) = Regex::new(r"^([^`]*)`([^`]+)`(.*)$") {
+                re = x;
+            } else {
+                println_stderr!("cicada: re new error");
+                return;
+            }
+            if !re.is_match(&token) {
+                result.push(wrap_sep_string(sep.as_str(), token.as_str()));
+                continue;
+            }
+            let mut _token = token.clone();
+            let mut _item = String::new();
+            let mut _head = String::new();
+            let mut _output = String::new();
+            let mut _tail = String::new();
+            loop {
+                if !re.is_match(&_token) {
+                    if !_token.is_empty() {
+                        _item = format!("{}{}", _item, _token);
+                    }
+                    break;
+                }
+                for cap in re.captures_iter(&_token) {
+                    _head = cap[1].to_string();
+                    _tail = cap[3].to_string();
+                    let _args = parsers::parser_line::parse_line(&cap[2]);
+                    let (_, _, output) =
+                        execute::run_pipeline(_args, "", "", false, false, false, true);
+                    if let Some(x) = output {
+                        match String::from_utf8(x.stdout) {
+                            Ok(stdout) => {
+                                _output = stdout.trim().to_string();
+                            }
+                            Err(_) => {
+                                println_stderr!("cicada: from_utf8 error");
+                                result.push(wrap_sep_string(sep.as_str(), token.as_str()));
+                                return;
+                            }
+                        }
+                    } else {
+                        println_stderr!("cicada: command error: {}", token);
+                        result.push(wrap_sep_string(sep.as_str(), token.as_str()));
+                        return;
+                    }
+                }
+                _item = format!("{}{}{}", _item, _head, _output);
+                if _tail.is_empty() {
+                    break;
+                }
+                _token = _tail.clone();
+            }
+            result.push(wrap_sep_string(sep.as_str(), &_item));
         } else {
             result.push(wrap_sep_string(sep.as_str(), token.as_str()));
         }
@@ -219,14 +273,12 @@ pub fn extend_env(line: &mut String) {
     let args = parsers::parser_line::parse_args(_line.as_str());
     for (sep, token) in args {
         if sep == "`" || sep == "'" {
-            result.push(wrap_sep_string(sep.as_str(), token.as_str()));
+            result.push(wrap_sep_string(&sep, &token));
         } else {
             match shellexpand::env(token.as_str()) {
-                Ok(x) => {
-                    result.push(wrap_sep_string(sep.as_str(), x.into_owned().as_str()));
-                }
+                Ok(x) => result.push(wrap_sep_string(&sep, &x)),
                 Err(_) => {
-                    result.push(wrap_sep_string(sep.as_str(), token.as_str()));
+                    result.push(wrap_sep_string(&sep, &token));
                 }
             }
         }
@@ -415,6 +467,14 @@ mod tests {
         let mut s = String::from("echo '\\\''");
         extend_env(&mut s);
         assert_eq!(s, "echo '\\\''");
+
+        let mut s = String::from("export DIR=`brew --prefix openssl`/include");
+        extend_env(&mut s);
+        assert_eq!(s, "export DIR=`brew --prefix openssl`/include");
+
+        let mut s = String::from("export FOO=\"`date` and `go version`\"");
+        extend_env(&mut s);
+        assert_eq!(s, "export FOO=\"`date` and `go version`\"");
     }
 
     #[test]
