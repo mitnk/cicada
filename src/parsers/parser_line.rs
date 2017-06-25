@@ -90,7 +90,7 @@ pub fn parse_args(line: &str) -> Vec<(String, String)> {
     let mut sep = String::new();
     // `sep_second` is for commands like this:
     //    export DIR=`brew --prefix openssl`/include
-    // it only could have non-empty value when sep is `""`, or `"\""`.
+    // it only could have non-empty value when sep is empty.
     let mut sep_second = String::new();
     let mut token = String::new();
     let mut has_backslash = false;
