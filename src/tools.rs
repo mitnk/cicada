@@ -1,6 +1,7 @@
 use std::env;
 use std::fs::OpenOptions;
 use std::io::Write;
+use time;
 
 use glob;
 use regex::Regex;
@@ -31,7 +32,18 @@ pub fn rlog(s: &str) {
         .open("/tmp/cicada-debug.log")
         .expect("rlog: open /tmp/cicada-debug.log faild");
     let pid = unsafe { libc::getpid() };
-    let s = format!("[{}] {}", pid, s);
+    let now = time::now();
+    let s = format!(
+        "[{:04}-{:02}-{:02} {:02}:{:02}:{:02}][{}] {}",
+        now.tm_year + 1900,
+        now.tm_mon + 1,
+        now.tm_mday,
+        now.tm_hour,
+        now.tm_min,
+        now.tm_sec,
+        pid,
+        s,
+    );
     file.write_all(s.as_bytes()).expect(
         "rlog: write_all failed",
     );

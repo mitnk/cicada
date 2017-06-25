@@ -11,6 +11,7 @@ doc:
 	cargo doc --open
 
 test:
+	@rustc -V
 	cargo test
 
 clean:
