@@ -1,8 +1,12 @@
+use std::env;
 use errno::errno;
 use libc;
 use std::collections::HashMap;
 use std::mem;
 
+use regex::Regex;
+
+use parsers;
 use tools::{self, rlog};
 
 pub struct Shell {
@@ -72,4 +76,96 @@ pub unsafe fn give_terminal_to(gid: i32) -> bool {
         log!("failed to call pthread_sigmask");
     }
     given
+}
+
+pub fn extend_env_blindly(token: &str) -> String {
+    let re;
+    if let Ok(x) = Regex::new(r"([^\$]*)\$\{?([A-Za-z0-9_]+)\}?(.*)") {
+        re = x;
+    } else {
+        println!("cicada: re new error");
+        return String::new();
+    }
+    if !re.is_match(&token) {
+        return token.to_string();
+    }
+    let mut result = String::new();
+    let mut _token = token.to_string();
+    let mut _head = String::new();
+    let mut _output = String::new();
+    let mut _tail = String::new();
+    loop {
+        if !re.is_match(&_token) {
+            if !_token.is_empty() {
+                result.push_str(&_token);
+            }
+            break;
+        }
+        for cap in re.captures_iter(&_token) {
+            _head = cap[1].to_string();
+            _tail = cap[3].to_string();
+            let _key = cap[2].to_string();
+            if let Ok(val) = env::var(_key) {
+                result.push_str(format!("{}{}", _head, val).as_str());
+            } else {
+                result.push_str(format!("{}", _head).as_str());
+            }
+        }
+        if _tail.is_empty() {
+            break;
+        }
+        _token = _tail.clone();
+    }
+    result
+}
+
+pub fn extend_env(line: &mut String) {
+    let mut result: Vec<String> = Vec::new();
+    let _line = line.clone();
+    let args = parsers::parser_line::parse_args(_line.as_str());
+    for (sep, token) in args {
+        if sep == "`" || sep == "'" {
+            result.push(tools::wrap_sep_string(&sep, &token));
+        } else {
+            let _token = extend_env_blindly(&token);
+            result.push(tools::wrap_sep_string(&sep, &_token));
+        }
+    }
+    *line = result.join(" ");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::extend_env;
+
+    #[test]
+    fn test_extend_env() {
+        let mut s = String::from("echo '$PATH'");
+        extend_env(&mut s);
+        assert_eq!(s, "echo '$PATH'");
+
+        let mut s = String::from("echo 'hi $PATH'");
+        extend_env(&mut s);
+        assert_eq!(s, "echo 'hi $PATH'");
+
+        let mut s = String::from("echo '\\\''");
+        extend_env(&mut s);
+        assert_eq!(s, "echo '\\\''");
+
+        let mut s = String::from("export DIR=`brew --prefix openssl`/include");
+        extend_env(&mut s);
+        assert_eq!(s, "export DIR=`brew --prefix openssl`/include");
+
+        let mut s = String::from("export FOO=\"`date` and `go version`\"");
+        extend_env(&mut s);
+        assert_eq!(s, "export FOO=\"`date` and `go version`\"");
+
+        let mut s = String::from("foo is XX${CICADA_NOT_EXIST}XX");
+        extend_env(&mut s);
+        assert_eq!(s, "foo is XXXX");
+
+        let mut s = String::from("foo is $CICADA_NOT_EXIST_1 and bar is $CICADA_NOT_EXIST_2.");
+        extend_env(&mut s);
+        assert_eq!(s, "foo is  and bar is .");
+    }
 }

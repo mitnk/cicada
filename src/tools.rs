@@ -5,11 +5,11 @@ use time;
 
 use glob;
 use regex::Regex;
-use shellexpand;
 
 use libc;
 use parsers;
 use execute;
+use shell;
 
 macro_rules! println_stderr {
     ($fmt:expr) => (
@@ -280,25 +280,6 @@ pub fn do_brace_expansion(line: &mut String) {
     *line = result.join(" ");
 }
 
-pub fn extend_env(line: &mut String) {
-    let mut result: Vec<String> = Vec::new();
-    let _line = line.clone();
-    let args = parsers::parser_line::parse_args(_line.as_str());
-    for (sep, token) in args {
-        if sep == "`" || sep == "'" {
-            result.push(wrap_sep_string(&sep, &token));
-        } else {
-            match shellexpand::env(token.as_str()) {
-                Ok(x) => result.push(wrap_sep_string(&sep, &x)),
-                Err(_) => {
-                    result.push(wrap_sep_string(&sep, &token));
-                }
-            }
-        }
-    }
-    *line = result.join(" ");
-}
-
 fn needs_globbing(line: &str) -> bool {
     if is_arithmetic(line) {
         return false;
@@ -353,14 +334,13 @@ fn extend_glob(line: &mut String) {
 }
 
 pub fn pre_handle_cmd_line(line: &mut String) {
-    // TODO maybe replace extend_home() with shellexpand::full()
     if needs_extend_home(line.as_str()) {
         extend_home(line);
     }
     if needs_globbing(line.as_str()) {
         extend_glob(line);
     }
-    extend_env(line);
+    shell::extend_env(line);
     do_command_substitution(line);
     do_brace_expansion(line);
 }
@@ -439,7 +419,6 @@ mod tests {
     use super::needs_extend_home;
     use super::needs_globbing;
     use super::is_alias;
-    use super::extend_env;
     use super::do_brace_expansion;
 
     #[test]
@@ -465,29 +444,6 @@ mod tests {
     #[test]
     fn test_is_alias() {
         assert!(is_alias("alias ls='ls -lh'"));
-    }
-
-    #[test]
-    fn test_extend_env() {
-        let mut s = String::from("echo '$PATH'");
-        extend_env(&mut s);
-        assert_eq!(s, "echo '$PATH'");
-
-        let mut s = String::from("echo 'hi $PATH'");
-        extend_env(&mut s);
-        assert_eq!(s, "echo 'hi $PATH'");
-
-        let mut s = String::from("echo '\\\''");
-        extend_env(&mut s);
-        assert_eq!(s, "echo '\\\''");
-
-        let mut s = String::from("export DIR=`brew --prefix openssl`/include");
-        extend_env(&mut s);
-        assert_eq!(s, "export DIR=`brew --prefix openssl`/include");
-
-        let mut s = String::from("export FOO=\"`date` and `go version`\"");
-        extend_env(&mut s);
-        assert_eq!(s, "export FOO=\"`date` and `go version`\"");
     }
 
     #[test]

@@ -2,7 +2,7 @@ use std::env;
 use std::fs::{self, read_dir};
 use std::path::Path;
 
-use tools;
+use shell;
 
 fn in_env() -> bool {
     if let Ok(x) = env::var("VIRTUAL_ENV") {
@@ -69,7 +69,7 @@ fn enter_env(path: &str) -> i32 {
     let path_env = format!("{}/{}", home_envs, path);
     env::set_var("VIRTUAL_ENV", &path_env);
     let mut path_new = String::from("${VIRTUAL_ENV}/bin:$PATH");
-    tools::extend_env(&mut path_new);
+    shell::extend_env(&mut path_new);
     env::set_var("PATH", &path_new);
     0
 }
@@ -82,7 +82,7 @@ fn exit_env() -> i32 {
     let env_path = env::var("PATH").expect("vox: env error");
     let mut _tokens: Vec<&str> = env_path.split(':').collect();
     let mut path_virtual_env = String::from("${VIRTUAL_ENV}/bin");
-    tools::extend_env(&mut path_virtual_env);
+    shell::extend_env(&mut path_virtual_env);
     _tokens.iter().position(|&n| n == path_virtual_env).map(
         |e| {
             _tokens.remove(e)

@@ -2,6 +2,7 @@ use std::env;
 use std::io::Write;
 use regex::Regex;
 
+use shell;
 use tools;
 use parsers;
 
@@ -33,7 +34,11 @@ pub fn run(line: &str) -> i32 {
                 continue;
             }
             for cap in re.captures_iter(&token) {
-                let value = tools::unquote(&cap[2]);
+                let mut _value = tools::unquote(&cap[2]);
+                if tools::needs_extend_home(&_value) {
+                    tools::extend_home(&mut _value);
+                }
+                let value = shell::extend_env_blindly(&_value);
                 env::set_var(&cap[1], &value);
             }
         } else {

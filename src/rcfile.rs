@@ -1,11 +1,10 @@
-use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
 use regex::Regex;
-use shellexpand;
 
+use builtins;
 use tools;
 use shell;
 
@@ -34,23 +33,7 @@ fn handle_line(sh: &mut shell::Shell, line: &str) {
 }
 
 fn handle_env(line: &str) {
-    let re = Regex::new(r"^ *export +([a-zA-Z0-9_\.-]+)=(.*)$").expect("cicada: Regex error");
-    for cap in re.captures_iter(line) {
-        let value = tools::unquote(&cap[2]);
-        match shellexpand::env(value.as_str()) {
-            Ok(x) => {
-                let mut value = x.to_string();
-                if tools::needs_extend_home(value.as_str()) {
-                    tools::extend_home(&mut value);
-                }
-                let name = &cap[1];
-                env::set_var(name, &value);
-            }
-            Err(e) => {
-                println!("shellexpand err: {:?}", e);
-            }
-        }
-    }
+    builtins::export::run(line);
 }
 
 fn handle_alias(sh: &mut shell::Shell, line: &str) {
