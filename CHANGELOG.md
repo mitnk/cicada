@@ -2,6 +2,9 @@
 
 ## v0.5.7 - not released
 
+- `export` now can set multiple envs at once
+- `echo $NON_EXIST` prints empty string now (WIP)
+
 ## v0.5.6 - 2017-06-25
 
 - Now we can parse following command lines correctly:

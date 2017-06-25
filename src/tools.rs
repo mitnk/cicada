@@ -33,7 +33,8 @@ pub fn rlog(s: &str) {
         .expect("rlog: open /tmp/cicada-debug.log faild");
     let pid = unsafe { libc::getpid() };
     let now = time::now();
-    let s = format!(
+    let s =
+        format!(
         "[{:04}-{:02}-{:02} {:02}:{:02}:{:02}][{}] {}",
         now.tm_year + 1900,
         now.tm_mon + 1,
@@ -82,7 +83,7 @@ pub fn unquote(s: &str) -> String {
 
 pub fn is_env(line: &str) -> bool {
     let re;
-    if let Ok(x) = Regex::new(r"^ *export +[a-zA-Z0-9_\.-]+=.*$") {
+    if let Ok(x) = Regex::new(r"^ *export +[a-zA-Z0-9_]+=.*$") {
         re = x;
     } else {
         return false;
