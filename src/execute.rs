@@ -37,9 +37,6 @@ fn args_to_cmds(args: Vec<String>) -> Vec<Vec<String>> {
     let mut cmds: Vec<Vec<String>> = Vec::new();
     for token in &args {
         if token != "|" {
-            if token == "" {
-                return Vec::new();
-            }
             cmd.push(token.clone());
         } else {
             if cmd.is_empty() {
@@ -416,7 +413,7 @@ pub fn run_pipeline(
                 }
             }
             Err(e) => {
-                println!("{}: {:?}", program, e.description());
+                println!("{}: {}", program, e.description());
                 status = 1;
                 continue;
             }
@@ -530,6 +527,16 @@ mod tests {
             vec!["ls".to_string(), "-lh".to_string()],
             vec!["wc".to_string(), "-l".to_string()],
             vec!["less".to_string()],
+        ];
+        assert_eq!(result.len(), expected.len());
+        for (i, item) in result.iter().enumerate() {
+            assert_eq!(*item, expected[i]);
+        }
+
+        let s = vec![String::from("echo"), String::from("")];
+        let result = args_to_cmds(s);
+        let expected = vec![
+            vec!["echo".to_string(), "".to_string()],
         ];
         assert_eq!(result.len(), expected.len());
         for (i, item) in result.iter().enumerate() {

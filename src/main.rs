@@ -76,7 +76,7 @@ fn main() {
         }
     }
     history::init(&mut rl);
-    rl.set_completer(Rc::new(completers::CCDCompleter));
+    rl.set_completer(Rc::new(completers::CicadaCompleter));
 
     rl.define_function("up-key-function", Rc::new(binds::UpKeyFunction));
     rl.bind_sequence(binds::SEQ_UP_KEY, Command::from_str("up-key-function"));

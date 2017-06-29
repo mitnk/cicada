@@ -1,4 +1,5 @@
 use std::env;
+use std::error::Error;
 use shell;
 use tools;
 
@@ -32,7 +33,7 @@ pub fn run(sh: &mut shell::Shell, args: Vec<String>) -> i32 {
     match env::set_current_dir(&dir_to) {
         Ok(_) => 0,
         Err(e) => {
-            println!("{:?}", e);
+            println!("cd: {}", e.description());
             1
         }
     }

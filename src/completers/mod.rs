@@ -10,7 +10,7 @@ pub mod dots;
 pub mod make;
 pub mod path;
 pub mod ssh;
-pub struct CCDCompleter;
+pub struct CicadaCompleter;
 
 use tools;
 use parsers;
@@ -66,7 +66,7 @@ fn for_dots(line: &str) -> bool {
     Path::new(dot_file.as_str()).exists()
 }
 
-impl<Term: Terminal> Completer<Term> for CCDCompleter {
+impl<Term: Terminal> Completer<Term> for CicadaCompleter {
     fn complete(
         &self,
         word: &str,
@@ -75,6 +75,8 @@ impl<Term: Terminal> Completer<Term> for CCDCompleter {
         _end: usize,
     ) -> Option<Vec<Completion>> {
         let line = reader.buffer();
+
+        // these completions should not fail back to path completion.
         if for_bin(line) {
             let cpl = Rc::new(path::BinCompleter);
             return cpl.complete(word, reader, start, _end);
@@ -83,13 +85,24 @@ impl<Term: Terminal> Completer<Term> for CCDCompleter {
             let cpl = Rc::new(path::CdCompleter);
             return cpl.complete(word, reader, start, _end);
         }
+
+        // the following completions needs fail back to use path completion,
+        // so that `$ make generate /path/to/fi<Tab>` still works.
         if for_ssh(line) {
             let cpl = Rc::new(ssh::SshCompleter);
-            return cpl.complete(word, reader, start, _end);
+            if let Some(x) = cpl.complete(word, reader, start, _end) {
+                if !x.is_empty() {
+                    return Some(x);
+                }
+            }
         }
         if for_make(line) {
             let cpl = Rc::new(make::MakeCompleter);
-            return cpl.complete(word, reader, start, _end);
+            if let Some(x) = cpl.complete(word, reader, start, _end) {
+                if !x.is_empty() {
+                    return Some(x);
+                }
+            }
         }
         if for_dots(line) {
             let cpl = Rc::new(dots::DotsCompleter);
@@ -99,6 +112,7 @@ impl<Term: Terminal> Completer<Term> for CCDCompleter {
                 }
             }
         }
+
         let cpl = Rc::new(path::PathCompleter);
         cpl.complete(word, reader, start, _end)
     }

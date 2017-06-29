@@ -228,6 +228,7 @@ mod tests {
             ("ls 'abc'", vec![("", "ls"), ("'", "abc")]),
             ("ls \"Hi 你好\"", vec![("", "ls"), ("\"", "Hi 你好")]),
             ("ls \"abc\"", vec![("", "ls"), ("\"", "abc")]),
+            ("echo \"\"", vec![("", "echo"), ("\"", "")]),
             ("echo \"hi $USER\"", vec![("", "echo"), ("\"", "hi $USER")]),
             ("echo 'hi $USER'", vec![("", "echo"), ("'", "hi $USER")]),
             ("echo '###'", vec![("", "echo"), ("'", "###")]),
@@ -282,6 +283,7 @@ mod tests {
             ("ls a\\ c", vec!["ls", "a c"]),
             ("ls \"abc\"", vec!["ls", "abc"]),
             ("ls \"Hi 你好\"", vec!["ls", "Hi 你好"]),
+            ("echo \"\"", vec!["echo", ""]),
             ("echo \"hi $USER\"", vec!["echo", "hi $USER"]),
             ("echo 'hi $USER'", vec!["echo", "hi $USER"]),
             (

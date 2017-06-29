@@ -8,7 +8,6 @@ use linefeed::terminal::Terminal;
 use linefeed::complete::{Completer, Completion, Suffix};
 
 use tools;
-use completers;
 
 pub struct SshCompleter;
 
@@ -48,9 +47,6 @@ fn complete_ssh(path: &str) -> Vec<Completion> {
                 }
             }
         }
-    }
-    if res.is_empty() {
-        return completers::path::complete_path(path, false);
     }
     res
 }
