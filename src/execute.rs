@@ -152,9 +152,15 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     let mut background = false;
     let mut len = args.len();
     if len > 1 && args[len - 1] == "&" {
-        args.pop().expect("args pop error");
         background = true;
-        len -= 1;
+        match args.pop() {
+            Some(_) => {
+                len -= 1;
+            }
+            None => {
+                println!("args pop exception which should never happen");
+            }
+        }
     }
     let mut redirect_from = String::new();
     let has_redirect_from = args.iter().any(|x| x == "<");
@@ -178,7 +184,14 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     let (result, term_given, _) = if len > 2 && (args[len - 2] == ">" || args[len - 2] == ">>") {
         let append = args[len - 2] == ">>";
         let mut args_new = args.clone();
-        let redirect_to = args_new.pop().expect("cicada: redirect_to pop error");
+        let redirect_to;
+        match args_new.pop() {
+            Some(x) => redirect_to = x,
+            None => {
+                println!("cicada: redirect_to pop error");
+                return 1;
+            }
+        }
         args_new.pop();
         run_pipeline(
             args_new,
@@ -269,7 +282,10 @@ pub fn run_pipeline(
         signal::SigSet::empty(),
     );
     unsafe {
-        signal::sigaction(signal::SIGCHLD, &sig_action).expect("sigaction error");
+        match signal::sigaction(signal::SIGCHLD, &sig_action) {
+            Ok(_) => {}
+            Err(e) => println!("sigaction error: {:?}", e)
+        }
     }
 
     let mut term_given = false;
@@ -282,7 +298,14 @@ pub fn run_pipeline(
     }
     let mut pipes = Vec::new();
     for _ in 0..length - 1 {
-        let fds = pipe().expect("pipe error");
+        let fds;
+        match pipe() {
+            Ok(x) => fds = x,
+            Err(e) => {
+                println!("pipe error: {:?}", e);
+                return (1, false, None);
+            }
+        }
         pipes.push(fds);
     }
     if pipes.len() + 1 != length {
@@ -297,8 +320,14 @@ pub fn run_pipeline(
         }
         info.push_str("| ");
     }
-    info.pop().expect("cicada: debug pop error");
-    info.pop().expect("cicada: debug pop error");
+    match info.pop() {
+        Some(_) => {}
+        None => println!("cicada: debug pop error")
+    }
+    match info.pop() {
+        Some(_) => {}
+        None => println!("cicada: debug pop error")
+    }
     log!("{}", info);
 
     let isatty = if tty {

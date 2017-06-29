@@ -33,7 +33,10 @@ fn list_envs() -> i32 {
         return 1;
     }
     if !Path::new(home_envs.as_str()).exists() {
-        fs::create_dir_all(home_envs.as_str()).expect("dirs env create failed");
+        match fs::create_dir_all(home_envs.as_str()) {
+            Ok(_) => {}
+            Err(e) => println!("fs create_dir_all failed: {:?}", e)
+        }
     }
 
     println!("Envs under: {}", home_envs);
@@ -79,7 +82,14 @@ fn exit_env() -> i32 {
         println!("vox: not in an env");
         return 0;
     }
-    let env_path = env::var("PATH").expect("vox: env error");
+    let env_path;
+    match env::var("PATH") {
+        Ok(x) => env_path = x,
+        Err(_) => {
+            println!("vox: cannot read PATH env");
+            return 1;
+        }
+    }
     let mut _tokens: Vec<&str> = env_path.split(':').collect();
     let mut path_virtual_env = String::from("${VIRTUAL_ENV}/bin");
     shell::extend_env(&mut path_virtual_env);

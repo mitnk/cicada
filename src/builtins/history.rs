@@ -39,11 +39,24 @@ fn list_current_history(conn: &sqlite::Connection) -> i32 {
     match conn.prepare(q) {
         Ok(mut statement) => {
             let mut vec = Vec::new();
-            while let State::Row = statement.next().expect("history: statement next error") {
-                if let Ok(x) = statement.read::<String>(0) {
-                    vec.push(x);
+            loop {
+                match statement.next() {
+                    Ok(x) => {
+                        if let State::Row = x {
+                            if let Ok(_x) = statement.read::<String>(0) {
+                                vec.push(_x);
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    Err(e) => {
+                        println_stderr!("history: statement.next error: {:?}", e);
+                        return 1;
+                    }
                 }
             }
+
             for (i, elem) in vec.iter().rev().enumerate() {
                 println!("{}: {}", i, elem);
             }
@@ -68,9 +81,21 @@ fn search_history(conn: &sqlite::Connection, q: &str) {
     match conn.prepare(q) {
         Ok(mut statement) => {
             let mut vec = Vec::new();
-            while let State::Row = statement.next().expect("history: statement next error") {
-                if let Ok(x) = statement.read::<String>(0) {
-                    vec.push(x);
+            loop {
+                match statement.next() {
+                    Ok(x) => {
+                        if let State::Row = x {
+                            if let Ok(_x) = statement.read::<String>(0) {
+                                vec.push(_x);
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+                    Err(e) => {
+                        println_stderr!("history: statement.next error: {:?}", e);
+                        return;
+                    }
                 }
             }
             for (i, elem) in vec.iter().rev().enumerate() {

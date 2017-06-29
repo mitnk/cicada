@@ -9,9 +9,23 @@ pub fn run(sh: &mut shell::Shell, args: Vec<String>) -> i32 {
         println!("invalid cd command");
         return 1;
     }
+    let _current_dir;
+    match env::current_dir() {
+        Ok(x) => _current_dir = x,
+        Err(e) => {
+            println!("current_dir() failed: {:?}", e);
+            return 1;
+        }
+    }
+    let current_dir;
+    match _current_dir.to_str() {
+        Some(x) => current_dir = x,
+        None => {
+            println!("current dir is None?");
+            return 1;
+        }
+    }
     let mut dir_to: String;
-    let _current_dir = env::current_dir().expect("cd: get current_dir error");
-    let current_dir = _current_dir.to_str().expect("cd: to_str error");
     if args.len() == 1 {
         let home = tools::get_user_home();
         dir_to = home.to_string();

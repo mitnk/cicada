@@ -13,24 +13,31 @@ use shell;
 
 macro_rules! println_stderr {
     ($fmt:expr) => (
-        writeln!(&mut ::std::io::stderr(), concat!($fmt, "\n"))
-            .expect("write to stderr failed");
+        match writeln!(&mut ::std::io::stderr(), concat!($fmt, "\n")) {
+            Ok(_) => {}
+            Err(e) => println!("write to stderr failed: {:?}", e)
+        }
     );
     ($fmt:expr, $($arg:tt)*) => (
-        writeln!(
-            &mut ::std::io::stderr(),
-            concat!($fmt, "\n"),
-            $($arg)*
-        ).expect("write to stderr failed");
+        match writeln!(&mut ::std::io::stderr(), concat!($fmt, "\n"), $($arg)*) {
+            Ok(_) => {}
+            Err(e) => println!("write to stderr failed: {:?}", e)
+        }
     );
 }
 
 pub fn rlog(s: &str) {
-    let mut file = OpenOptions::new()
+    let mut file;
+    match OpenOptions::new()
         .append(true)
         .create(true)
-        .open("/tmp/cicada-debug.log")
-        .expect("rlog: open /tmp/cicada-debug.log faild");
+        .open("/tmp/cicada-debug.log") {
+        Ok(x) => file = x,
+        Err(e) => {
+            println!("rlog: open /tmp/cicada-debug.log faild: {:?}", e);
+            return;
+        }
+    }
     let pid = unsafe { libc::getpid() };
     let now = time::now();
     let s =
@@ -45,9 +52,13 @@ pub fn rlog(s: &str) {
         pid,
         s,
     );
-    file.write_all(s.as_bytes()).expect(
-        "rlog: write_all failed",
-    );
+    match file.write_all(s.as_bytes()) {
+        Ok(_) => {}
+        Err(e) => {
+            println!("rlog: write_all failed: {:?}", e);
+            return;
+        }
+    }
 }
 
 macro_rules! log {
@@ -60,7 +71,15 @@ macro_rules! log {
 }
 
 pub fn get_user_home() -> String {
-    env::var("HOME").expect("cicada: env HOME error")
+    match env::var("HOME") {
+        Ok(x) => {
+            return x;
+        }
+        Err(e) => {
+            println!("cicada: env HOME error: {:?}", e);
+            return String::new();
+        }
+    }
 }
 
 pub fn get_user_completer_dir() -> String {

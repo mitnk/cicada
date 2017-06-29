@@ -41,15 +41,18 @@ mod shell;
 
 fn main() {
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+    if let Ok(env_path) = env::var("PATH") {
+        let env_path_new = format!("/usr/local/bin:{}", env_path);
+        env::set_var("PATH", &env_path_new);
+    } else {
+        env::set_var("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin");
+    }
     let mut sh = shell::Shell::new();
-    let env_path = env::var("PATH").expect("cicada: env PATH error");
-    let env_path_new = ["/usr/local/bin".to_string(), env_path].join(":");
-    env::set_var("PATH", &env_path_new);
     rcfile::load_rcfile(&mut sh);
 
     if env::args().len() > 1 {
         let line = tools::env_args_to_command_line();
-        execute::run_procs(&mut sh, line.as_str(), false);
+        execute::run_procs(&mut sh, &line, false);
         return;
     }
 
@@ -59,10 +62,14 @@ fn main() {
         let mut buffer = String::new();
         let stdin = io::stdin();
         let mut handle = stdin.lock();
-        handle.read_to_string(&mut buffer).expect(
-            "read to str error",
-        );
-        execute::run_procs(&mut sh, buffer.as_str(), false);
+        match handle.read_to_string(&mut buffer) {
+            Ok(_) => {
+                execute::run_procs(&mut sh, &buffer, false);
+            }
+            Err(e) => {
+                println!("cicada: io stdin read_to_string failed: {:?}", e);
+            }
+        }
         return;
     }
 
@@ -86,7 +93,7 @@ fn main() {
     let mut status = 0;
     loop {
         let prompt = libs::prompt::get_prompt(status);
-        rl.set_prompt(prompt.as_str());
+        rl.set_prompt(&prompt);
         match rl.read_line() {
             Ok(ReadResult::Input(line)) => {
                 let mut cmd;
@@ -106,10 +113,10 @@ fn main() {
                 let tsb_spec = time::get_time();
                 let tsb = (tsb_spec.sec as f64) + tsb_spec.nsec as f64 / 1000000000.0;
                 tools::pre_handle_cmd_line(&mut cmd);
-                status = execute::run_procs(&mut sh, cmd.as_str(), true);
+                status = execute::run_procs(&mut sh, &cmd, true);
                 let tse_spec = time::get_time();
                 let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1000000000.0;
-                history::add(&mut sh, &mut rl, line.as_str(), status, tsb, tse);
+                history::add(&mut sh, &mut rl, &line, status, tsb, tse);
             }
             Ok(ReadResult::Eof) => {
                 println!("");

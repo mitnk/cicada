@@ -13,9 +13,22 @@ pub fn load_rcfile(sh: &mut shell::Shell) {
     if !Path::new(rc_file.as_str()).exists() {
         return;
     }
-    let mut file = File::open(rc_file).expect("opening file");
+    let mut file;
+    match File::open(rc_file) {
+        Ok(x) => file = x,
+        Err(e) => {
+            println!("cicada: open rcfile err: {:?}", e);
+            return;
+        }
+    }
     let mut text = String::new();
-    file.read_to_string(&mut text).expect("reading file");
+    match file.read_to_string(&mut text) {
+        Ok(_) => {}
+        Err(e) => {
+            println!("cicada: read_to_string error: {:?}", e);
+            return;
+        }
+    }
     for line in text.lines() {
         handle_line(sh, line);
     }
@@ -37,7 +50,14 @@ fn handle_env(line: &str) {
 }
 
 fn handle_alias(sh: &mut shell::Shell, line: &str) {
-    let re = Regex::new(r"^ *alias +([a-zA-Z0-9_\.-]+)=(.*)$").expect("cicada: Regex error");
+    let re;
+    match Regex::new(r"^ *alias +([a-zA-Z0-9_\.-]+)=(.*)$") {
+        Ok(x) => re = x,
+        Err(e) => {
+            println!("cicada: Regex error: {:?}", e);
+            return;
+        }
+    }
     for cap in re.captures_iter(line) {
         let name = tools::unquote(&cap[1]);
         let value = tools::unquote(&cap[2]);

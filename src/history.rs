@@ -24,10 +24,35 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
     let hfile = get_history_file();
     let path = Path::new(hfile.as_str());
     if !path.exists() {
-        let _parent = path.parent().expect("no parent found");
-        let parent = _parent.to_str().expect("parent to_str error");
-        fs::create_dir_all(parent).expect("dirs create failed");
-        fs::File::create(hfile.as_str()).expect("file create failed");
+        let _parent;
+        match path.parent() {
+            Some(x) => _parent = x,
+            None => {
+                println!("cicada: history init - no parent found");
+                return;
+            }
+        }
+        let parent;
+        match _parent.to_str() {
+            Some(x) => parent = x,
+            None => {
+                println!("cicada: parent to_str is None");
+                return;
+            }
+        }
+        match fs::create_dir_all(parent) {
+            Ok(_) => {}
+            Err(e) => {
+                println!("dirs create failed: {:?}", e);
+                return;
+            }
+        }
+        match fs::File::create(hfile.as_str()) {
+            Ok(_) => {}
+            Err(e) => {
+                println!("file create failed: {:?}", e);
+            }
+        }
     }
 
     let mut histories: HashMap<String, bool> = HashMap::new();
@@ -65,7 +90,14 @@ pub fn init(rl: &mut Reader<DefaultTerminal>) {
             );
             match conn.iterate(sql_select, |pairs| {
                 for &(_, value) in pairs.iter() {
-                    let inp = value.expect("cicada: sqlite pairs error");
+                    let inp;
+                    match value {
+                        Some(x) => inp = x,
+                        None => {
+                            println!("cicada: sqlite pairs None");
+                            continue;
+                        }
+                    }
                     let _k = inp.to_string();
                     if histories.contains_key(&_k) {
                         continue;
@@ -140,7 +172,14 @@ pub fn add(
     sh.previous_cmd = line.to_string();
     let hfile = get_history_file();
     let history_table = get_history_table();
-    let conn = sqlite::open(hfile).expect("sqlite open error");
+    let conn;
+    match sqlite::open(hfile) {
+        Ok(x) => conn = x,
+        Err(e) => {
+            println!("cicada: sqlite open db error: {:?}", e);
+            return;
+        }
+    }
     let sql = format!(
         "INSERT INTO \
         {} (inp, rtn, tsb, tse, sessionid) \
