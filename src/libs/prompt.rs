@@ -4,13 +4,41 @@ use tools;
 
 pub fn get_prompt(status: i32) -> String {
     let home = tools::get_user_home();
-    let user = env::var("USER").expect("cicada: env USER error");
+    let user;
+    match env::var("USER") {
+        Ok(x) => user = x,
+        Err(e) => {
+            println!("cicada: env USER error: {:?}", e);
+            return String::from("cicada >> ");
+        }
+    }
     let hostname = tools::get_hostname();
-    let _current_dir = env::current_dir().expect("cicada: env current_dir error");
-    let current_dir = _current_dir.to_str().expect("cicada: to_str error");
+    let _current_dir;
+    match env::current_dir() {
+        Ok(x) => _current_dir = x,
+        Err(e) => {
+            println!("cicada: env current_dir error: {:?}", e);
+            return String::from("cicada >> ");
+        }
+    }
+    let current_dir;
+    match _current_dir.to_str() {
+        Some(x) => current_dir = x,
+        None => {
+            println!("cicada: to_str error");
+            return String::from("cicada >> ");
+        }
+    }
     let _tokens: Vec<&str> = current_dir.split('/').collect();
 
-    let last = _tokens.last().expect("cicada: prompt token last error");
+    let last;
+    match _tokens.last() {
+        Some(x) => last = x,
+        None => {
+            println!("cicada: prompt token last error");
+            return String::from("cicada >> ");
+        }
+    }
     let pwd: String;
     if last.is_empty() {
         pwd = String::from("/");
@@ -38,7 +66,14 @@ pub fn get_prompt(status: i32) -> String {
     if let Ok(x) = env::var("VIRTUAL_ENV") {
         if x != "" {
             let _tokens: Vec<&str> = x.split('/').collect();
-            let env_name = _tokens.last().expect("prompt token last error");
+            let env_name;
+            match _tokens.last() {
+                Some(x) => env_name = x,
+                None => {
+                    println!("prompt token last error");
+                    return String::from("cicada >> ");
+                }
+            }
             prompt = format!("({}){}", libs::colored::green(env_name), prompt);
         }
     }

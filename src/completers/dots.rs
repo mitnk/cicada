@@ -65,11 +65,22 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
         ""
     };
 
-    let mut f = File::open(dot_file).expect("cicada: open dot_file error");
+    let mut f;
+    match File::open(dot_file) {
+        Ok(x) => f = x,
+        Err(e) => {
+            println!("cicada: open dot_file error: {:?}", e);
+            return res;
+        }
+    }
     let mut s = String::new();
-    f.read_to_string(&mut s).expect(
-        "cicada: read_to_string error",
-    );
+    match f.read_to_string(&mut s) {
+        Ok(_) => {}
+        Err(e) => {
+            println!("cicada: read_to_string error: {:?}", e);
+            return res;
+        }
+    }
 
     let docs;
     match YamlLoader::load_from_str(&s) {

@@ -44,7 +44,14 @@ pub fn parse_commands(line: &str) -> Vec<String> {
                     token.push(c);
                     continue;
                 } else {
-                    let c_next = line.chars().nth(i + 1).expect("chars nth error");
+                    let c_next;
+                    match line.chars().nth(i + 1) {
+                        Some(x) => c_next = x,
+                        None => {
+                            println!("chars nth error - should never happen");
+                            continue;
+                        }
+                    }
                     if c_next != c {
                         token.push(c);
                         continue;

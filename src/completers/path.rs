@@ -114,13 +114,19 @@ fn split_path(path: &str) -> (Option<&str>, &str) {
 
 /// Returns a sorted list of paths whose prefix matches the given path.
 fn complete_bin(path: &str) -> Vec<Completion> {
+    let mut res = Vec::new();
     let (_, fname) = split_path(path);
-
-    let env_path = env::var("PATH").expect("cicada: env error");
+    let env_path;
+    match env::var("PATH") {
+        Ok(x) => env_path = x,
+        Err(e) => {
+            println!("cicada: env error when complete_bin: {:?}", e);
+            return res;
+        }
+    }
     let vec_path: Vec<&str> = env_path.split(':').collect();
     let path_list: HashSet<&str> = HashSet::from_iter(vec_path.iter().cloned());
 
-    let mut res = Vec::new();
     let mut checker: HashSet<String> = HashSet::new();
     for p in &path_list {
         if let Ok(list) = read_dir(p) {
@@ -128,7 +134,14 @@ fn complete_bin(path: &str) -> Vec<Completion> {
                 if let Ok(entry) = entry {
                     if let Ok(name) = entry.file_name().into_string() {
                         if name.starts_with(fname) {
-                            let _mode = entry.metadata().expect("cicada: metadata error");
+                            let _mode;
+                            match entry.metadata() {
+                                Ok(x) => _mode = x,
+                                Err(e) => {
+                                    println!("cicada: metadata error: {:?}", e);
+                                    continue;
+                                }
+                            }
                             let mode = _mode.permissions().mode();
                             if mode & 0o111 == 0 {
                                 // not binary

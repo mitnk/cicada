@@ -29,7 +29,14 @@ fn complete_ssh(path: &str) -> Vec<Completion> {
     let ssh_config = home + "/.ssh/config";
     if let Ok(f) = File::open(&ssh_config) {
         let file = BufReader::new(&f);
-        let re = Regex::new(r"^ *(?i)host +([^ ]+)").expect("Regex build error");
+        let re;
+        match Regex::new(r"^ *(?i)host +([^ ]+)") {
+            Ok(x) => re = x,
+            Err(e) => {
+                println!("Regex build error: {:?}", e);
+                return res;
+            }
+        }
         for (_, line) in file.lines().enumerate() {
             if let Ok(line) = line {
                 if !re.is_match(&line) {

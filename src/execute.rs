@@ -708,7 +708,7 @@ mod tests {
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {
-            let stdout = String::from_utf8(x.stdout).expect("from_utf8 error");
+            let stdout = String::from_utf8_lossy(&x.stdout);
             assert!(stdout.contains("README.md"));
             assert!(stdout.contains("Cargo.toml"));
             assert!(stdout.contains("src"));
@@ -722,7 +722,7 @@ mod tests {
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {
-            let stdout = String::from_utf8(x.stdout).expect("from_utf8 error");
+            let stdout = String::from_utf8_lossy(&x.stdout);
             assert!(stdout.contains("README.md"));
             assert!(stdout.contains("Cargo.toml"));
             assert!(stdout.contains("src"));
@@ -739,7 +739,7 @@ mod tests {
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {
-            let stdout = String::from_utf8(x.stdout).expect("from_utf8 error");
+            let stdout = String::from_utf8_lossy(&x.stdout);
             assert!(stdout.contains("README.md"));
             assert!(stdout.contains("Cargo.toml"));
             assert!(stdout.contains("src"));
@@ -763,7 +763,7 @@ mod tests {
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {
-            let stdout = String::from_utf8(x.stdout).expect("from_utf8 error");
+            let stdout = String::from_utf8_lossy(&x.stdout);
             assert_eq!(stdout, "baz bar foo\n");
         } else {
             assert_eq!(1, 2);

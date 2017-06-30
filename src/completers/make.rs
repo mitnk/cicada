@@ -24,12 +24,33 @@ impl<Term: Terminal> Completer<Term> for MakeCompleter {
 
 fn complete_make(path: &str) -> Vec<Completion> {
     let mut res = Vec::new();
-    let _current_dir = env::current_dir().expect("cd: get current_dir error");
-    let current_dir = _current_dir.to_str().expect("cd: to_str error");
+    let _current_dir;
+    match env::current_dir() {
+        Ok(x) => _current_dir = x,
+        Err(e) => {
+            println!("cd: get current_dir error: {:?}", e);
+            return res;
+        }
+    }
+    let current_dir;
+    match _current_dir.to_str() {
+        Some(x) => current_dir = x,
+        None => {
+            println!("cd: to_str error");
+            return res;
+        }
+    }
     let make_file = current_dir.to_owned() + "/Makefile";
     if let Ok(f) = File::open(&make_file) {
         let file = BufReader::new(&f);
-        let re = Regex::new(r"^ *([^ ]+):").expect("Regex build error");
+        let re;
+        match Regex::new(r"^ *([^ ]+):") {
+            Ok(x) => re = x,
+            Err(e) => {
+                println!("Regex build error: {:?}", e);
+                return res;
+            }
+        }
         for (_, line) in file.lines().enumerate() {
             if let Ok(line) = line {
                 if !re.is_match(&line) {
