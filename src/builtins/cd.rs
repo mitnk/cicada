@@ -25,13 +25,13 @@ pub fn run(sh: &mut shell::Shell, args: Vec<String>) -> i32 {
             return 1;
         }
     }
-    let mut dir_to: String;
-    if args.len() == 1 {
+    let mut dir_to = if args.len() == 1 {
         let home = tools::get_user_home();
-        dir_to = home.to_string();
+        home.to_string()
     } else {
-        dir_to = args[1..].join("");
-    }
+        args[1..].join("")
+    };
+
     if dir_to == "-" {
         if sh.previous_dir == "" {
             println!("no previous dir");

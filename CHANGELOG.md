@@ -1,6 +1,15 @@
 # Change Logs
 
-## v0.5.7 - not released
+## v0.6.0 - 2017-06-30
+
+- Improved cicada's stability
+- Fixed an issue that `echo ''` would crash
+
+
+-------------------------------------------
+
+
+## v0.5.7 - 2017-06-27
 
 - `export` now can set multiple envs at once
 - `echo $NON_EXIST` prints empty string now

@@ -86,7 +86,7 @@ pub fn extend_env_blindly(token: &str) -> String {
         println!("cicada: re new error");
         return String::new();
     }
-    if !re.is_match(&token) {
+    if !re.is_match(token) {
         return token.to_string();
     }
     let mut result = String::new();
@@ -108,7 +108,7 @@ pub fn extend_env_blindly(token: &str) -> String {
             if let Ok(val) = env::var(_key) {
                 result.push_str(format!("{}{}", _head, val).as_str());
             } else {
-                result.push_str(format!("{}", _head).as_str());
+                result.push_str(&_head);
             }
         }
         if _tail.is_empty() {

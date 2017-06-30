@@ -34,7 +34,7 @@ impl<Term: Terminal> Function<Term> for UpKeyFunction {
         if n < len {
             match reader.select_history_entry(Some(n)) {
                 Ok(_) => {}
-                Err(e) => println!("reader select_history_entry failed: {:?}", e)
+                Err(e) => println!("reader select_history_entry failed: {:?}", e),
             }
         }
         Ok(())
@@ -64,7 +64,7 @@ impl<Term: Terminal> Function<Term> for DownKeyFunction {
         if n < len {
             match reader.select_history_entry(Some(n)) {
                 Ok(_) => {}
-                Err(e) => println!("reader select_history_entry failed: {:?}", e)
+                Err(e) => println!("reader select_history_entry failed: {:?}", e),
             }
         }
         Ok(())

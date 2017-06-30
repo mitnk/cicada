@@ -284,7 +284,7 @@ pub fn run_pipeline(
     unsafe {
         match signal::sigaction(signal::SIGCHLD, &sig_action) {
             Ok(_) => {}
-            Err(e) => println!("sigaction error: {:?}", e)
+            Err(e) => println!("sigaction error: {:?}", e),
         }
     }
 
@@ -322,11 +322,11 @@ pub fn run_pipeline(
     }
     match info.pop() {
         Some(_) => {}
-        None => println!("cicada: debug pop error")
+        None => println!("cicada: debug pop error"),
     }
     match info.pop() {
         Some(_) => {}
-        None => println!("cicada: debug pop error")
+        None => println!("cicada: debug pop error"),
     }
     log!("{}", info);
 
@@ -564,9 +564,7 @@ mod tests {
 
         let s = vec![String::from("echo"), String::from("")];
         let result = args_to_cmds(s);
-        let expected = vec![
-            vec!["echo".to_string(), "".to_string()],
-        ];
+        let expected = vec![vec!["echo".to_string(), "".to_string()]];
         assert_eq!(result.len(), expected.len());
         for (i, item) in result.iter().enumerate() {
             assert_eq!(*item, expected[i]);

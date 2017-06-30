@@ -28,10 +28,9 @@ macro_rules! println_stderr {
 
 pub fn rlog(s: &str) {
     let mut file;
-    match OpenOptions::new()
-        .append(true)
-        .create(true)
-        .open("/tmp/cicada-debug.log") {
+    match OpenOptions::new().append(true).create(true).open(
+        "/tmp/cicada-debug.log",
+    ) {
         Ok(x) => file = x,
         Err(e) => {
             println!("rlog: open /tmp/cicada-debug.log faild: {:?}", e);
@@ -72,12 +71,10 @@ macro_rules! log {
 
 pub fn get_user_home() -> String {
     match env::var("HOME") {
-        Ok(x) => {
-            return x;
-        }
+        Ok(x) => x,
         Err(e) => {
             println!("cicada: env HOME error: {:?}", e);
-            return String::new();
+            String::new()
         }
     }
 }

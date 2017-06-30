@@ -35,7 +35,7 @@ fn list_envs() -> i32 {
     if !Path::new(home_envs.as_str()).exists() {
         match fs::create_dir_all(home_envs.as_str()) {
             Ok(_) => {}
-            Err(e) => println!("fs create_dir_all failed: {:?}", e)
+            Err(e) => println!("fs create_dir_all failed: {:?}", e),
         }
     }
 
