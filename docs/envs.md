@@ -26,3 +26,14 @@ default: `$HOME/.local/share/cicada/history.sqlite` (else)
 Specify the table name of the history to save in.
 
 default: `cicada_history`
+
+## Other Built-in Variables
+
+```
+$ ls file-not-exist
+$ echo $?  # <-- print exit status of previous command
+1
+
+$ echo $$  # <-- print PID of current process (cicada)
+2173
+```

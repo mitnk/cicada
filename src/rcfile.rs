@@ -5,8 +5,8 @@ use std::path::Path;
 use regex::Regex;
 
 use builtins;
-use tools;
 use shell;
+use tools;
 
 pub fn load_rcfile(sh: &mut shell::Shell) {
     let rc_file = tools::get_rc_file();
@@ -36,7 +36,7 @@ pub fn load_rcfile(sh: &mut shell::Shell) {
 
 fn handle_line(sh: &mut shell::Shell, line: &str) {
     if tools::is_env(line) {
-        handle_env(line);
+        handle_env(sh, line);
         return;
     }
     if tools::is_alias(line) {
@@ -45,8 +45,8 @@ fn handle_line(sh: &mut shell::Shell, line: &str) {
     }
 }
 
-fn handle_env(line: &str) {
-    builtins::export::run(line);
+fn handle_env(sh: &shell::Shell, line: &str) {
+    builtins::export::run(sh, line);
 }
 
 fn handle_alias(sh: &mut shell::Shell, line: &str) {

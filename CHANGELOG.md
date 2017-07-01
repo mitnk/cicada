@@ -1,9 +1,15 @@
 # Change Logs
 
+## v0.6.1 - 2017-07-01
+
+- Pipelines can be used without spaces: `ls|wc`. it was required to run as
+  `ls | wc` previously.
+- Added support `echo $?` and `echo $$`.
+
 ## v0.6.0 - 2017-06-30
 
-- Improved cicada's stability
-- Fixed an issue that `echo ''` would crash
+- Improved cicada's stability.
+- Fixed an issue that `echo ''` would crash.
 
 
 -------------------------------------------

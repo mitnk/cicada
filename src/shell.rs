@@ -13,6 +13,7 @@ pub struct Shell {
     pub alias: HashMap<String, String>,
     pub previous_dir: String,
     pub previous_cmd: String,
+    pub previous_status: i32,
 }
 
 impl Shell {
@@ -21,6 +22,7 @@ impl Shell {
             alias: HashMap::new(),
             previous_dir: String::new(),
             previous_cmd: String::new(),
+            previous_status: 0,
         }
     }
 
@@ -38,7 +40,7 @@ impl Shell {
                 result = String::new();
             }
         }
-        tools::pre_handle_cmd_line(&mut result);
+        tools::pre_handle_cmd_line(&self, &mut result);
         if result.is_empty() {
             None
         } else {
@@ -78,9 +80,9 @@ pub unsafe fn give_terminal_to(gid: i32) -> bool {
     given
 }
 
-pub fn extend_env_blindly(token: &str) -> String {
+pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
     let re;
-    if let Ok(x) = Regex::new(r"([^\$]*)\$\{?([A-Za-z0-9_]+)\}?(.*)") {
+    if let Ok(x) = Regex::new(r"([^\$]*)\$\{?([A-Za-z0-9\?\$_]+)\}?(.*)") {
         re = x;
     } else {
         println!("cicada: re new error");
@@ -105,10 +107,19 @@ pub fn extend_env_blindly(token: &str) -> String {
             _head = cap[1].to_string();
             _tail = cap[3].to_string();
             let _key = cap[2].to_string();
-            if let Ok(val) = env::var(_key) {
-                result.push_str(format!("{}{}", _head, val).as_str());
+            if _key == "?" {
+                result.push_str(format!("{}{}", _head, sh.previous_status).as_str());
+            } else if _key == "$" {
+                unsafe {
+                    let val = libc::getpid();
+                    result.push_str(format!("{}{}", _head, val).as_str());
+                }
             } else {
-                result.push_str(&_head);
+                if let Ok(val) = env::var(_key) {
+                    result.push_str(format!("{}{}", _head, val).as_str());
+                } else {
+                    result.push_str(&_head);
+                }
             }
         }
         if _tail.is_empty() {
@@ -119,7 +130,7 @@ pub fn extend_env_blindly(token: &str) -> String {
     result
 }
 
-pub fn extend_env(line: &mut String) {
+pub fn extend_env(sh: &Shell, line: &mut String) {
     let mut result: Vec<String> = Vec::new();
     let _line = line.clone();
     let args = parsers::parser_line::parse_args(_line.as_str());
@@ -127,7 +138,7 @@ pub fn extend_env(line: &mut String) {
         if sep == "`" || sep == "'" {
             result.push(tools::wrap_sep_string(&sep, &token));
         } else {
-            let _token = extend_env_blindly(&token);
+            let _token = extend_env_blindly(sh, &token);
             result.push(tools::wrap_sep_string(&sep, &_token));
         }
     }
@@ -137,35 +148,37 @@ pub fn extend_env(line: &mut String) {
 #[cfg(test)]
 mod tests {
     use super::extend_env;
+    use super::Shell;
 
     #[test]
     fn test_extend_env() {
+        let sh = Shell::new();
         let mut s = String::from("echo '$PATH'");
-        extend_env(&mut s);
+        extend_env(&sh, &mut s);
         assert_eq!(s, "echo '$PATH'");
 
         let mut s = String::from("echo 'hi $PATH'");
-        extend_env(&mut s);
+        extend_env(&sh, &mut s);
         assert_eq!(s, "echo 'hi $PATH'");
 
         let mut s = String::from("echo '\\\''");
-        extend_env(&mut s);
+        extend_env(&sh, &mut s);
         assert_eq!(s, "echo '\\\''");
 
         let mut s = String::from("export DIR=`brew --prefix openssl`/include");
-        extend_env(&mut s);
+        extend_env(&sh, &mut s);
         assert_eq!(s, "export DIR=`brew --prefix openssl`/include");
 
         let mut s = String::from("export FOO=\"`date` and `go version`\"");
-        extend_env(&mut s);
+        extend_env(&sh, &mut s);
         assert_eq!(s, "export FOO=\"`date` and `go version`\"");
 
         let mut s = String::from("foo is XX${CICADA_NOT_EXIST}XX");
-        extend_env(&mut s);
+        extend_env(&sh, &mut s);
         assert_eq!(s, "foo is XXXX");
 
         let mut s = String::from("foo is $CICADA_NOT_EXIST_1 and bar is $CICADA_NOT_EXIST_2.");
-        extend_env(&mut s);
+        extend_env(&sh, &mut s);
         assert_eq!(s, "foo is  and bar is .");
     }
 }

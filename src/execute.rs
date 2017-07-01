@@ -33,6 +33,10 @@ extern "C" fn handle_sigchld(_: i32) {
 
 #[allow(needless_pass_by_value)]
 fn args_to_cmds(args: Vec<String>) -> Vec<Vec<String>> {
+    // TODO: here need a refactoring so that to fix:
+    //     $ echo '|'    # invalid command
+    // to do this, we may not use `args_to_cmds` or `parser_line` etc,
+    // we need the `sep` information here to make correct command split.
     let mut cmd: Vec<String> = Vec::new();
     let mut cmds: Vec<Vec<String>> = Vec::new();
     for token in &args {
@@ -136,10 +140,10 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         return builtins::cd::run(sh, args);
     }
     if args[0] == "export" {
-        return builtins::export::run(line);
+        return builtins::export::run(sh, line);
     }
     if args[0] == "vox" {
-        return builtins::vox::run(args);
+        return builtins::vox::run(sh, args);
     }
     if args[0] == "history" {
         return builtins::history::run(args);
@@ -172,7 +176,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
                 redirect_from = args.remove(idx);
                 len -= 1;
             } else {
-                println!("cicada: invalid command");
+                println!("cicada: invalid command: cannot get redirect from");
                 return 1;
             }
         }
@@ -293,7 +297,7 @@ pub fn run_pipeline(
     let mut cmds = args_to_cmds(args_new);
     let length = cmds.len();
     if length == 0 {
-        println!("cicada: invalid command");
+        println!("cicada: invalid command: cmds with empty length");
         return (1, false, None);
     }
     let mut pipes = Vec::new();
@@ -309,7 +313,7 @@ pub fn run_pipeline(
         pipes.push(fds);
     }
     if pipes.len() + 1 != length {
-        println!("cicada: invalid command");
+        println!("cicada: invalid command: too many pipes");
         return (1, false, None);
     }
 
@@ -472,7 +476,10 @@ pub fn run_pipeline(
                         if ecode.success() {
                             status = 0;
                         } else {
-                            status = 1;
+                            match ecode.code() {
+                                Some(x) => status = x,
+                                None => status = 1,
+                            }
                         }
                     }
                     Err(_) => {

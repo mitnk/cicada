@@ -58,7 +58,7 @@ fn list_envs() -> i32 {
     0
 }
 
-fn enter_env(path: &str) -> i32 {
+fn enter_env(sh: &shell::Shell, path: &str) -> i32 {
     if in_env() {
         println!("vox: already in env");
         return 1;
@@ -72,12 +72,12 @@ fn enter_env(path: &str) -> i32 {
     let path_env = format!("{}/{}", home_envs, path);
     env::set_var("VIRTUAL_ENV", &path_env);
     let mut path_new = String::from("${VIRTUAL_ENV}/bin:$PATH");
-    shell::extend_env(&mut path_new);
+    shell::extend_env(&sh, &mut path_new);
     env::set_var("PATH", &path_new);
     0
 }
 
-fn exit_env() -> i32 {
+fn exit_env(sh: &shell::Shell) -> i32 {
     if !in_env() {
         println!("vox: not in an env");
         return 0;
@@ -92,7 +92,7 @@ fn exit_env() -> i32 {
     }
     let mut _tokens: Vec<&str> = env_path.split(':').collect();
     let mut path_virtual_env = String::from("${VIRTUAL_ENV}/bin");
-    shell::extend_env(&mut path_virtual_env);
+    shell::extend_env(&sh, &mut path_virtual_env);
     _tokens.iter().position(|&n| n == path_virtual_env).map(
         |e| {
             _tokens.remove(e)
@@ -105,13 +105,13 @@ fn exit_env() -> i32 {
 }
 
 #[allow(needless_pass_by_value)]
-pub fn run(args: Vec<String>) -> i32 {
+pub fn run(sh: &shell::Shell, args: Vec<String>) -> i32 {
     if args.len() == 2 && args[1] == "ls" {
         list_envs()
     } else if args.len() == 3 && args[1] == "enter" {
-        enter_env(args[2].as_str())
+        enter_env(sh, args[2].as_str())
     } else if args.len() == 2 && args[1] == "exit" {
-        exit_env()
+        exit_env(sh)
     } else {
         println!("vox: invalid command");
         println!("vox (ls | enter <env-name> | exit)");

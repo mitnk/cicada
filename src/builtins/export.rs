@@ -6,7 +6,7 @@ use shell;
 use tools;
 use parsers;
 
-pub fn run(line: &str) -> i32 {
+pub fn run(sh: &shell::Shell, line: &str) -> i32 {
     if !tools::is_env(line) {
         println!("export: expected syntax like XXX=YYY");
         return 1;
@@ -38,7 +38,7 @@ pub fn run(line: &str) -> i32 {
                 if tools::needs_extend_home(&_value) {
                     tools::extend_home(&mut _value);
                 }
-                let value = shell::extend_env_blindly(&_value);
+                let value = shell::extend_env_blindly(&sh, &_value);
                 env::set_var(&cap[1], &value);
             }
         } else {

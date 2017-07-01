@@ -118,7 +118,6 @@ pub fn parse_args(line: &str) -> Vec<(String, String)> {
                 continue;
             } else if c == '"' || c == '\'' || c == '`' {
                 sep = c.to_string();
-
             } else {
                 sep = String::new();
                 if c == '#' {
@@ -129,9 +128,25 @@ pub fn parse_args(line: &str) -> Vec<(String, String)> {
                     }
                     break;
                 }
-                token.push(c);
+                if c == '|' {
+                    result.push((String::from(""), "|".to_string()));
+                    new_round = true;
+                    continue;
+                } else {
+                    token.push(c);
+                }
             }
             new_round = false;
+            continue;
+        }
+
+        if c == '|' && !has_backslash && sep.is_empty() {
+            result.push((String::from(""), token));
+            result.push((String::from(""), "|".to_string()));
+            sep = String::new();
+            sep_second = String::new();
+            token = String::new();
+            new_round = true;
             continue;
         }
 
@@ -270,6 +285,36 @@ mod tests {
                 "export FOO=\"`date` and `go version`\"",
                 vec![("", "export"), ("", "FOO=\"`date` and `go version`\"")]
             ),
+            ("ps|wc", vec![("", "ps"), ("", "|"), ("", "wc")]),
+            (
+                "cat foo.txt|sort -n|wc",
+                vec![
+                    ("", "cat"),
+                    ("", "foo.txt"),
+                    ("", "|"),
+                    ("", "sort"),
+                    ("", "-n"),
+                    ("", "|"),
+                    ("", "wc"),
+                ]
+            ),
+            (
+                "man awk| awk -F \"[ ,.\\\"]+\" 'foo' |sort -k2nr|head",
+                vec![
+                    ("", "man"),
+                    ("", "awk"),
+                    ("", "|"),
+                    ("", "awk"),
+                    ("", "-F"),
+                    ("\"", "[ ,.\"]+"),
+                    ("\'", "foo"),
+                    ("", "|"),
+                    ("", "sort"),
+                    ("", "-k2nr"),
+                    ("", "|"),
+                    ("", "head"),
+                ]
+            ),
         ];
         for (left, right) in v {
             println!("\ninput: {:?}", left);
@@ -338,6 +383,10 @@ mod tests {
             (
                 "echo foo && echo bar; echo end",
                 vec!["echo foo", "&&", "echo bar", ";", "echo end"]
+            ),
+            (
+                "man awk| awk -F \"[ ,.\\\"]+\" 'foo' |sort -k2nr|head",
+                vec!["man awk| awk -F \"[ ,.\\\"]+\" 'foo' |sort -k2nr|head"]
             ),
         ];
 

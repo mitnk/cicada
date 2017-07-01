@@ -349,14 +349,14 @@ fn extend_glob(line: &mut String) {
     *line = result.join(" ");
 }
 
-pub fn pre_handle_cmd_line(line: &mut String) {
+pub fn pre_handle_cmd_line(sh: &shell::Shell, line: &mut String) {
     if needs_extend_home(line.as_str()) {
         extend_home(line);
     }
     if needs_globbing(line.as_str()) {
         extend_glob(line);
     }
-    shell::extend_env(line);
+    shell::extend_env(sh, line);
     do_command_substitution(line);
     do_brace_expansion(line);
 }
