@@ -1,5 +1,10 @@
 # Change Logs
 
+## v0.6.2 - 2017-07-01
+
+- Fixed an issue that `echo a || echo b` was broken.
+- Added Env `CICADA_LOG_FILE`.
+
 ## v0.6.1 - 2017-07-01
 
 - Pipelines can be used without spaces: `ls|wc`. it was required to run as
