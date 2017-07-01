@@ -12,7 +12,7 @@ use nix::sys::signal;
 use nom::IResult;
 use libc;
 
-use tools::{self, rlog};
+use tools::{self, clog};
 use builtins;
 use parsers;
 use shell;

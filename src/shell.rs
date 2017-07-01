@@ -7,7 +7,7 @@ use std::mem;
 use regex::Regex;
 
 use parsers;
-use tools::{self, rlog};
+use tools::{self, clog};
 
 pub struct Shell {
     pub alias: HashMap<String, String>,

@@ -2,6 +2,13 @@
 
 You can modify them in `~/.cicadarc` file.
 
+## CICADA_LOG_FILE
+
+Cicada write some logs into this file. It's raraly useful. If it not set,
+there won't be any logs be written.
+
+default: `""` (empty)
+
 ## HISTORY_SIZE
 
 How many history items should be loaded when cicada starts.

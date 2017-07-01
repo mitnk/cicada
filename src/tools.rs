@@ -26,14 +26,18 @@ macro_rules! println_stderr {
     );
 }
 
-pub fn rlog(s: &str) {
-    let mut file;
-    match OpenOptions::new().append(true).create(true).open(
-        "/tmp/cicada-debug.log",
-    ) {
-        Ok(x) => file = x,
+pub fn clog(s: &str) {
+    let file;
+    if let Ok(x) = env::var("CICADA_LOG_FILE") {
+        file = x;
+    } else {
+        return;
+    }
+    let mut cfile;
+    match OpenOptions::new().append(true).create(true).open(&file) {
+        Ok(x) => cfile = x,
         Err(e) => {
-            println!("rlog: open /tmp/cicada-debug.log faild: {:?}", e);
+            println!("clog: open file {} failed: {:?}", &file, e);
             return;
         }
     }
@@ -51,10 +55,10 @@ pub fn rlog(s: &str) {
         pid,
         s,
     );
-    match file.write_all(s.as_bytes()) {
+    match cfile.write_all(s.as_bytes()) {
         Ok(_) => {}
         Err(e) => {
-            println!("rlog: write_all failed: {:?}", e);
+            println!("clog: write_all failed: {:?}", e);
             return;
         }
     }
@@ -62,10 +66,10 @@ pub fn rlog(s: &str) {
 
 macro_rules! log {
     ($fmt:expr) => (
-        rlog(concat!($fmt, "\n"));
+        clog(concat!($fmt, "\n"));
     );
     ($fmt:expr, $($arg:tt)*) => (
-        rlog(format!(concat!($fmt, "\n"), $($arg)*).as_str());
+        clog(format!(concat!($fmt, "\n"), $($arg)*).as_str());
     );
 }
 

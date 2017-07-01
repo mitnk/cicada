@@ -102,7 +102,14 @@ pub fn parse_args(line: &str) -> Vec<(String, String)> {
     let mut token = String::new();
     let mut has_backslash = false;
     let mut new_round = true;
-    for c in line.chars() {
+    let mut skip_next = false;
+    let count_chars = line.chars().count();
+    for (i, c) in line.chars().enumerate() {
+        if skip_next {
+            skip_next = false;
+            continue;
+        }
+
         if c == '\\' {
             if !has_backslash {
                 has_backslash = true;
@@ -129,7 +136,12 @@ pub fn parse_args(line: &str) -> Vec<(String, String)> {
                     break;
                 }
                 if c == '|' {
-                    result.push((String::from(""), "|".to_string()));
+                    if i + 1 < count_chars && line.chars().nth(i + 1).unwrap() == '|' {
+                        result.push((String::from(""), "||".to_string()));
+                        skip_next = true;
+                    } else {
+                        result.push((String::from(""), "|".to_string()));
+                    }
                     new_round = true;
                     continue;
                 } else {
@@ -231,8 +243,6 @@ mod tests {
     }
 
     fn _assert_vec_str_eq(a: Vec<String>, b: Vec<&str>) {
-        println!("a: {:?}", a);
-        println!("b: {:?}", b);
         assert_eq!(a.len(), b.len());
         for (i, item) in a.iter().enumerate() {
             assert_eq!(item, b[i]);
@@ -315,6 +325,16 @@ mod tests {
                     ("", "head"),
                 ]
             ),
+            (
+                "echo a || echo b",
+                vec![
+                    ("", "echo"),
+                    ("", "a"),
+                    ("", "||"),
+                    ("", "echo"),
+                    ("", "b"),
+                ]
+            ),
         ];
         for (left, right) in v {
             println!("\ninput: {:?}", left);
@@ -351,10 +371,15 @@ mod tests {
             ("echo foo\\|bar", vec!["echo", "foo|bar"]),
             ("echo \"foo\\|bar\"", vec!["echo", "foo\\|bar"]),
             ("echo 'foo\\|bar'", vec!["echo", "foo\\|bar"]),
+            ("echo a || echo b", vec!["echo", "a", "||", "echo", "b"]),
         ];
 
         for (left, right) in v {
-            _assert_vec_str_eq(parse_line(left), right);
+            println!("\ninput: {:?}", left);
+            println!("expected: {:?}", right);
+            let real = parse_line(left);
+            println!("real: {:?}", real);
+            _assert_vec_str_eq(real, right);
         }
     }
 
