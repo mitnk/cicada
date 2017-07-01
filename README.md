@@ -3,8 +3,7 @@
 [![Travis Build Status](https://api.travis-ci.org/mitnk/cicada.svg?branch=master)](https://travis-ci.org/mitnk/cicada)
 [![Latest Version](https://img.shields.io/crates/v/cicada.svg)](https://crates.io/crates/cicada)
 
-Cicada is a simple, semi-toy Unix shell written in Rust. And I use it as
-my default login shell.
+Cicada is a simple Unix shell written in Rust. It's ready for daily use.
 
 ## Documents
 
