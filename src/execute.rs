@@ -1,7 +1,7 @@
 use std::error::Error as STDError;
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::io::{Error, Write};
+use std::io::{self, Error, Read, Write};
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::os::unix::process::CommandExt;
 use std::path::Path;
@@ -19,7 +19,7 @@ use shell;
 
 extern "C" fn handle_sigchld(_: i32) {
     // When handle waitpid here & for commands like `ls | cmd-not-exist`
-    // will got panic: "wait() should either return Ok or panic"
+    // will panic: "wait() should either return Ok or panic"
     // which I currently don't know how to fix.
 
     /*
@@ -29,6 +29,20 @@ extern "C" fn handle_sigchld(_: i32) {
         let pid = libc::waitpid(-1, ptr, libc::WNOHANG);
     }
     */
+}
+
+pub fn handle_non_tty(sh: &mut shell::Shell) {
+    let mut buffer = String::new();
+    let stdin = io::stdin();
+    let mut handle = stdin.lock();
+    match handle.read_to_string(&mut buffer) {
+        Ok(_) => {
+            run_procs(sh, &buffer, false);
+        }
+        Err(e) => {
+            println!("cicada: io stdin read_to_string failed: {:?}", e);
+        }
+    }
 }
 
 #[allow(needless_pass_by_value)]
@@ -150,6 +164,12 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     }
     if args[0] == "exec" {
         return builtins::exec::run(args);
+    }
+    if args[0] == "cinfo" {
+        const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+        println!("Cicada v{} by @mitnk", VERSION);
+        // TODO: collect & print more info here
+        return 0;
     }
 
     // for any other situations

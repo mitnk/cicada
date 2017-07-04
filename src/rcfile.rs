@@ -1,3 +1,4 @@
+use std::env;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -9,6 +10,14 @@ use shell;
 use tools;
 
 pub fn load_rcfile(sh: &mut shell::Shell) {
+    // make "/usr/local/bin" as the first item in PATH
+    if let Ok(env_path) = env::var("PATH") {
+        if !env_path.contains("/usr/local/bin:") {
+            let env_path_new = format!("/usr/local/bin:{}", env_path);
+            env::set_var("PATH", &env_path_new);
+        }
+    }
+
     let rc_file = tools::get_rc_file();
     if !Path::new(rc_file.as_str()).exists() {
         return;

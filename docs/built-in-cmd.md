@@ -4,6 +4,10 @@
 
 Change your current work directory.
 
+## cinfo
+
+Print information of cicada and OS.
+
 ## exec
 
 If command is specified, it replaces the shell. No new process is created.
@@ -37,10 +41,6 @@ $ history curl
 0: curl -x http://127.0.0.1:1080 https://hugo.wang/http/ip/
 1: curl -x socks5://192.168.1.170:51080 https://hugo.wang/http/ip/
 ```
-
-## version
-
-Prints cicada's version info.
 
 ## vox
 

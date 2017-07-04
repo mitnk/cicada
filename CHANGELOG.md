@@ -1,5 +1,9 @@
 # Change Logs
 
+## v0.6.3 - not released
+
+- rename builtins command `version` to `cinfo`.
+
 ## v0.6.2 - 2017-07-01
 
 - Fixed an issue that `echo a || echo b` was broken.

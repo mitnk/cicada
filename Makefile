@@ -1,6 +1,6 @@
 run:
 	@rustc -V
-	@cargo check && echo "    CHECKED .. OK!!!" && cargo build
+	cargo build
 	./target/debug/cicada
 
 install:
