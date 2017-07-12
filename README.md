@@ -129,7 +129,7 @@ I think it's fair to say cicada is just a toy.
 
 ### Compare to bash?
 
-Bash is most people come from and familiar with. So cicada is trying to support common cases that bash supports. Cicada will only be a "subset" of bash. If bash is a steamship, cicada is just a boat.
+Bash is where most people come from and familiar with. So cicada is trying to support common cases that bash supports. Cicada will only be a "subset" of bash. If bash is a steamship, cicada is just a boat.
 
 ### Compare to ion?
 
