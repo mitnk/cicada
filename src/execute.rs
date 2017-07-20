@@ -32,6 +32,7 @@ extern "C" fn handle_sigchld(_: i32) {
 }
 
 pub fn handle_non_tty(sh: &mut shell::Shell) {
+    log!("handle non tty");
     let mut buffer = String::new();
     let stdin = io::stdin();
     let mut handle = stdin.lock();

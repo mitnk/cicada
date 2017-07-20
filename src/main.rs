@@ -29,12 +29,16 @@ mod history;
 mod rcfile;
 mod shell;
 
+use tools::clog;
+
 fn main() {
     let mut sh = shell::Shell::new();
     rcfile::load_rcfile(&mut sh);
 
     if env::args().len() > 1 {
-        let line = tools::env_args_to_command_line();
+        let mut line = tools::env_args_to_command_line();
+        log!("run with args: {:?}", &line);
+        tools::pre_handle_cmd_line(&sh, &mut line);
         execute::run_procs(&mut sh, &line, false);
         return;
     }

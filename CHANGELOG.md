@@ -3,6 +3,7 @@
 ## v0.6.3 - not released
 
 - rename builtins command `version` to `cinfo`.
+- prehandle command lines from args too.
 
 ## v0.6.2 - 2017-07-01
 
