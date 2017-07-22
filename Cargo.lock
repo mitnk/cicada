@@ -9,6 +9,7 @@ dependencies = [
  "linefeed 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "nix 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "nom 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "os_type 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "sqlite 0.23.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -157,6 +158,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "winapi 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi-build 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "os_type"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -312,6 +321,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum nix 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)" = "47e49f6982987135c5e9620ab317623e723bd06738fd85377e8d55f57c8b6487"
 "checksum nom 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "6f609d6a10aad859fdfccb134ba1022bbdfac52dd759acc2ab75171874056237"
 "checksum ole32-sys 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5d2c49021782e5233cd243168edfa8037574afed4eba4bbaf538b3d8d1789d8c"
+"checksum os_type 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)" = "081f0539f57611638feee0d72fe98ad0b685e99da117be6b254bd1dfd7421609"
 "checksum pkg-config 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)" = "3a8b4c6b8165cd1a1cd4b9b120978131389f64bdaf456435caa41e630edba903"
 "checksum redox_syscall 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)" = "3041aeb6000db123d2c9c751433f526e1f404b23213bd733167ab770c3989b4d"
 "checksum regex 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "1731164734096285ec2a5ec7fea5248ae2f5485b3feeb0115af4fda2183b2d1b"

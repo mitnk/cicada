@@ -167,10 +167,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         return builtins::exec::run(args);
     }
     if args[0] == "cinfo" {
-        const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-        println!("Cicada v{} by @mitnk", VERSION);
-        // TODO: collect & print more info here
-        return 0;
+        return builtins::cinfo::run(args);
     }
 
     // for any other situations
