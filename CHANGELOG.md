@@ -1,9 +1,10 @@
 # Change Logs
 
-## v0.6.3 - not released
+## v0.6.3 - 2017-07-22
 
 - rename builtins command `version` to `cinfo`.
 - prehandle command lines from args too.
+- fixed a bug of alias expension.
 
 ## v0.6.2 - 2017-07-01
 

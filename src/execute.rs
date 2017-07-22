@@ -273,6 +273,7 @@ fn extend_alias(sh: &mut shell::Shell, args: &mut Vec<String>) {
                 extended = arg.clone();
             }
         }
+        is_cmd = false;
         if extended != *arg {
             let _args = parsers::parser_line::parse_line(extended.as_str());
             for (i, item) in _args.iter().enumerate() {
@@ -287,7 +288,6 @@ fn extend_alias(sh: &mut shell::Shell, args: &mut Vec<String>) {
             continue;
         }
         insert_pos += 1;
-        is_cmd = false;
     }
 }
 
@@ -724,6 +724,15 @@ mod tests {
         assert_eq!(
             args,
             vec!["ls".to_string(), "-G".to_string(), "a\\.b".to_string()]
+        );
+
+        sh.add_alias("tx", "tmux");
+        sh.add_alias("ls", "ls -G");
+        args = vec!["tx".to_string(), "ls".to_string()];
+        extend_alias(&mut sh, &mut args);
+        assert_eq!(
+            args,
+            vec!["tmux".to_string(), "ls".to_string()]
         );
     }
 
