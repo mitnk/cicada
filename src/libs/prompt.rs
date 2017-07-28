@@ -1,4 +1,5 @@
 use std::env;
+use std::error::Error;
 use libs;
 use tools;
 
@@ -17,8 +18,8 @@ pub fn get_prompt(status: i32) -> String {
     match env::current_dir() {
         Ok(x) => _current_dir = x,
         Err(e) => {
-            println!("cicada: env current_dir error: {:?}", e);
-            return String::from("cicada >> ");
+            println!("cicada: env current_dir error: {}", e.description());
+            return format!("({})$ ", libs::colored::red("no current dir"));
         }
     }
     let current_dir;

@@ -1,5 +1,6 @@
 use std::env;
 use std::error::Error;
+use std::path::PathBuf;
 use shell;
 use tools;
 
@@ -9,20 +10,18 @@ pub fn run(sh: &mut shell::Shell, args: Vec<String>) -> i32 {
         println!("invalid cd command");
         return 1;
     }
-    let _current_dir;
+    let mut current_dir = PathBuf::new();
     match env::current_dir() {
-        Ok(x) => _current_dir = x,
+        Ok(x) => current_dir = x,
         Err(e) => {
-            println!("current_dir() failed: {:?}", e);
-            return 1;
+            println!("current_dir() failed: {}", e.description());
         }
     }
-    let current_dir;
-    match _current_dir.to_str() {
-        Some(x) => current_dir = x,
+    let mut str_current_dir = "";
+    match current_dir.to_str() {
+        Some(x) => str_current_dir = x,
         None => {
-            println!("current dir is None?");
-            return 1;
+            println!("current_dir to str failed.");
         }
     }
     let mut dir_to = if args.len() == 1 {
@@ -39,10 +38,10 @@ pub fn run(sh: &mut shell::Shell, args: Vec<String>) -> i32 {
         }
         dir_to = sh.previous_dir.clone();
     } else if !dir_to.starts_with('/') {
-        dir_to = format!("{}/{}", current_dir.to_string(), dir_to);
+        dir_to = format!("{}/{}", str_current_dir, dir_to);
     }
-    if current_dir != dir_to {
-        sh.previous_dir = current_dir.to_string();
+    if str_current_dir != dir_to {
+        sh.previous_dir = str_current_dir.to_string();
     }
     match env::set_current_dir(&dir_to) {
         Ok(_) => 0,

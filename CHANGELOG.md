@@ -1,5 +1,9 @@
 # Change Logs
 
+## v0.6.5 - to release
+
+- fixed an issue when current dir become not available (e.g. be deleted).
+
 ## v0.6.3 - 2017-07-22
 
 - rename builtins command `version` to `cinfo`.

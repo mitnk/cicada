@@ -1,6 +1,6 @@
 [root]
 name = "cicada"
-version = "0.6.3"
+version = "0.6.5"
 dependencies = [
  "errno 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "exec 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
