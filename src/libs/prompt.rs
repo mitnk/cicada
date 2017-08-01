@@ -75,7 +75,7 @@ pub fn get_prompt(status: i32) -> String {
                     return String::from("cicada >> ");
                 }
             }
-            prompt = format!("({}){}", libs::colored::green(env_name), prompt);
+            prompt = format!("({}){}", libs::colored::blue(env_name), prompt);
         }
     }
     prompt
