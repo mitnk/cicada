@@ -1,13 +1,19 @@
 pub fn parse_line(line: &str) -> Vec<String> {
     let mut result = Vec::new();
-    let v = parse_args(line);
+    let v = cmd_to_tokens(line);
     for (_, r) in v {
         result.push(r);
     }
     result
 }
 
-pub fn parse_commands(line: &str) -> Vec<String> {
+
+/// Parse command line for multiple commands. Examples:
+/// >>> line_to_cmds("echo foo && echo bar; echo end");
+/// vec!["echo foo", "&&", "echo bar", ";", "echo end"]
+/// >>> line_to_cmds("man awk | grep version");
+/// vec!["man awk | grep version"]
+pub fn line_to_cmds(line: &str) -> Vec<String> {
     // Special characters: http://tldp.org/LDP/abs/html/special-chars.html
     let mut result = Vec::new();
     let mut sep = String::new();
@@ -92,7 +98,16 @@ pub fn parse_commands(line: &str) -> Vec<String> {
     result
 }
 
-pub fn parse_args(line: &str) -> Vec<(String, String)> {
+/// parse command to tokens
+/// >>> cmd_to_tokens("echo 'hi yoo' | grep \"hi\"");
+/// vec![
+///     ("", "echo"),
+///     ("'", "hi yoo"),
+///     ("", "|"),
+///     ("", "grep"),
+///     ("\"", "hi"),
+/// ]
+pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
     let mut result = Vec::new();
     let mut sep = String::new();
     // `sep_second` is for commands like this:
@@ -229,9 +244,9 @@ pub fn parse_args(line: &str) -> Vec<(String, String)> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_args;
+    use super::cmd_to_tokens;
     use super::parse_line;
-    use super::parse_commands;
+    use super::line_to_cmds;
 
     fn _assert_vec_tuple_eq(a: Vec<(String, String)>, b: Vec<(&str, &str)>) {
         assert_eq!(a.len(), b.len());
@@ -250,7 +265,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_args() {
+    fn test_cmd_to_tokens() {
         let v = vec![
             ("ls", vec![("", "ls")]),
             ("  ls   ", vec![("", "ls")]),
@@ -339,7 +354,7 @@ mod tests {
         for (left, right) in v {
             println!("\ninput: {:?}", left);
             println!("expected: {:?}", right);
-            let args = parse_args(left);
+            let args = cmd_to_tokens(left);
             println!("real: {:?}", args);
             _assert_vec_tuple_eq(args, right);
         }
@@ -384,7 +399,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_commands() {
+    fn test_line_to_cmds() {
         let v = vec![
             ("ls", vec!["ls"]),
             ("ls &", vec!["ls &"]),
@@ -416,7 +431,7 @@ mod tests {
         ];
 
         for (left, right) in v {
-            _assert_vec_str_eq(parse_commands(left), right);
+            _assert_vec_str_eq(line_to_cmds(left), right);
         }
     }
 }

@@ -166,7 +166,7 @@ pub fn wrap_sep_string(sep: &str, s: &str) -> String {
 
 pub fn do_command_substitution(line: &mut String) {
     let _line = line.clone();
-    let args = parsers::parser_line::parse_args(_line.as_str());
+    let args = parsers::parser_line::cmd_to_tokens(_line.as_str());
     let mut result: Vec<String> = Vec::new();
     for (sep, token) in args {
         if sep == "`" {
@@ -250,7 +250,7 @@ pub fn do_command_substitution(line: &mut String) {
 
 pub fn do_brace_expansion(line: &mut String) {
     let _line = line.clone();
-    let args = parsers::parser_line::parse_args(_line.as_str());
+    let args = parsers::parser_line::cmd_to_tokens(_line.as_str());
     let mut result: Vec<String> = Vec::new();
     for (sep, token) in args {
         if sep.is_empty() && should_extend_brace(token.as_str()) {

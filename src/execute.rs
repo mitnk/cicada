@@ -127,7 +127,7 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     }
     let mut status = 0;
     let mut sep = String::new();
-    for token in parsers::parser_line::parse_commands(line) {
+    for token in parsers::parser_line::line_to_cmds(line) {
         if token == ";" || token == "&&" || token == "||" {
             sep = token.clone();
             continue;
