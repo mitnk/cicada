@@ -301,7 +301,6 @@ pub fn do_brace_expansion(line: &mut String) {
 }
 
 fn needs_globbing(line: &str) -> bool {
-    log!("check needs_globbing for: {}", line);
     if is_arithmetic(line) {
         return false;
     }
