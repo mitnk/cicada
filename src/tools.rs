@@ -301,16 +301,29 @@ pub fn do_brace_expansion(line: &mut String) {
 }
 
 fn needs_globbing(line: &str) -> bool {
+    log!("check needs_globbing for: {}", line);
     if is_arithmetic(line) {
         return false;
     }
+
     let re;
     if let Ok(x) = Regex::new(r"[\*]+") {
         re = x;
     } else {
         return false;
     }
-    re.is_match(line)
+
+    let tokens = parsers::parser_line::cmd_to_tokens(line);
+    for (sep, token) in tokens {
+        if !sep.is_empty() {
+            return false;
+        }
+        if re.is_match(&token) {
+            return true;
+        }
+    }
+    false
+
 }
 
 fn extend_glob(line: &mut String) {
@@ -459,6 +472,8 @@ mod tests {
         assert!(needs_globbing("ls *"));
         assert!(needs_globbing("ls  *.txt"));
         assert!(!needs_globbing("2 * 3"));
+        assert!(!needs_globbing("ls '*.md'"));
+        assert!(!needs_globbing("ls 'a * b'"));
     }
 
     #[test]
