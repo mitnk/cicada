@@ -7,5 +7,5 @@ pub fn run(_args: Vec<String>) -> i32 {
     let os = os_type::current_platform();
     println!("OS Type: {:?}", os.os_type);
     println!("OS Version: {}", os.version);
-    return 0;
+    0
 }

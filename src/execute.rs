@@ -291,7 +291,6 @@ fn extend_alias(sh: &mut shell::Shell, args: &mut Vec<String>) {
     }
 }
 
-#[allow(cyclomatic_complexity)]
 pub fn run_pipeline(
     args: Vec<(String, String)>,
     redirect_from: &str,

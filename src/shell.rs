@@ -40,7 +40,7 @@ impl Shell {
                 result = String::new();
             }
         }
-        tools::pre_handle_cmd_line(&self, &mut result);
+        tools::pre_handle_cmd_line(self, &mut result);
         if result.is_empty() {
             None
         } else {
@@ -114,12 +114,10 @@ pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
                     let val = libc::getpid();
                     result.push_str(format!("{}{}", _head, val).as_str());
                 }
+            } else if let Ok(val) = env::var(_key) {
+                result.push_str(format!("{}{}", _head, val).as_str());
             } else {
-                if let Ok(val) = env::var(_key) {
-                    result.push_str(format!("{}{}", _head, val).as_str());
-                } else {
-                    result.push_str(&_head);
-                }
+                result.push_str(&_head);
             }
         }
         if _tail.is_empty() {

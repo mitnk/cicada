@@ -8,6 +8,7 @@ pub fn parse_line(line: &str) -> Vec<String> {
 }
 
 
+#[allow(doc_markdown)]
 /// Parse command line for multiple commands. Examples:
 /// >>> line_to_cmds("echo foo && echo bar; echo end");
 /// vec!["echo foo", "&&", "echo bar", ";", "echo end"]
@@ -98,6 +99,7 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
     result
 }
 
+#[allow(doc_markdown)]
 /// parse command to tokens
 /// >>> cmd_to_tokens("echo 'hi yoo' | grep \"hi\"");
 /// vec![
