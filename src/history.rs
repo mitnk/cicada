@@ -164,10 +164,10 @@ pub fn add(
     tsb: f64,
     tse: f64,
 ) {
-    rl.add_history(line.to_string());
     if line == sh.previous_cmd {
         return;
     }
+    rl.add_history(line.to_string());
 
     sh.previous_cmd = line.to_string();
     let hfile = get_history_file();

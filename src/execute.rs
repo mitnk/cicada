@@ -47,22 +47,20 @@ pub fn handle_non_tty(sh: &mut shell::Shell) {
 }
 
 #[allow(needless_pass_by_value)]
-fn args_to_cmds(args: Vec<String>) -> Vec<Vec<String>> {
-    // TODO: here need a refactoring so that to fix:
-    //     $ echo '|'    # invalid command
-    // to do this, we may not use `args_to_cmds` or `parser_line` etc,
-    // we need the `sep` information here to make correct command split.
+fn tokens_to_cmds(tokens: Vec<(String, String)>) -> Vec<Vec<String>> {
     let mut cmd: Vec<String> = Vec::new();
     let mut cmds: Vec<Vec<String>> = Vec::new();
-    for token in &args {
-        if token != "|" {
-            cmd.push(token.clone());
-        } else {
+    for token in &tokens {
+        let sep = &token.0;
+        let value = &token.1;
+        if sep.is_empty() && value == "|" {
             if cmd.is_empty() {
                 return Vec::new();
             }
             cmds.push(cmd.clone());
             cmd = Vec::new();
+        } else {
+            cmd.push(value.clone());
         }
     }
     if cmd.is_empty() {
@@ -73,31 +71,32 @@ fn args_to_cmds(args: Vec<String>) -> Vec<Vec<String>> {
 }
 
 #[allow(needless_pass_by_value)]
-fn args_to_redirections(args: Vec<String>) -> (Vec<String>, Vec<i32>) {
+fn args_to_redirections(tokens: Vec<(String, String)>) -> (Vec<(String, String)>, Vec<i32>) {
     let mut vec_redirected = Vec::new();
-    let mut args_new = args.clone();
+    let mut args_new = tokens.clone();
     let mut redirected_to = 0;
     for arg in &args_new {
-        if arg == "2>&1" {
+        let value = &arg.1;
+        if value == "2>&1" {
             redirected_to = 1;
         }
-        if arg == "1>&2" {
+        if value == "1>&2" {
             redirected_to = 2;
         }
-        if arg == "|" {
+        if value == "|" {
             vec_redirected.push(redirected_to);
             redirected_to = 0;
         }
     }
     vec_redirected.push(redirected_to);
 
-    while args_new.iter().any(|x| *x == "2>&1") {
-        if let Some(index) = args_new.iter().position(|x| *x == "2>&1") {
+    while args_new.iter().any(|x| x.1 == "2>&1") {
+        if let Some(index) = args_new.iter().position(|x| x.1 == "2>&1") {
             args_new.remove(index);
         }
     }
-    while args_new.iter().any(|x| *x == "1>&2") {
-        if let Some(index) = args_new.iter().position(|x| *x == "1>&2") {
+    while args_new.iter().any(|x| x.1 == "1>&2") {
+        if let Some(index) = args_new.iter().position(|x| x.1 == "1>&2") {
             args_new.remove(index);
         }
     }
@@ -144,29 +143,31 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
 }
 
 pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
-    let mut args = parsers::parser_line::parse_line(line);
-    if args.is_empty() {
+    let mut tokens = parsers::parser_line::cmd_to_tokens(line);
+    if tokens.is_empty() {
         return 0;
     }
+    let mut args = parsers::parser_line::parse_line(line);
     extend_alias(sh, &mut args);
+    let cmd = args[0].clone();
 
     // for built-ins
-    if args[0] == "cd" {
+    if cmd == "cd" {
         return builtins::cd::run(sh, args);
     }
-    if args[0] == "export" {
+    if cmd == "export" {
         return builtins::export::run(sh, line);
     }
-    if args[0] == "vox" {
+    if cmd == "vox" {
         return builtins::vox::run(sh, args);
     }
-    if args[0] == "history" {
+    if cmd == "history" {
         return builtins::history::run(args);
     }
-    if args[0] == "exec" {
+    if cmd == "exec" {
         return builtins::exec::run(args);
     }
-    if args[0] == "cinfo" {
+    if cmd == "cinfo" {
         return builtins::cinfo::run(args);
     }
 
@@ -214,9 +215,11 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
                 return 1;
             }
         }
+        tokens.pop();
         args_new.pop();
+        tokens.pop();
         run_pipeline(
-            args_new,
+            tokens,
             redirect_from.as_str(),
             redirect_to.as_str(),
             append,
@@ -226,7 +229,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         )
     } else {
         run_pipeline(
-            args.clone(),
+            tokens.clone(),
             redirect_from.as_str(),
             "",
             false,
@@ -290,7 +293,7 @@ fn extend_alias(sh: &mut shell::Shell, args: &mut Vec<String>) {
 
 #[allow(cyclomatic_complexity)]
 pub fn run_pipeline(
-    args: Vec<String>,
+    args: Vec<(String, String)>,
     redirect_from: &str,
     redirect_to: &str,
     append: bool,
@@ -312,7 +315,7 @@ pub fn run_pipeline(
 
     let mut term_given = false;
     let (args_new, vec_redirected) = args_to_redirections(args);
-    let mut cmds = args_to_cmds(args_new);
+    let mut cmds = tokens_to_cmds(args_new);
     let length = cmds.len();
     if length == 0 {
         println!("cicada: invalid command: cmds with empty length");
@@ -536,31 +539,39 @@ pub fn run_pipeline(
 
 #[cfg(test)]
 mod tests {
-    use super::args_to_cmds;
+    use super::tokens_to_cmds;
     use super::extend_alias;
     use super::run_pipeline;
     use shell;
 
     #[test]
     fn test_args_to_cmd() {
-        let s = vec![String::from("ls")];
-        let result = args_to_cmds(s);
+        let str_empty = String::new();
+        let s = vec![(str_empty.clone(), "ls".to_string())];
+        let result = tokens_to_cmds(s);
         let expected = vec![vec!["ls".to_string()]];
         assert_eq!(result.len(), expected.len());
         for (i, item) in result.iter().enumerate() {
             assert_eq!(*item, expected[i]);
         }
 
-        let s = vec![String::from("ls"), String::from("|"), String::from("wc")];
-        let result = args_to_cmds(s);
+        let s = vec![
+            (str_empty.clone(), String::from("ls")),
+            (str_empty.clone(), String::from("|")),
+            (str_empty.clone(), String::from("wc")),
+        ];
+        let result = tokens_to_cmds(s);
         let expected = vec![vec!["ls".to_string()], vec!["wc".to_string()]];
         assert_eq!(result.len(), expected.len());
         for (i, item) in result.iter().enumerate() {
             assert_eq!(*item, expected[i]);
         }
 
-        let s = vec![String::from("echo"), String::from(" ")];
-        let result = args_to_cmds(s);
+        let s = vec![
+            (str_empty.clone(), String::from("echo")),
+            (str_empty.clone(), String::from(" ")),
+        ];
+        let result = tokens_to_cmds(s);
         let expected = vec![vec!["echo".to_string(), " ".to_string()]];
         assert_eq!(result.len(), expected.len());
         for (i, item) in result.iter().enumerate() {
@@ -568,15 +579,15 @@ mod tests {
         }
 
         let s = vec![
-            String::from("ls"),
-            String::from("-lh"),
-            String::from("|"),
-            String::from("wc"),
-            String::from("-l"),
-            String::from("|"),
-            String::from("less"),
+            (str_empty.clone(), String::from("ls")),
+            (str_empty.clone(), String::from("-lh")),
+            (str_empty.clone(), String::from("|")),
+            (str_empty.clone(), String::from("wc")),
+            (str_empty.clone(), String::from("-l")),
+            (str_empty.clone(), String::from("|")),
+            (str_empty.clone(), String::from("less")),
         ];
-        let result = args_to_cmds(s);
+        let result = tokens_to_cmds(s);
         let expected = vec![
             vec!["ls".to_string(), "-lh".to_string()],
             vec!["wc".to_string(), "-l".to_string()],
@@ -587,8 +598,11 @@ mod tests {
             assert_eq!(*item, expected[i]);
         }
 
-        let s = vec![String::from("echo"), String::from("")];
-        let result = args_to_cmds(s);
+        let s = vec![
+            (str_empty.clone(), String::from("echo")),
+            (str_empty.clone(), String::from("")),
+        ];
+        let result = tokens_to_cmds(s);
         let expected = vec![vec!["echo".to_string(), "".to_string()]];
         assert_eq!(result.len(), expected.len());
         for (i, item) in result.iter().enumerate() {
@@ -735,38 +749,8 @@ mod tests {
 
     #[test]
     fn test_run_pipeline() {
-        let cmd = vec![String::from("ls")];
-        let (result, term_given, output) = run_pipeline(cmd, "", "", false, false, false, true);
-        assert_eq!(result, 0);
-        assert_eq!(term_given, false);
-        if let Some(x) = output {
-            let stdout = String::from_utf8_lossy(&x.stdout);
-            assert!(stdout.contains("README.md"));
-            assert!(stdout.contains("Cargo.toml"));
-            assert!(stdout.contains("src"));
-            assert!(stdout.contains("LICENSE"));
-        } else {
-            assert_eq!(1, 2);
-        }
-
-        let cmd = "ls | cat".split(" ").map(|s| s.to_string()).collect();
-        let (result, term_given, output) = run_pipeline(cmd, "", "", false, false, false, true);
-        assert_eq!(result, 0);
-        assert_eq!(term_given, false);
-        if let Some(x) = output {
-            let stdout = String::from_utf8_lossy(&x.stdout);
-            assert!(stdout.contains("README.md"));
-            assert!(stdout.contains("Cargo.toml"));
-            assert!(stdout.contains("src"));
-            assert!(stdout.contains("LICENSE"));
-        } else {
-            assert_eq!(1, 2);
-        }
-
-        let cmd = "ls | cat | cat | more"
-            .split(" ")
-            .map(|s| s.to_string())
-            .collect();
+        let str_empty = String::new();
+        let cmd = vec![(str_empty.clone(), String::from("ls"))];
         let (result, term_given, output) = run_pipeline(cmd, "", "", false, false, false, true);
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
@@ -781,15 +765,55 @@ mod tests {
         }
 
         let cmd = vec![
-            String::from("echo"),
-            String::from("foo"),
-            String::from("bar"),
-            String::from("\"baz"),
-            String::from("|"),
-            String::from("awk"),
-            String::from("-F"),
-            String::from("[ \"]+"),
-            String::from("{print $3, $2, $1}"),
+            (str_empty.clone(), String::from("ls")),
+            (str_empty.clone(), String::from("|")),
+            (str_empty.clone(), String::from("cat")),
+        ];
+        let (result, term_given, output) = run_pipeline(cmd, "", "", false, false, false, true);
+        assert_eq!(result, 0);
+        assert_eq!(term_given, false);
+        if let Some(x) = output {
+            let stdout = String::from_utf8_lossy(&x.stdout);
+            assert!(stdout.contains("README.md"));
+            assert!(stdout.contains("Cargo.toml"));
+            assert!(stdout.contains("src"));
+            assert!(stdout.contains("LICENSE"));
+        } else {
+            assert_eq!(1, 2);
+        }
+
+        let cmd = vec![
+            (str_empty.clone(), String::from("ls")),
+            (str_empty.clone(), String::from("|")),
+            (str_empty.clone(), String::from("cat")),
+            (str_empty.clone(), String::from("|")),
+            (str_empty.clone(), String::from("cat")),
+            (str_empty.clone(), String::from("|")),
+            (str_empty.clone(), String::from("more")),
+        ];
+        let (result, term_given, output) = run_pipeline(cmd, "", "", false, false, false, true);
+        assert_eq!(result, 0);
+        assert_eq!(term_given, false);
+        if let Some(x) = output {
+            let stdout = String::from_utf8_lossy(&x.stdout);
+            assert!(stdout.contains("README.md"));
+            assert!(stdout.contains("Cargo.toml"));
+            assert!(stdout.contains("src"));
+            assert!(stdout.contains("LICENSE"));
+        } else {
+            assert_eq!(1, 2);
+        }
+
+        let cmd = vec![
+            (str_empty.clone(), String::from("echo")),
+            (str_empty.clone(), String::from("foo")),
+            (str_empty.clone(), String::from("bar")),
+            (str_empty.clone(), String::from("\"baz")),
+            (str_empty.clone(), String::from("|")),
+            (str_empty.clone(), String::from("awk")),
+            (str_empty.clone(), String::from("-F")),
+            (str_empty.clone(), String::from("[ \"]+")),
+            (str_empty.clone(), String::from("{print $3, $2, $1}")),
         ];
         let (result, term_given, output) = run_pipeline(cmd, "", "", false, false, false, true);
         assert_eq!(result, 0);

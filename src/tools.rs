@@ -166,11 +166,11 @@ pub fn wrap_sep_string(sep: &str, s: &str) -> String {
 
 pub fn do_command_substitution(line: &mut String) {
     let _line = line.clone();
-    let args = parsers::parser_line::cmd_to_tokens(_line.as_str());
+    let tokens = parsers::parser_line::cmd_to_tokens(_line.as_str());
     let mut result: Vec<String> = Vec::new();
-    for (sep, token) in args {
+    for (sep, token) in tokens {
         if sep == "`" {
-            let _args = parsers::parser_line::parse_line(token.as_str());
+            let _args = parsers::parser_line::cmd_to_tokens(token.as_str());
             let (_, _, output) = execute::run_pipeline(_args, "", "", false, false, false, true);
             if let Some(x) = output {
                 match String::from_utf8(x.stdout) {
@@ -214,7 +214,7 @@ pub fn do_command_substitution(line: &mut String) {
                 for cap in re.captures_iter(&_token) {
                     _head = cap[1].to_string();
                     _tail = cap[3].to_string();
-                    let _args = parsers::parser_line::parse_line(&cap[2]);
+                    let _args = parsers::parser_line::cmd_to_tokens(&cap[2]);
                     let (_, _, output) =
                         execute::run_pipeline(_args, "", "", false, false, false, true);
                     if let Some(x) = output {
