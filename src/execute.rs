@@ -196,37 +196,38 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         return 0;
     }
 
-    let (result, term_given, _) = if len > 2 && (tokens[len - 2].1 == ">" || tokens[len - 2].1 == ">>") {
-        let append = tokens[len - 2].1 == ">>";
-        let redirect_to;
-        match tokens.pop() {
-            Some(x) => redirect_to = x.1,
-            None => {
-                println!("cicada: redirect_to pop error");
-                return 1;
+    let (result, term_given, _) =
+        if len > 2 && (tokens[len - 2].1 == ">" || tokens[len - 2].1 == ">>") {
+            let append = tokens[len - 2].1 == ">>";
+            let redirect_to;
+            match tokens.pop() {
+                Some(x) => redirect_to = x.1,
+                None => {
+                    println!("cicada: redirect_to pop error");
+                    return 1;
+                }
             }
-        }
-        tokens.pop();  // pop '>>'
-        run_pipeline(
-            tokens,
-            redirect_from.as_str(),
-            redirect_to.as_str(),
-            append,
-            background,
-            tty,
-            false,
-        )
-    } else {
-        run_pipeline(
-            tokens.clone(),
-            redirect_from.as_str(),
-            "",
-            false,
-            background,
-            tty,
-            false,
-        )
-    };
+            tokens.pop(); // pop '>>'
+            run_pipeline(
+                tokens,
+                redirect_from.as_str(),
+                redirect_to.as_str(),
+                append,
+                background,
+                tty,
+                false,
+            )
+        } else {
+            run_pipeline(
+                tokens.clone(),
+                redirect_from.as_str(),
+                "",
+                false,
+                background,
+                tty,
+                false,
+            )
+        };
     if term_given {
         unsafe {
             let gid = libc::getpgid(0);
@@ -609,10 +610,13 @@ mod tests {
         sh.add_alias("wc", "wc -l");
         let mut args = vec![("".to_string(), "ll".to_string())];
         extend_alias(&mut sh, &mut args);
-        assert_eq!(args, vec![
-           (String::new(), "ls".to_string()),
-           (String::new(), "-lh".to_string()),
-        ]);
+        assert_eq!(
+            args,
+            vec![
+                (String::new(), "ls".to_string()),
+                (String::new(), "-lh".to_string()),
+            ]
+        );
 
         args = vec![
             ("".to_string(), "ll".to_string()),

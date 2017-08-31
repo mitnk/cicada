@@ -353,13 +353,7 @@ mod tests {
             ),
             (
                 "echo a || echo b",
-                vec![
-                    ("", "echo"),
-                    ("", "a"),
-                    ("", "||"),
-                    ("", "echo"),
-                    ("", "b"),
-                ]
+                vec![("", "echo"), ("", "a"), ("", "||"), ("", "echo"), ("", "b")]
             ),
         ];
         for (left, right) in v {
