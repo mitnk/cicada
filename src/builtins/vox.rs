@@ -2,6 +2,7 @@ use std::env;
 use std::fs::{self, read_dir};
 use std::path::Path;
 
+use parsers;
 use shell;
 
 fn in_env() -> bool {
@@ -104,8 +105,8 @@ fn exit_env(sh: &shell::Shell) -> i32 {
     0
 }
 
-#[allow(needless_pass_by_value)]
-pub fn run(sh: &shell::Shell, args: Vec<String>) -> i32 {
+pub fn run(sh: &shell::Shell, tokens: &Vec<(String, String)>) -> i32 {
+    let args = parsers::parser_line::tokens_to_args(&tokens);
     if args.len() == 2 && args[1] == "ls" {
         list_envs()
     } else if args.len() == 3 && args[1] == "enter" {

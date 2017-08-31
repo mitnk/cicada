@@ -8,6 +8,15 @@ pub fn parse_line(line: &str) -> Vec<String> {
 }
 
 
+pub fn tokens_to_args(tokens: &Vec<(String, String)>) -> Vec<String> {
+    let mut result = Vec::new();
+    for s in tokens {
+        result.push(s.1.clone());
+    }
+    result
+}
+
+
 #[allow(doc_markdown)]
 /// Parse command line for multiple commands. Examples:
 /// >>> line_to_cmds("echo foo && echo bar; echo end");

@@ -5,9 +5,10 @@ use sqlite;
 use sqlite::State;
 
 use history;
+use parsers;
 
-#[allow(needless_pass_by_value)]
-pub fn run(args: Vec<String>) -> i32 {
+pub fn run(tokens: &Vec<(String, String)>) -> i32 {
+    let args = parsers::parser_line::tokens_to_args(&tokens);
     let hfile = history::get_history_file();
     let path = Path::new(hfile.as_str());
     if !path.exists() {

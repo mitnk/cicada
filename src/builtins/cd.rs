@@ -1,11 +1,12 @@
 use std::env;
 use std::error::Error;
 use std::path::PathBuf;
+use parsers;
 use shell;
 use tools;
 
-#[allow(needless_pass_by_value)]
-pub fn run(sh: &mut shell::Shell, args: Vec<String>) -> i32 {
+pub fn run(sh: &mut shell::Shell, tokens: &Vec<(String, String)>) -> i32 {
+    let args = parsers::parser_line::tokens_to_args(&tokens);
     if args.len() > 2 {
         println!("invalid cd command");
         return 1;

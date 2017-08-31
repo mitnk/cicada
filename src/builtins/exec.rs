@@ -1,7 +1,8 @@
 use exec;
+use parsers;
 
-#[allow(needless_pass_by_value)]
-pub fn run(args: Vec<String>) -> i32 {
+pub fn run(tokens: &Vec<(String, String)>) -> i32 {
+    let args = parsers::parser_line::tokens_to_args(&tokens);
     let len = args.len();
     if len == 1 {
         println!("invalid command");
