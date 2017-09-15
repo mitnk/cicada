@@ -5,6 +5,7 @@
 - fixed an issue when current dir become not available (e.g. be deleted).
 - fixed an issue that commands like `echo "|"` cannot be run.
 - Let command `echo 'a * b'` does not extend `*`.
+- Added dollar cmd replacement (i.e. `ls -lh $(which bash)`) support.
 
 ## v0.6.3 - 2017-07-22
 

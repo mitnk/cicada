@@ -10,6 +10,7 @@ use libc;
 use parsers;
 use execute;
 use shell;
+use libs;
 
 macro_rules! println_stderr {
     ($fmt:expr) => (
@@ -45,7 +46,7 @@ pub fn clog(s: &str) {
     let now = time::now();
     let s =
         format!(
-        "[{:04}-{:02}-{:02} {:02}:{:02}:{:02}][{}] {}",
+        "[{:04}-{:02}-{:02} {:02}:{:02}:{:02}][{}]{}",
         now.tm_year + 1900,
         now.tm_mon + 1,
         now.tm_mday,
@@ -164,13 +165,82 @@ pub fn wrap_sep_string(sep: &str, s: &str) -> String {
     format!("{}{}{}", sep, _token, sep)
 }
 
-pub fn do_command_substitution(line: &mut String) {
-    let _line = line.clone();
-    let tokens = parsers::parser_line::cmd_to_tokens(_line.as_str());
+fn do_command_substitution(line: &mut String) {
+    do_command_substitution_for_dot(line);
+    do_command_substitution_for_dollar(line);
+}
+
+fn should_do_brace_command_extension(line: &str) -> bool {
+    let ptn = r"\$\([^\)]+\)";
+    let re;
+    if let Ok(x) = Regex::new(ptn) {
+        re = x;
+    } else {
+        log!("re build failed");
+        return false;
+    }
+    return re.is_match(line);
+}
+
+fn do_command_substitution_for_dollar(line: &mut String) {
+    loop {
+        if !should_do_brace_command_extension(&line) {
+            break;
+        }
+        let ptn_cmd = r"\$\(([^\(]+)\)";
+        let cmd;
+        match libs::re::find_first_group(ptn_cmd, &line) {
+            Some(x) => {
+                cmd = x;
+            }
+            None => {
+                println_stderr!("cicada: no first group");
+                return;
+            }
+        }
+
+        let _args = parsers::parser_line::line_to_tokens(&cmd);
+        let (_, _, output) = execute::run_pipeline(
+            _args, "", "", false, false, false, true);
+        let _stdout;
+        let output_txt;
+        if let Some(x) = output {
+            match String::from_utf8(x.stdout) {
+                Ok(stdout) => {
+                    _stdout = stdout.clone();
+                    output_txt = _stdout.trim();
+                }
+                Err(_) => {
+                    println_stderr!("cicada: from_utf8 error");
+                    return;
+                }
+            }
+        } else {
+            println_stderr!("cicada: command error");
+            return;
+        }
+
+        let ptn = r"(?P<head>[^\$]*)\$\([^\(]+\)(?P<tail>.*)";
+        let re;
+        if let Ok(x) = Regex::new(ptn) {
+            re = x;
+        } else {
+            return;
+        }
+
+        let to = format!("${{head}}{}${{tail}}", output_txt);
+        let line_ = line.clone();
+        let result = re.replace(&line_, to.as_str());
+        *line = result.to_string();
+    }
+}
+
+fn do_command_substitution_for_dot(line: &mut String) {
+    let tokens = parsers::parser_line::line_to_tokens(&line);
     let mut result: Vec<String> = Vec::new();
     for (sep, token) in tokens {
         if sep == "`" {
-            let _args = parsers::parser_line::cmd_to_tokens(token.as_str());
+            let _args = parsers::parser_line::line_to_tokens(token.as_str());
             let (_, _, output) = execute::run_pipeline(_args, "", "", false, false, false, true);
             if let Some(x) = output {
                 match String::from_utf8(x.stdout) {
@@ -214,7 +284,7 @@ pub fn do_command_substitution(line: &mut String) {
                 for cap in re.captures_iter(&_token) {
                     _head = cap[1].to_string();
                     _tail = cap[3].to_string();
-                    let _args = parsers::parser_line::cmd_to_tokens(&cap[2]);
+                    let _args = parsers::parser_line::line_to_tokens(&cap[2]);
                     let (_, _, output) =
                         execute::run_pipeline(_args, "", "", false, false, false, true);
                     if let Some(x) = output {
@@ -250,7 +320,7 @@ pub fn do_command_substitution(line: &mut String) {
 
 pub fn do_brace_expansion(line: &mut String) {
     let _line = line.clone();
-    let args = parsers::parser_line::cmd_to_tokens(_line.as_str());
+    let args = parsers::parser_line::line_to_tokens(_line.as_str());
     let mut result: Vec<String> = Vec::new();
     for (sep, token) in args {
         if sep.is_empty() && should_extend_brace(token.as_str()) {
@@ -312,7 +382,7 @@ fn needs_globbing(line: &str) -> bool {
         return false;
     }
 
-    let tokens = parsers::parser_line::cmd_to_tokens(line);
+    let tokens = parsers::parser_line::line_to_tokens(line);
     for (sep, token) in tokens {
         if !sep.is_empty() {
             return false;
@@ -452,6 +522,8 @@ mod tests {
     use super::needs_globbing;
     use super::is_alias;
     use super::do_brace_expansion;
+    use super::do_command_substitution;
+    use super::should_do_brace_command_extension;
 
     #[test]
     fn dots_test() {
@@ -493,5 +565,35 @@ mod tests {
         let mut s = String::from("echo foo.{cpp,py}.txt");
         do_brace_expansion(&mut s);
         assert_eq!(s, "echo foo.cpp.txt foo.py.txt");
+    }
+
+    #[test]
+    fn test_do_command_substitution() {
+        let mut s = String::from("ls `echo yoo`");
+        do_command_substitution(&mut s);
+        assert_eq!(s, "ls `yoo`");  // may need to change to "ls yoo"
+
+        s = String::from("ls `echo yoo` foo `echo hoo`");
+        do_command_substitution(&mut s);
+        assert_eq!(s, "ls `yoo` foo `hoo`");
+
+        s = String::from("ls $(echo yoo)");
+        do_command_substitution(&mut s);
+        assert_eq!(s, "ls yoo");
+
+        s = String::from("ls $(echo yoo) foo $(echo hoo)");
+        do_command_substitution(&mut s);
+        assert_eq!(s, "ls yoo foo hoo");
+    }
+
+    #[test]
+    fn test_should_do_brace_command_extension() {
+        assert!(!should_do_brace_command_extension("ls $HOME"));
+        assert!(!should_do_brace_command_extension("echo $[pwd]"));
+        assert!(should_do_brace_command_extension("echo $(pwd)"));
+        assert!(should_do_brace_command_extension("echo $(pwd) foo"));
+        assert!(should_do_brace_command_extension("echo $(foo bar)"));
+        assert!(should_do_brace_command_extension("echo $(echo foo)"));
+        assert!(should_do_brace_command_extension("$(pwd) foo"));
     }
 }

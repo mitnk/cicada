@@ -1,6 +1,6 @@
 pub fn parse_line(line: &str) -> Vec<String> {
     let mut result = Vec::new();
-    let v = cmd_to_tokens(line);
+    let v = line_to_tokens(line);
     for (_, r) in v {
         result.push(r);
     }
@@ -109,8 +109,8 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
 }
 
 #[allow(doc_markdown)]
-/// parse command to tokens
-/// >>> cmd_to_tokens("echo 'hi yoo' | grep \"hi\"");
+/// parse command line to tokens
+/// >>> line_to_tokens("echo 'hi yoo' | grep \"hi\"");
 /// vec![
 ///     ("", "echo"),
 ///     ("'", "hi yoo"),
@@ -118,7 +118,7 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
 ///     ("", "grep"),
 ///     ("\"", "hi"),
 /// ]
-pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
+pub fn line_to_tokens(line: &str) -> Vec<(String, String)> {
     let mut result = Vec::new();
     let mut sep = String::new();
     // `sep_second` is for commands like this:
@@ -255,7 +255,7 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
 
 #[cfg(test)]
 mod tests {
-    use super::cmd_to_tokens;
+    use super::line_to_tokens;
     use super::parse_line;
     use super::line_to_cmds;
 
@@ -276,7 +276,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cmd_to_tokens() {
+    fn test_line_to_tokens() {
         let v = vec![
             ("ls", vec![("", "ls")]),
             ("  ls   ", vec![("", "ls")]),
@@ -359,7 +359,7 @@ mod tests {
         for (left, right) in v {
             println!("\ninput: {:?}", left);
             println!("expected: {:?}", right);
-            let args = cmd_to_tokens(left);
+            let args = line_to_tokens(left);
             println!("real: {:?}", args);
             _assert_vec_tuple_eq(args, right);
         }

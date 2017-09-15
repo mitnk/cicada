@@ -24,7 +24,7 @@ pub fn run(sh: &shell::Shell, line: &str) -> i32 {
         return 2;
     }
 
-    let args = parsers::parser_line::cmd_to_tokens(&_line);
+    let args = parsers::parser_line::line_to_tokens(&_line);
     for (sep, token) in args {
         if sep == "`" {
             continue;

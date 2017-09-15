@@ -10,7 +10,8 @@ categories = ["command-line-utilities", "command-line-interface", "development-t
 license = "MIT"
 
 [dependencies]
-linefeed = "0.2.0"
+# linefeed = "0.2.0"
+linefeed = { git = "https://github.com/murarth/linefeed" }
 libc = "0.2.0"
 errno = "0.2.0"
 nom = "^3.0"

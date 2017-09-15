@@ -143,7 +143,7 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
 }
 
 pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
-    let mut tokens = parsers::parser_line::cmd_to_tokens(line);
+    let mut tokens = parsers::parser_line::line_to_tokens(line);
     if tokens.is_empty() {
         return 0;
     }
@@ -176,6 +176,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     if len > 1 && tokens[len - 1].1 == "&" {
         background = true;
         tokens.pop();
+        len -= 1;
     }
     let mut redirect_from = String::new();
     let has_redirect_from = tokens.iter().any(|x| x.1 == "<");
@@ -207,7 +208,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
                     return 1;
                 }
             }
-            tokens.pop(); // pop '>>'
+            tokens.pop(); // pop '>>' or '>'
             run_pipeline(
                 tokens,
                 redirect_from.as_str(),
