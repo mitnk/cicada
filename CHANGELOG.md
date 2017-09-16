@@ -6,6 +6,7 @@
 - fixed an issue that commands like `echo "|"` cannot be run.
 - Let command `echo 'a * b'` does not extend `*`.
 - Added dollar cmd replacement (i.e. `ls -lh $(which bash)`) support.
+- Aliases now support cmds like `alias test="echo hi && echo yoo"`
 
 ## v0.6.3 - 2017-07-22
 

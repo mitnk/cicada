@@ -1,4 +1,5 @@
 use std::env;
+use std::collections::HashSet;
 use std::fs::OpenOptions;
 use std::io::Write;
 use time;
@@ -515,14 +516,81 @@ pub fn is_arithmetic(line: &str) -> bool {
     re.is_match(line)
 }
 
+pub fn extend_alias(sh: &shell::Shell, line: &str) -> String {
+    let cmds = parsers::parser_line::line_to_cmds(line);
+    let mut seps_cmd: HashSet<&str> = HashSet::new();
+    seps_cmd.insert(";");
+    seps_cmd.insert("&&");
+    seps_cmd.insert("||");
+
+    let mut result = String::new();
+    for (_, cmd) in cmds.iter().enumerate() {
+        if seps_cmd.contains(cmd.as_str()) {
+            result.push(' ');
+            result.push_str(cmd);
+            result.push(' ');
+            continue;
+        }
+
+        let tokens = parsers::parser_line::line_to_tokens(cmd);
+        let mut is_cmd = false;
+        for (i, token) in tokens.iter().enumerate() {
+            let sep = &token.0;
+            let arg = &token.1;
+
+            if !sep.is_empty() {
+                is_cmd = false;
+                result.push(' ');
+                result.push_str(&sep);
+                let replace_to = format!("\\{}", sep);
+                result.push_str(&arg.replace(sep, &replace_to));
+                result.push_str(&sep);
+                continue;
+            }
+
+            if i == 0 {
+                is_cmd = true;
+            } else if arg == "|" {
+                result.push(' ');
+                result.push_str(&arg);
+                is_cmd = true;
+                continue;
+            }
+            if !is_cmd {
+                result.push(' ');
+                result.push_str(&arg);
+                continue;
+            }
+
+            let extended;
+            match sh.get_alias_content(arg) {
+                Some(_extended) => {
+                    extended = _extended;
+                }
+                None => {
+                    extended = arg.clone();
+                }
+            }
+            if i > 0 {
+                result.push(' ');
+            }
+            result.push_str(&extended);
+            is_cmd = false;
+        }
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
+    use shell;
     use super::needs_extend_home;
     use super::needs_globbing;
     use super::is_alias;
     use super::do_brace_expansion;
     use super::do_command_substitution;
     use super::should_do_brace_command_extension;
+    use super::extend_alias;
 
     #[test]
     fn dots_test() {
@@ -594,5 +662,37 @@ mod tests {
         assert!(should_do_brace_command_extension("echo $(foo bar)"));
         assert!(should_do_brace_command_extension("echo $(echo foo)"));
         assert!(should_do_brace_command_extension("$(pwd) foo"));
+    }
+
+    #[test]
+    fn test_extend_alias() {
+        let mut sh = shell::Shell::new();
+        sh.add_alias("ls", "ls -G");
+        sh.add_alias("wc", "wc -l");
+        sh.add_alias("grep", "grep -I --color=auto --exclude-dir=.git");
+        sh.add_alias("tx", "tmux");
+
+        assert_eq!(extend_alias(&sh, "ls"), "ls -G");
+        assert_eq!(extend_alias(&sh, "ls -lh"), "ls -G -lh");
+        assert_eq!(extend_alias(&sh, "ls | wc"), "ls -G | wc -l");
+        assert_eq!(extend_alias(&sh, "ps ax | grep foo"), "ps ax | grep -I --color=auto --exclude-dir=.git foo");
+        assert_eq!(extend_alias(&sh, "ls | wc | cat"), "ls -G | wc -l | cat");
+        assert_eq!(extend_alias(&sh, "echo foo | wc"), "echo foo | wc -l");
+        assert_eq!(extend_alias(&sh, "echo foo | cat | wc"), "echo foo | cat | wc -l");
+        assert_eq!(extend_alias(&sh, "echo foo | wc | cat"), "echo foo | wc -l | cat");
+        assert_eq!(extend_alias(&sh, "ls || wc"), "ls -G || wc -l");
+        assert_eq!(extend_alias(&sh, "ls && wc"), "ls -G && wc -l");
+        assert_eq!(extend_alias(&sh, "ls&&wc"), "ls -G && wc -l");
+        assert_eq!(extend_alias(&sh, "ls ; wc"), "ls -G ; wc -l");
+        assert_eq!(extend_alias(&sh, "ls; wc"), "ls -G ; wc -l");
+        assert_eq!(extend_alias(&sh, "ls;wc"), "ls -G ; wc -l");
+        assert_eq!(extend_alias(&sh, "ls&&wc; foo || bar"), "ls -G && wc -l ; foo || bar");
+        assert_eq!(extend_alias(&sh, "echo 'ls | wc'"), "echo 'ls | wc'");
+        assert_eq!(extend_alias(&sh, "echo \"ls | wc\""), "echo \"ls | wc\"");
+        assert_eq!(extend_alias(&sh, "echo `ls | wc`"), "echo `ls | wc`");
+
+        assert_eq!(extend_alias(&sh, "tx ls"), "tmux ls");
+        assert_eq!(extend_alias(&sh, "awk -F \"[ ,.\\\"]+\""), "awk -F \"[ ,.\\\"]+\"");
+        assert_eq!(extend_alias(&sh, "ls a\\.b"), "ls -G a.b");
     }
 }

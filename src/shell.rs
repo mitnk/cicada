@@ -30,7 +30,7 @@ impl Shell {
         self.alias.insert(name.to_string(), value.to_string());
     }
 
-    pub fn extend_alias(&mut self, name: &str) -> Option<String> {
+    pub fn get_alias_content(&self, name: &str) -> Option<String> {
         let mut result;
         match self.alias.get(name) {
             Some(x) => {

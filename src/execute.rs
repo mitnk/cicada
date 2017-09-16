@@ -133,6 +133,7 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
 
     let mut cmd_line: String = line.to_string();
     tools::pre_handle_cmd_line(&sh, &mut cmd_line);
+    cmd_line = tools::extend_alias(&sh, &cmd_line);
     let mut status = 0;
     let mut sep = String::new();
     for token in parsers::parser_line::line_to_cmds(&cmd_line) {
@@ -151,40 +152,11 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     status
 }
 
-fn run_calc_float(line: &str) -> Result<f64, String> {
-    match parsers::parser_float::expr_float(line.as_bytes()) {
-        IResult::Done(_, x) => {
-            return Ok(x);
-        }
-        IResult::Error(e) => {
-            return Err(e.description().to_owned());
-        }
-        IResult::Incomplete(_) => {
-            return Err(String::from("Incomplete arithmetic"));
-        }
-    }
-}
-
-fn run_calc_int(line: &str) -> Result<i64, String> {
-    match parsers::parser_int::expr_int(line.as_bytes()) {
-        IResult::Done(_, x) => {
-            return Ok(x);
-        }
-        IResult::Error(e) => {
-            return Err(e.description().to_owned());
-        }
-        IResult::Incomplete(_) => {
-            return Err(String::from("Incomplete arithmetic"));
-        }
-    }
-}
-
 pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     let mut tokens = parsers::parser_line::line_to_tokens(line);
     if tokens.is_empty() {
         return 0;
     }
-    extend_alias(sh, &mut tokens);
     let cmd = tokens[0].1.clone();
 
     // for built-ins
@@ -275,50 +247,31 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     result
 }
 
-fn extend_alias(sh: &mut shell::Shell, tokens: &mut Vec<(String, String)>) {
-    let tokens_new = tokens.clone();
-    let mut is_cmd = false;
-    let mut insert_pos: usize = 0;
-    for (i, token) in tokens_new.iter().enumerate() {
-        let sep = &token.0;
-        let arg = &token.1;
+fn run_calc_float(line: &str) -> Result<f64, String> {
+    match parsers::parser_float::expr_float(line.as_bytes()) {
+        IResult::Done(_, x) => {
+            return Ok(x);
+        }
+        IResult::Error(e) => {
+            return Err(e.description().to_owned());
+        }
+        IResult::Incomplete(_) => {
+            return Err(String::from("Incomplete arithmetic"));
+        }
+    }
+}
 
-        if i == 0 {
-            is_cmd = true;
-        } else if arg == "|" {
-            is_cmd = true;
-            insert_pos += 1;
-            continue;
+fn run_calc_int(line: &str) -> Result<i64, String> {
+    match parsers::parser_int::expr_int(line.as_bytes()) {
+        IResult::Done(_, x) => {
+            return Ok(x);
         }
-        if !is_cmd {
-            insert_pos += 1;
-            continue;
+        IResult::Error(e) => {
+            return Err(e.description().to_owned());
         }
-
-        let extended;
-        match sh.extend_alias(arg) {
-            Some(_extended) => {
-                extended = _extended;
-            }
-            None => {
-                extended = arg.clone();
-            }
+        IResult::Incomplete(_) => {
+            return Err(String::from("Incomplete arithmetic"));
         }
-        is_cmd = false;
-        if extended != *arg {
-            let _args = parsers::parser_line::parse_line(extended.as_str());
-            for (i, item) in _args.iter().enumerate() {
-                if i == 0 {
-                    tokens[insert_pos] = (sep.to_string(), item.clone());
-                    insert_pos += 1;
-                    continue;
-                }
-                tokens.insert(insert_pos, (sep.to_string(), item.clone()));
-                insert_pos += 1;
-            }
-            continue;
-        }
-        insert_pos += 1;
     }
 }
 
@@ -570,11 +523,9 @@ pub fn run_pipeline(
 #[cfg(test)]
 mod tests {
     use super::tokens_to_cmds;
-    use super::extend_alias;
     use super::run_pipeline;
     use super::run_calc_float;
     use super::run_calc_int;
-    use shell;
 
     #[test]
     fn test_args_to_cmd() {
@@ -641,169 +592,6 @@ mod tests {
             assert_eq!(*item, expected[i]);
         }
 
-    }
-
-    #[test]
-    fn test_extend_alias() {
-        let mut sh = shell::Shell::new();
-        sh.add_alias("ll", "ls -lh");
-        sh.add_alias("wc", "wc -l");
-        let mut args = vec![("".to_string(), "ll".to_string())];
-        extend_alias(&mut sh, &mut args);
-        assert_eq!(
-            args,
-            vec![
-                (String::new(), "ls".to_string()),
-                (String::new(), "-lh".to_string()),
-            ]
-        );
-
-        args = vec![
-            ("".to_string(), "ll".to_string()),
-            ("".to_string(), "|".to_string()),
-            ("".to_string(), "wc".to_string()),
-        ];
-        extend_alias(&mut sh, &mut args);
-        assert_eq!(
-            args,
-            vec![
-                (String::new(), "ls".to_string()),
-                (String::new(), "-lh".to_string()),
-                (String::new(), "|".to_string()),
-                (String::new(), "wc".to_string()),
-                (String::new(), "-l".to_string()),
-            ]
-        );
-
-        args = vec![
-            (String::new(), "ls".to_string()),
-            (String::new(), "|".to_string()),
-            (String::new(), "wc".to_string()),
-        ];
-        extend_alias(&mut sh, &mut args);
-        assert_eq!(
-            args,
-            vec![
-                (String::new(), "ls".to_string()),
-                (String::new(), "|".to_string()),
-                (String::new(), "wc".to_string()),
-                (String::new(), "-l".to_string()),
-            ]
-        );
-
-        args = vec![
-            (String::new(), "ls".to_string()),
-            (String::new(), "|".to_string()),
-            (String::new(), "cat".to_string()),
-            (String::new(), "|".to_string()),
-            (String::new(), "wc".to_string()),
-        ];
-        extend_alias(&mut sh, &mut args);
-        assert_eq!(
-            args,
-            vec![
-                (String::new(), "ls".to_string()),
-                (String::new(), "|".to_string()),
-                (String::new(), "cat".to_string()),
-                (String::new(), "|".to_string()),
-                (String::new(), "wc".to_string()),
-                (String::new(), "-l".to_string()),
-            ]
-        );
-
-        args = vec![
-            (String::new(), "ls".to_string()),
-            (String::new(), "|".to_string()),
-            (String::new(), "wc".to_string()),
-            (String::new(), "|".to_string()),
-            (String::new(), "cat".to_string()),
-        ];
-        extend_alias(&mut sh, &mut args);
-        assert_eq!(
-            args,
-            vec![
-                (String::new(), "ls".to_string()),
-                (String::new(), "|".to_string()),
-                (String::new(), "wc".to_string()),
-                (String::new(), "-l".to_string()),
-                (String::new(), "|".to_string()),
-                (String::new(), "cat".to_string()),
-            ]
-        );
-
-        args = vec![
-            (String::new(), "ll".to_string()),
-            (String::new(), "|".to_string()),
-            (String::new(), "cat".to_string()),
-            (String::new(), "|".to_string()),
-            (String::new(), "wc".to_string()),
-        ];
-        extend_alias(&mut sh, &mut args);
-        assert_eq!(
-            args,
-            vec![
-                (String::new(), "ls".to_string()),
-                (String::new(), "-lh".to_string()),
-                (String::new(), "|".to_string()),
-                (String::new(), "cat".to_string()),
-                (String::new(), "|".to_string()),
-                (String::new(), "wc".to_string()),
-                (String::new(), "-l".to_string()),
-            ]
-        );
-
-        sh.add_alias("grep", "grep -I --color=auto --exclude-dir=.git");
-        args = vec![
-            (String::new(), "ps".to_string()),
-            (String::new(), "ax".to_string()),
-            (String::new(), "|".to_string()),
-            (String::new(), "grep".to_string()),
-            (String::new(), "foo".to_string()),
-        ];
-        extend_alias(&mut sh, &mut args);
-        assert_eq!(
-            args,
-            vec![
-                (String::new(), "ps".to_string()),
-                (String::new(), "ax".to_string()),
-                (String::new(), "|".to_string()),
-                (String::new(), "grep".to_string()),
-                (String::new(), "-I".to_string()),
-                (String::new(), "--color=auto".to_string()),
-                (String::new(), "--exclude-dir=.git".to_string()),
-                (String::new(), "foo".to_string()),
-            ]
-        );
-
-        sh.add_alias("ls", "ls -G");
-        args = vec![
-            (String::new(), "ls".to_string()),
-            (String::new(), "a\\.b".to_string()),
-        ];
-        extend_alias(&mut sh, &mut args);
-        assert_eq!(
-            args,
-            vec![
-                (String::new(), "ls".to_string()),
-                (String::new(), "-G".to_string()),
-                (String::new(), "a\\.b".to_string()),
-            ]
-        );
-
-        sh.add_alias("tx", "tmux");
-        sh.add_alias("ls", "ls -G");
-        args = vec![
-            (String::new(), "tx".to_string()),
-            (String::new(), "ls".to_string()),
-        ];
-        extend_alias(&mut sh, &mut args);
-        assert_eq!(
-            args,
-            vec![
-                (String::new(), "tmux".to_string()),
-                (String::new(), "ls".to_string()),
-            ]
-        );
     }
 
     #[test]
