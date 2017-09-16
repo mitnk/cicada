@@ -200,8 +200,7 @@ fn do_command_substitution_for_dollar(line: &mut String) {
         }
 
         let _args = parsers::parser_line::line_to_tokens(&cmd);
-        let (_, _, output) = execute::run_pipeline(
-            _args, "", "", false, false, false, true);
+        let (_, _, output) = execute::run_pipeline(_args, "", "", false, false, false, true);
         let _stdout;
         let output_txt;
         if let Some(x) = output {
@@ -571,7 +570,7 @@ mod tests {
     fn test_do_command_substitution() {
         let mut s = String::from("ls `echo yoo`");
         do_command_substitution(&mut s);
-        assert_eq!(s, "ls `yoo`");  // may need to change to "ls yoo"
+        assert_eq!(s, "ls `yoo`"); // may need to change to "ls yoo"
 
         s = String::from("ls `echo yoo` foo `echo hoo`");
         do_command_substitution(&mut s);

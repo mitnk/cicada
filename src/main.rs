@@ -1,15 +1,15 @@
 #![allow(unknown_lints)]
 extern crate errno;
+extern crate exec;
 extern crate glob;
 extern crate libc;
 extern crate linefeed;
 extern crate nix;
+extern crate os_type;
 extern crate regex;
 extern crate sqlite;
 extern crate time;
 extern crate yaml_rust;
-extern crate exec;
-extern crate os_type;
 #[macro_use]
 extern crate nom;
 
@@ -36,17 +36,19 @@ fn main() {
     let mut sh = shell::Shell::new();
     rcfile::load_rcfile(&mut sh);
 
+    // this section handles `cicada -c 'echo hi && echo yoo'`,
+    // e.g. it could be triggered from Vim (`:!ls` etc).
     if env::args().len() > 1 {
-        let mut line = tools::env_args_to_command_line();
-        log!("run with args: {:?}", &line);
-        tools::pre_handle_cmd_line(&sh, &mut line);
+        let line = tools::env_args_to_command_line();
+        log!("run with -c args: {}", &line);
         execute::run_procs(&mut sh, &line, false);
         return;
     }
 
     let isatty: bool = unsafe { libc::isatty(0) == 1 };
     if !isatty {
-        // cases like open a new MacVim window (i.e. CMD+N) on an existing one
+        // cases like open a new MacVim window,
+        // (i.e. CMD+N) on an existing one
         execute::handle_non_tty(&mut sh);
         return;
     }
@@ -74,7 +76,7 @@ fn main() {
         rl.set_prompt(&prompt);
         match rl.read_line() {
             Ok(ReadResult::Input(line)) => {
-                let mut cmd;
+                let cmd;
                 if line.trim() == "exit" {
                     break;
                 } else if line.trim() == "" {
@@ -85,7 +87,6 @@ fn main() {
 
                 let tsb_spec = time::get_time();
                 let tsb = (tsb_spec.sec as f64) + tsb_spec.nsec as f64 / 1000000000.0;
-                tools::pre_handle_cmd_line(&sh, &mut cmd);
                 status = execute::run_procs(&mut sh, &cmd, true);
                 let tse_spec = time::get_time();
                 let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1000000000.0;

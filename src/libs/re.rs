@@ -5,7 +5,7 @@ pub fn find_first_group(ptn: &str, text: &str) -> Option<String> {
     let re;
     match regex::Regex::new(ptn) {
         Ok(x) => re = x,
-        Err(_) => return None
+        Err(_) => return None,
     }
     match re.captures(text) {
         Some(caps) => {

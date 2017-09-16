@@ -31,6 +31,7 @@ extern "C" fn handle_sigchld(_: i32) {
     */
 }
 
+/// Entry point for non-ttys (e.g. Cmd-N on MacVim)
 pub fn handle_non_tty(sh: &mut shell::Shell) {
     log!("handle non tty");
     let mut buffer = String::new();
@@ -106,27 +107,35 @@ fn args_to_redirections(tokens: Vec<(String, String)>) -> (Vec<(String, String)>
 pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     if tools::is_arithmetic(line) {
         if line.contains('.') {
-            match parsers::parser_float::expr_float(line.as_bytes()) {
-                IResult::Done(_, x) => {
-                    println!("{:?}", x);
+            match run_calc_float(line) {
+                Ok(x) => {
+                    println!("{}", x);
+                    return 0;
                 }
-                IResult::Error(x) => println!("Error: {:?}", x),
-                IResult::Incomplete(x) => println!("Incomplete: {:?}", x),
+                Err(e) => {
+                    println!("Error: {}", e);
+                    return 1;
+                }
             }
         } else {
-            match parsers::parser_int::expr_int(line.as_bytes()) {
-                IResult::Done(_, x) => {
-                    println!("{:?}", x);
+            match run_calc_int(line) {
+                Ok(x) => {
+                    println!("{}", x);
+                    return 0;
                 }
-                IResult::Error(x) => println!("Error: {:?}", x),
-                IResult::Incomplete(x) => println!("Incomplete: {:?}", x),
+                Err(e) => {
+                    println!("Error: {}", e);
+                    return 1;
+                }
             }
         }
-        return 0;
     }
+
+    let mut cmd_line: String = line.to_string();
+    tools::pre_handle_cmd_line(&sh, &mut cmd_line);
     let mut status = 0;
     let mut sep = String::new();
-    for token in parsers::parser_line::line_to_cmds(line) {
+    for token in parsers::parser_line::line_to_cmds(&cmd_line) {
         if token == ";" || token == "&&" || token == "||" {
             sep = token.clone();
             continue;
@@ -140,6 +149,34 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         status = run_proc(sh, token.as_str(), tty);
     }
     status
+}
+
+fn run_calc_float(line: &str) -> Result<f64, String> {
+    match parsers::parser_float::expr_float(line.as_bytes()) {
+        IResult::Done(_, x) => {
+            return Ok(x);
+        }
+        IResult::Error(e) => {
+            return Err(e.description().to_owned());
+        }
+        IResult::Incomplete(_) => {
+            return Err(String::from("Incomplete arithmetic"));
+        }
+    }
+}
+
+fn run_calc_int(line: &str) -> Result<i64, String> {
+    match parsers::parser_int::expr_int(line.as_bytes()) {
+        IResult::Done(_, x) => {
+            return Ok(x);
+        }
+        IResult::Error(e) => {
+            return Err(e.description().to_owned());
+        }
+        IResult::Incomplete(_) => {
+            return Err(String::from("Incomplete arithmetic"));
+        }
+    }
 }
 
 pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
@@ -535,6 +572,8 @@ mod tests {
     use super::tokens_to_cmds;
     use super::extend_alias;
     use super::run_pipeline;
+    use super::run_calc_float;
+    use super::run_calc_int;
     use shell;
 
     #[test]
@@ -844,5 +883,18 @@ mod tests {
         } else {
             assert_eq!(1, 2);
         }
+    }
+
+    #[test]
+    fn test_run_calc_float() {
+        assert_eq!(
+            run_calc_float("(1 + 2 * 3.0 - 1.54) / 0.2"),
+            Ok(27.299999999999997)
+        );
+    }
+
+    #[test]
+    fn test_run_calc_int() {
+        assert_eq!(run_calc_int("(5 + 2 * 3 - 4) / 3"), Ok(2));
     }
 }
