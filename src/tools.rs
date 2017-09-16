@@ -1,4 +1,5 @@
 use std::env;
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -201,7 +202,7 @@ fn do_command_substitution_for_dollar(line: &mut String) {
         }
 
         let _args = parsers::parser_line::line_to_tokens(&cmd);
-        let (_, _, output) = execute::run_pipeline(_args, "", "", false, false, false, true);
+        let (_, _, output) = execute::run_pipeline(_args, "", "", false, false, false, true, None);
         let _stdout;
         let output_txt;
         if let Some(x) = output {
@@ -241,7 +242,8 @@ fn do_command_substitution_for_dot(line: &mut String) {
     for (sep, token) in tokens {
         if sep == "`" {
             let _args = parsers::parser_line::line_to_tokens(token.as_str());
-            let (_, _, output) = execute::run_pipeline(_args, "", "", false, false, false, true);
+            let (_, _, output) =
+                execute::run_pipeline(_args, "", "", false, false, false, true, None);
             if let Some(x) = output {
                 match String::from_utf8(x.stdout) {
                     Ok(stdout) => {
@@ -286,7 +288,7 @@ fn do_command_substitution_for_dot(line: &mut String) {
                     _tail = cap[3].to_string();
                     let _args = parsers::parser_line::line_to_tokens(&cap[2]);
                     let (_, _, output) =
-                        execute::run_pipeline(_args, "", "", false, false, false, true);
+                        execute::run_pipeline(_args, "", "", false, false, false, true, None);
                     if let Some(x) = output {
                         match String::from_utf8(x.stdout) {
                             Ok(stdout) => {
@@ -581,9 +583,32 @@ pub fn extend_alias(sh: &shell::Shell, line: &str) -> String {
     result
 }
 
+pub fn remove_envs_from_line(line: &str, envs: &mut HashMap<String, String>) -> String {
+    let mut result = line.to_string();
+    loop {
+        match libs::re::find_first_group(r"^( *[a-zA-Z][a-zA-Z0-9_]+=[^ ]*)", &result) {
+            Some(x) => {
+                let v: Vec<&str> = x.split('=').collect();
+                if v.len() != 2 {
+                    println_stderr!("remove envs error");
+                    break;
+                }
+                envs.insert(v[0].to_string(), v[1].to_string());
+
+                result = result.trim().replace(&x, "").trim().to_owned();
+            }
+            None => {
+                break;
+            }
+        }
+    }
+    result
+}
+
 #[cfg(test)]
 mod tests {
     use shell;
+    use std::collections::HashMap;
     use super::needs_extend_home;
     use super::needs_globbing;
     use super::is_alias;
@@ -591,6 +616,7 @@ mod tests {
     use super::do_command_substitution;
     use super::should_do_brace_command_extension;
     use super::extend_alias;
+    use super::remove_envs_from_line;
 
     #[test]
     fn dots_test() {
@@ -675,24 +701,61 @@ mod tests {
         assert_eq!(extend_alias(&sh, "ls"), "ls -G");
         assert_eq!(extend_alias(&sh, "ls -lh"), "ls -G -lh");
         assert_eq!(extend_alias(&sh, "ls | wc"), "ls -G | wc -l");
-        assert_eq!(extend_alias(&sh, "ps ax | grep foo"), "ps ax | grep -I --color=auto --exclude-dir=.git foo");
+        assert_eq!(
+            extend_alias(&sh, "ps ax | grep foo"),
+            "ps ax | grep -I --color=auto --exclude-dir=.git foo"
+        );
         assert_eq!(extend_alias(&sh, "ls | wc | cat"), "ls -G | wc -l | cat");
         assert_eq!(extend_alias(&sh, "echo foo | wc"), "echo foo | wc -l");
-        assert_eq!(extend_alias(&sh, "echo foo | cat | wc"), "echo foo | cat | wc -l");
-        assert_eq!(extend_alias(&sh, "echo foo | wc | cat"), "echo foo | wc -l | cat");
+        assert_eq!(
+            extend_alias(&sh, "echo foo | cat | wc"),
+            "echo foo | cat | wc -l"
+        );
+        assert_eq!(
+            extend_alias(&sh, "echo foo | wc | cat"),
+            "echo foo | wc -l | cat"
+        );
         assert_eq!(extend_alias(&sh, "ls || wc"), "ls -G || wc -l");
         assert_eq!(extend_alias(&sh, "ls && wc"), "ls -G && wc -l");
         assert_eq!(extend_alias(&sh, "ls&&wc"), "ls -G && wc -l");
         assert_eq!(extend_alias(&sh, "ls ; wc"), "ls -G ; wc -l");
         assert_eq!(extend_alias(&sh, "ls; wc"), "ls -G ; wc -l");
         assert_eq!(extend_alias(&sh, "ls;wc"), "ls -G ; wc -l");
-        assert_eq!(extend_alias(&sh, "ls&&wc; foo || bar"), "ls -G && wc -l ; foo || bar");
+        assert_eq!(
+            extend_alias(&sh, "ls&&wc; foo || bar"),
+            "ls -G && wc -l ; foo || bar"
+        );
         assert_eq!(extend_alias(&sh, "echo 'ls | wc'"), "echo 'ls | wc'");
         assert_eq!(extend_alias(&sh, "echo \"ls | wc\""), "echo \"ls | wc\"");
         assert_eq!(extend_alias(&sh, "echo `ls | wc`"), "echo `ls | wc`");
 
         assert_eq!(extend_alias(&sh, "tx ls"), "tmux ls");
-        assert_eq!(extend_alias(&sh, "awk -F \"[ ,.\\\"]+\""), "awk -F \"[ ,.\\\"]+\"");
+        assert_eq!(
+            extend_alias(&sh, "awk -F \"[ ,.\\\"]+\""),
+            "awk -F \"[ ,.\\\"]+\""
+        );
         assert_eq!(extend_alias(&sh, "ls a\\.b"), "ls -G a.b");
+    }
+
+    #[test]
+    fn test_remove_envs_from_line() {
+        let line = "foo=1 echo hi";
+        let mut envs = HashMap::new();
+        assert_eq!(remove_envs_from_line(line, &mut envs), "echo hi");
+        assert_eq!(envs["foo"], "1");
+
+        let line = "foo=1 bar=2 echo hi";
+        let mut envs = HashMap::new();
+        assert_eq!(remove_envs_from_line(line, &mut envs), "echo hi");
+        assert_eq!(envs["foo"], "1");
+        assert_eq!(envs["bar"], "2");
+
+        let line = "foo=1 bar=2 baz=3 bbq=4 cicada -c 'abc'";
+        let mut envs = HashMap::new();
+        assert_eq!(remove_envs_from_line(line, &mut envs), "cicada -c 'abc'");
+        assert_eq!(envs["foo"], "1");
+        assert_eq!(envs["bar"], "2");
+        assert_eq!(envs["baz"], "3");
+        assert_eq!(envs["bbq"], "4");
     }
 }

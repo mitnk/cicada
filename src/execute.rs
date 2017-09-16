@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::error::Error as STDError;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -153,7 +154,10 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
 }
 
 pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
-    let mut tokens = parsers::parser_line::line_to_tokens(line);
+    let mut envs = HashMap::new();
+    let cmd_line = tools::remove_envs_from_line(line, &mut envs);
+
+    let mut tokens = parsers::parser_line::line_to_tokens(&cmd_line);
     if tokens.is_empty() {
         return 0;
     }
@@ -164,7 +168,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         return builtins::cd::run(sh, &tokens);
     }
     if cmd == "export" {
-        return builtins::export::run(sh, line);
+        return builtins::export::run(sh, &cmd_line);
     }
     if cmd == "vox" {
         return builtins::vox::run(sh, &tokens);
@@ -226,6 +230,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
                 background,
                 tty,
                 false,
+                Some(envs),
             )
         } else {
             run_pipeline(
@@ -236,6 +241,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
                 background,
                 tty,
                 false,
+                Some(envs),
             )
         };
     if term_given {
@@ -283,6 +289,7 @@ pub fn run_pipeline(
     background: bool,
     tty: bool,
     capture_stdout: bool,
+    envs: Option<HashMap<String, String>>,
 ) -> (i32, bool, Option<Output>) {
     let sig_action = signal::SigAction::new(
         signal::SigHandler::Handler(handle_sigchld),
@@ -348,11 +355,18 @@ pub fn run_pipeline(
     let mut children: Vec<u32> = Vec::new();
     let mut status = 0;
     let mut output = None;
+
+    let mut _envs: HashMap<String, String> = HashMap::new();
+    if let Some(x) = envs {
+        _envs = x;
+    }
+
     for cmd in &mut cmds {
         let program = &cmd[0];
         // treat `(ls)` as `ls`
         let mut p = Command::new(program.trim_matches(|c| c == '(' || c == ')'));
         p.args(&cmd[1..]);
+        p.envs(&_envs);
 
         if isatty {
             p.before_exec(move || {
@@ -598,7 +612,8 @@ mod tests {
     fn test_run_pipeline() {
         let str_empty = String::new();
         let cmd = vec![(str_empty.clone(), String::from("ls"))];
-        let (result, term_given, output) = run_pipeline(cmd, "", "", false, false, false, true);
+        let (result, term_given, output) =
+            run_pipeline(cmd, "", "", false, false, false, true, None);
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {
@@ -616,7 +631,8 @@ mod tests {
             (str_empty.clone(), String::from("|")),
             (str_empty.clone(), String::from("cat")),
         ];
-        let (result, term_given, output) = run_pipeline(cmd, "", "", false, false, false, true);
+        let (result, term_given, output) =
+            run_pipeline(cmd, "", "", false, false, false, true, None);
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {
@@ -638,7 +654,8 @@ mod tests {
             (str_empty.clone(), String::from("|")),
             (str_empty.clone(), String::from("more")),
         ];
-        let (result, term_given, output) = run_pipeline(cmd, "", "", false, false, false, true);
+        let (result, term_given, output) =
+            run_pipeline(cmd, "", "", false, false, false, true, None);
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {
@@ -662,7 +679,8 @@ mod tests {
             (str_empty.clone(), String::from("[ \"]+")),
             (str_empty.clone(), String::from("{print $3, $2, $1}")),
         ];
-        let (result, term_given, output) = run_pipeline(cmd, "", "", false, false, false, true);
+        let (result, term_given, output) =
+            run_pipeline(cmd, "", "", false, false, false, true, None);
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {
