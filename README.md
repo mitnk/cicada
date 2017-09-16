@@ -94,6 +94,8 @@ $ mv cicada-mac-v0.6.5 /usr/local/bin/cicada
 
 # on Linux
 $ mv cicada-linux64-v0.6.5 /usr/local/bin/cicada
+
+$ chmod +x /usr/local/bin/cicada
 ```
 
 Then you can try it by run `cicada` in your shell.
