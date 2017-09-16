@@ -81,6 +81,25 @@ $ (1 + 2) * (3 - 4) / 8.0
 
 ## Install Cicada
 
+### Install via Pre-built Binaries
+
+First download the latest right binary for your system from
+[Release Page](https://github.com/mitnk/cicada/releases).
+
+Move it to right place and add runable permisson:
+
+```
+# on Mac
+$ mv cicada-mac-v0.6.5 /usr/local/bin/cicada
+
+# on Linux
+$ mv cicada-linux64-v0.6.5 /usr/local/bin/cicada
+```
+
+Then you can try it by run `cicada` in your shell.
+
+### Install Cicada via Source
+
 Note: [Rust environment](https://rustup.rs/) is needed for installation.
 
 You can try `cicada` out without installing it by checking out the repository
