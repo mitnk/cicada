@@ -48,7 +48,6 @@ pub fn handle_non_tty(sh: &mut shell::Shell) {
     }
 }
 
-#[allow(needless_pass_by_value)]
 fn tokens_to_cmds(tokens: Vec<(String, String)>) -> Vec<Vec<String>> {
     let mut cmd: Vec<String> = Vec::new();
     let mut cmds: Vec<Vec<String>> = Vec::new();
@@ -72,7 +71,6 @@ fn tokens_to_cmds(tokens: Vec<(String, String)>) -> Vec<Vec<String>> {
     cmds
 }
 
-#[allow(needless_pass_by_value)]
 fn args_to_redirections(tokens: Vec<(String, String)>) -> (Vec<(String, String)>, Vec<i32>) {
     let mut vec_redirected = Vec::new();
     let mut args_new = tokens.clone();

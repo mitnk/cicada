@@ -138,6 +138,10 @@ Appending `/usr/local/bin/cicada` into your `/etc/shells`, then run
 $ chsh -s /usr/local/bin/cicada
 ```
 
+## Cicada is also a library
+
+Read APIs here: [https://docs.rs/crate/cicada/0.7.0](https://docs.rs/crate/cicada/0.7.0)
+
 ## FAQs
 
 ### Why another shell?
@@ -182,7 +186,7 @@ Cicada does not recognize these scripts itself. You cannot integrate these shell
 
 ### Windows support?
 
-I personally do not have a Windows box to work on, and cicada use a lot of Unix/Linux specific things internally. But you can fork it and play it with Windows maybe if you want to.
+Cicada is a Unix shell.
 
 
 ## To do list
@@ -193,5 +197,4 @@ I personally do not have a Windows box to work on, and cicada use a lot of Unix/
 ## Won't do list
 
 - functions
-- Windows support
 - and more...
