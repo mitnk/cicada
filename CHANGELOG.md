@@ -1,6 +1,11 @@
 # Change Logs
 
-## v0.6.5 - to release
+## v0.7.1 - 2017-10-06
+
+- Made cicada also a library.
+- More info added in `cinfo` command.
+
+## v0.6.5 - 2017-09-18
 
 - fixed an issue when current dir become not available (e.g. be deleted).
 - fixed an issue that commands like `echo "|"` cannot be run.
