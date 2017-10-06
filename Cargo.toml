@@ -1,4 +1,5 @@
 [package]
+build = "src/build.rs"
 name = "cicada"
 version = "0.6.5"
 authors = ["Hugo Wang <w@mitnk.com>"]
@@ -22,3 +23,6 @@ yaml-rust = "0.3.0"
 glob = "0.2.0"
 exec = "0.2.0"
 os_type="2.0.0"
+
+[build-dependencies]
+time = "0.1"
