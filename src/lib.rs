@@ -69,16 +69,16 @@ pub fn line_to_tokens(line: &str) -> Vec<(String, String)> {
 /// extern crate cicada;
 ///
 /// fn main() {
-///     let out1 = cicada::run_command("ls");
+///     let out1 = cicada::run("ls");
 ///     println!("out1: {:?}", out1);
 ///
-///     let out2 = cicada::run_command("ls | wc");
+///     let out2 = cicada::run("ls | wc");
 ///     println!("out2: {:?}", out2);
 ///
-///     let out3 = cicada::run_command("date >> out.txt");
+///     let out3 = cicada::run("date >> out.txt");
 ///     println!("out3: {:?}", out3);
 ///
-///     let out4 = cicada::run_command("cat out.txt");
+///     let out4 = cicada::run("cat out.txt");
 ///     println!("out4: {:?}", out4);
 /// }
 /// ```
@@ -92,7 +92,7 @@ pub fn line_to_tokens(line: &str) -> Vec<(String, String)> {
 /// out4: Ok("Fri Oct  6 14:53:25 CST 2017\n")
 /// ```
 
-pub fn run_command(line: &str) -> Result<String, &str> {
+pub fn run(line: &str) -> Result<String, &str> {
     let mut envs = HashMap::new();
     let cmd_line = tools::remove_envs_from_line(line, &mut envs);
 
