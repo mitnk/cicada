@@ -25,17 +25,26 @@ mod builtins;
 mod execute;
 mod parsers;
 
-/// Parse command line for multiple commands. Examples:
+/// Parse command line to multiple commands.
+///
+/// # Examples
+///
+/// ```no-run
 /// >>> line_to_cmds("echo foo && echo bar; echo end");
 /// vec!["echo foo", "&&", "echo bar", ";", "echo end"]
 /// >>> line_to_cmds("man awk | grep version");
 /// vec!["man awk | grep version"]
+/// ```
 pub fn line_to_cmds(line: &str) -> Vec<String> {
     return parsers::parser_line::line_to_cmds(line);
 }
 
 
-/// parse command line to tokens
+/// parse command line to tokens.
+///
+/// # Examples
+///
+/// ```no-run
 /// >>> line_to_tokens("echo 'hi yoo' | wc -l");
 /// vec![
 ///     ("", "echo"),
@@ -44,10 +53,44 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
 ///     ("", "wc"),
 ///     ("", "-l"),
 /// ]
+/// ```
 pub fn line_to_tokens(line: &str) -> Vec<(String, String)> {
     return parsers::parser_line::line_to_tokens(line);
 }
 
+
+/// Run a command or a pipeline.
+///
+/// # Example
+///
+/// File content of src/main.rs:
+///
+/// ```rust,no-run
+/// extern crate cicada;
+///
+/// fn main() {
+///     let out1 = cicada::run_command("ls");
+///     println!("out1: {:?}", out1);
+///
+///     let out2 = cicada::run_command("ls | wc");
+///     println!("out2: {:?}", out2);
+///
+///     let out3 = cicada::run_command("date >> out.txt");
+///     println!("out3: {:?}", out3);
+///
+///     let out4 = cicada::run_command("cat out.txt");
+///     println!("out4: {:?}", out4);
+/// }
+/// ```
+///
+/// Output:
+///
+/// ```no-run
+/// out1: Ok("Cargo.lock\nCargo.toml\nsrc\ntarget\n")
+/// out2: Ok("       4       4      33\n")
+/// out3: Ok("")
+/// out4: Ok("Fri Oct  6 14:53:25 CST 2017\n")
+/// ```
 
 pub fn run_command(line: &str) -> Result<String, &str> {
     let mut envs = HashMap::new();
