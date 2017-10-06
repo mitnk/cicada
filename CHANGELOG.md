@@ -1,6 +1,6 @@
 # Change Logs
 
-## v0.7.2 - to-be-released
+## v0.7.2 - 2017-10-06
 
 - Renamed lib API `line_to_tokens()` to `cmd_to_tokens()`.
 - Added new lib API `is_valid_input()`.
