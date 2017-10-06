@@ -1,5 +1,10 @@
 # Change Logs
 
+## v0.7.2 - to-be-released
+
+- Renamed lib API `line_to_tokens()` to `cmd_to_tokens()`.
+- Added new lib API `is_valid_input()`.
+
 ## v0.7.1 - 2017-10-06
 
 - Made cicada also a library.

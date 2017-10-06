@@ -1,6 +1,6 @@
 pub fn parse_line(line: &str) -> Vec<String> {
     let mut result = Vec::new();
-    let v = line_to_tokens(line);
+    let v = cmd_to_tokens(line);
     for (_, r) in v {
         result.push(r);
     }
@@ -78,7 +78,10 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
                 sep.push(c);
                 continue;
             } else if c.to_string() == sep {
-                result.push(token.trim().to_string());
+                let _token = token.trim().to_string();
+                if !_token.is_empty() {
+                    result.push(_token);
+                }
                 token = String::new();
                 result.push(format!("{}{}", sep, sep));
                 sep = String::new();
@@ -90,7 +93,10 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
         }
         if c == ';' {
             if sep.is_empty() {
-                result.push(token.trim().to_string());
+                let _token = token.trim().to_string();
+                if !_token.is_empty() {
+                    result.push(_token);
+                }
                 result.push(String::from(";"));
                 token = String::new();
                 continue;
@@ -108,7 +114,7 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
 }
 
 /// parse command line to tokens
-/// >>> line_to_tokens("echo 'hi yoo' | grep \"hi\"");
+/// >>> cmd_to_tokens("echo 'hi yoo' | grep \"hi\"");
 /// vec![
 ///     ("", "echo"),
 ///     ("'", "hi yoo"),
@@ -116,7 +122,7 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
 ///     ("", "grep"),
 ///     ("\"", "hi"),
 /// ]
-pub fn line_to_tokens(line: &str) -> Vec<(String, String)> {
+pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
     let mut result = Vec::new();
     let mut sep = String::new();
     // `sep_second` is for commands like this:
@@ -251,11 +257,113 @@ pub fn line_to_tokens(line: &str) -> Vec<(String, String)> {
     result
 }
 
+
+#[allow(dead_code)]
+fn is_valid_cmd(cmd: &str) -> bool {
+    match cmd.chars().nth(0) {
+        Some(c) => {
+            if c == '|' {
+                return false;
+            }
+        }
+        None => {}
+    }
+    match cmd.chars().rev().nth(0) {
+        Some(c) => {
+            if c == '|' {
+                return false;
+            }
+        }
+        None => {}
+    }
+    let tokens = cmd_to_tokens(cmd);
+    let mut found_pipe = false;
+    let len = tokens.len();
+    for (i, token) in tokens.iter().enumerate() {
+        let sep = &token.0;
+        if !sep.is_empty() {
+            found_pipe = false;
+            continue;
+        }
+        let value = &token.1;
+        if value == "|" {
+            if found_pipe {
+                return false;
+            }
+            found_pipe = true;
+        }
+        if value == "&" && i != len - 1 {
+            return false;
+        }
+    }
+    true
+}
+
+
+#[allow(dead_code)]
+pub fn is_valid_input(line: &str) -> bool {
+    let cmd_splitors = vec![
+        ";", "||", "&&",
+    ];
+
+    let mut cmds = line_to_cmds(line);
+    let mut len = cmds.len();
+    if len == 0 {
+        return false;
+    }
+    let _cmds = cmds.clone();
+    let mut last = &_cmds[len - 1];
+    if len >= 1 && last == ";" {
+        cmds.pop();
+        len = cmds.len();
+        if len == 0 {
+            return false;
+        }
+        last = &cmds[len - 1];
+    }
+
+    let mut last_cmd_is_cmd_sep = false;
+    for cmd in &cmds {
+        if cmd_splitors.contains(&cmd.as_str()) {
+            if last_cmd_is_cmd_sep {
+                return false;
+            }
+            last_cmd_is_cmd_sep = true;
+            continue;
+        } else {
+            last_cmd_is_cmd_sep = false;
+        }
+        if !is_valid_cmd(cmd) {
+            return false;
+        }
+    }
+
+    if cmd_splitors.contains(&last.as_str()) {
+        return false;
+    }
+
+    if len > 1 {
+        for sep in cmd_splitors {
+            if cmds.contains(&sep.to_string()) {
+                if let Some(pos) = cmds.iter().position(|&ref x| x == sep) {
+                    if pos + 1 <= len - 1 && cmds[pos + 1] == sep {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+
+    true
+}
+
+
 #[cfg(test)]
 mod tests {
-    use super::line_to_tokens;
+    use super::cmd_to_tokens;
     use super::parse_line;
     use super::line_to_cmds;
+    use super::is_valid_input;
 
     fn _assert_vec_tuple_eq(a: Vec<(String, String)>, b: Vec<(&str, &str)>) {
         assert_eq!(a.len(), b.len());
@@ -357,7 +465,7 @@ mod tests {
         for (left, right) in v {
             println!("\ninput: {:?}", left);
             println!("expected: {:?}", right);
-            let args = line_to_tokens(left);
+            let args = cmd_to_tokens(left);
             println!("real: {:?}", args);
             _assert_vec_tuple_eq(args, right);
         }
@@ -431,10 +539,41 @@ mod tests {
                 "man awk| awk -F \"[ ,.\\\"]+\" 'foo' |sort -k2nr|head",
                 vec!["man awk| awk -F \"[ ,.\\\"]+\" 'foo' |sort -k2nr|head"]
             ),
+            (";", vec![";"]),
+            ("||", vec!["||"]),
+            ("&&", vec!["&&"]),
         ];
 
         for (left, right) in v {
             _assert_vec_str_eq(line_to_cmds(left), right);
+        }
+    }
+
+    #[test]
+    fn test_is_valid_input() {
+        let invalid_list = vec![
+            "foo |", "foo ||", "foo &&", "foo|", "foo | ", "| foo",
+            "foo ; ; bar", "foo && && bar", "foo || || bar", "foo | | bar",
+            "foo && ; bar", "foo || && bar", "foo | || bar", "foo ; | bar",
+            "foo | ; bar", "foo | && bar", "foo | ; bar",
+            "& foo", "foo & bar",
+            "", ";", "||", "&&", "|",
+        ];
+        for line in &invalid_list {
+            let valid = is_valid_input(line);
+            if valid {
+                println!("'{}' should be invalid", line);
+            }
+            assert!(!valid);
+        }
+
+        let valid_list = vec![
+            "foo", "foo bar", "foo;", "foo ;", "foo | bar", "foo; bar",
+            "foo && bar", "foo || bar", "foo &",
+            "echo 'foo & bar'", "echo `foo | | bar`"
+        ];
+        for line in &valid_list {
+            assert!(is_valid_input(line));
         }
     }
 }

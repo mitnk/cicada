@@ -140,7 +140,7 @@ $ chsh -s /usr/local/bin/cicada
 
 ## Cicada is also a library
 
-Read APIs here: [https://docs.rs/cicada/0.7.1/cicada/](https://docs.rs/cicada/0.7.1/cicada/)
+Read APIs here: [https://docs.rs/cicada/0.7.2/cicada/](https://docs.rs/cicada/0.7.2/cicada/)
 
 ## FAQs
 

@@ -155,7 +155,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     let mut envs = HashMap::new();
     let cmd_line = tools::remove_envs_from_line(line, &mut envs);
 
-    let mut tokens = parsers::parser_line::line_to_tokens(&cmd_line);
+    let mut tokens = parsers::parser_line::cmd_to_tokens(&cmd_line);
     if tokens.is_empty() {
         return 0;
     }

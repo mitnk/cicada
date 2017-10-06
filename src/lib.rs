@@ -40,22 +40,43 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
 }
 
 
-/// parse command line to tokens.
+/// Parse a command to tokens.
 ///
 /// # Examples
 ///
 /// ```no-run
-/// >>> line_to_tokens("echo 'hi yoo' | wc -l");
+/// >>> cmd_to_tokens("echo 'hi yoo' | `which wc`");
 /// vec![
 ///     ("", "echo"),
 ///     ("'", "hi yoo"),
 ///     ("", "|"),
-///     ("", "wc"),
-///     ("", "-l"),
+///     ("`", "which wc"),
 /// ]
 /// ```
-pub fn line_to_tokens(line: &str) -> Vec<(String, String)> {
-    return parsers::parser_line::line_to_tokens(line);
+pub fn cmd_to_tokens(cmd: &str) -> Vec<(String, String)> {
+    return parsers::parser_line::cmd_to_tokens(cmd);
+}
+
+
+/// Determine whether line a valid input.
+///
+/// # Examples
+///
+/// ```no-run
+/// is_valid_input("foo");  // true
+/// is_valid_input("foo bar");  // true
+/// is_valid_input("foo ;");  // true
+/// is_valid_input("ls | wc -l");  // true
+/// is_valid_input("foo; bar");  // true
+/// is_valid_input("foo || bar");  // true
+///
+/// is_valid_input("foo |");  // false
+/// is_valid_input("foo ||");  // false
+/// is_valid_input("foo &&");  // false
+/// is_valid_input("foo || && bar ");  // false
+/// ```
+pub fn is_valid_input(line: &str) -> bool {
+    return parsers::parser_line::is_valid_input(line);
 }
 
 
@@ -65,7 +86,7 @@ pub fn line_to_tokens(line: &str) -> Vec<(String, String)> {
 ///
 /// File content of src/main.rs:
 ///
-/// ```rust,no-run
+/// ```no-run
 /// extern crate cicada;
 ///
 /// fn main() {
@@ -91,12 +112,11 @@ pub fn line_to_tokens(line: &str) -> Vec<(String, String)> {
 /// out3: Ok("")
 /// out4: Ok("Fri Oct  6 14:53:25 CST 2017\n")
 /// ```
-
 pub fn run(line: &str) -> Result<String, &str> {
     let mut envs = HashMap::new();
     let cmd_line = tools::remove_envs_from_line(line, &mut envs);
 
-    let mut tokens = parsers::parser_line::line_to_tokens(&cmd_line);
+    let mut tokens = parsers::parser_line::cmd_to_tokens(&cmd_line);
     if tokens.is_empty() {
         return Ok(String::new());
     }

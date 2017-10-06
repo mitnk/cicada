@@ -201,7 +201,7 @@ fn do_command_substitution_for_dollar(line: &mut String) {
             }
         }
 
-        let _args = parsers::parser_line::line_to_tokens(&cmd);
+        let _args = parsers::parser_line::cmd_to_tokens(&cmd);
         let (_, _, output) = execute::run_pipeline(_args, "", "", false, false, false, true, None);
         let _stdout;
         let output_txt;
@@ -237,11 +237,11 @@ fn do_command_substitution_for_dollar(line: &mut String) {
 }
 
 fn do_command_substitution_for_dot(line: &mut String) {
-    let tokens = parsers::parser_line::line_to_tokens(&line);
+    let tokens = parsers::parser_line::cmd_to_tokens(&line);
     let mut result: Vec<String> = Vec::new();
     for (sep, token) in tokens {
         if sep == "`" {
-            let _args = parsers::parser_line::line_to_tokens(token.as_str());
+            let _args = parsers::parser_line::cmd_to_tokens(token.as_str());
             let (_, _, output) =
                 execute::run_pipeline(_args, "", "", false, false, false, true, None);
             if let Some(x) = output {
@@ -286,7 +286,7 @@ fn do_command_substitution_for_dot(line: &mut String) {
                 for cap in re.captures_iter(&_token) {
                     _head = cap[1].to_string();
                     _tail = cap[3].to_string();
-                    let _args = parsers::parser_line::line_to_tokens(&cap[2]);
+                    let _args = parsers::parser_line::cmd_to_tokens(&cap[2]);
                     let (_, _, output) =
                         execute::run_pipeline(_args, "", "", false, false, false, true, None);
                     if let Some(x) = output {
@@ -322,7 +322,7 @@ fn do_command_substitution_for_dot(line: &mut String) {
 
 pub fn do_brace_expansion(line: &mut String) {
     let _line = line.clone();
-    let args = parsers::parser_line::line_to_tokens(_line.as_str());
+    let args = parsers::parser_line::cmd_to_tokens(_line.as_str());
     let mut result: Vec<String> = Vec::new();
     for (sep, token) in args {
         if sep.is_empty() && should_extend_brace(token.as_str()) {
@@ -384,7 +384,7 @@ fn needs_globbing(line: &str) -> bool {
         return false;
     }
 
-    let tokens = parsers::parser_line::line_to_tokens(line);
+    let tokens = parsers::parser_line::cmd_to_tokens(line);
     for (sep, token) in tokens {
         if !sep.is_empty() {
             return false;
@@ -534,7 +534,7 @@ pub fn extend_alias(sh: &shell::Shell, line: &str) -> String {
             continue;
         }
 
-        let tokens = parsers::parser_line::line_to_tokens(cmd);
+        let tokens = parsers::parser_line::cmd_to_tokens(cmd);
         let mut is_cmd = false;
         for (i, token) in tokens.iter().enumerate() {
             let sep = &token.0;

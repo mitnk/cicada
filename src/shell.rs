@@ -131,7 +131,7 @@ pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
 pub fn extend_env(sh: &Shell, line: &mut String) {
     let mut result: Vec<String> = Vec::new();
     let _line = line.clone();
-    let args = parsers::parser_line::line_to_tokens(_line.as_str());
+    let args = parsers::parser_line::cmd_to_tokens(_line.as_str());
     for (sep, token) in args {
         if sep == "`" || sep == "'" {
             result.push(tools::wrap_sep_string(&sep, &token));
