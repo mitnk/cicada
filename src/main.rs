@@ -94,8 +94,8 @@ fn main() {
                 history::add(&mut sh, &mut rl, &line, status, tsb, tse);
             }
             Ok(ReadResult::Eof) => {
-                println!("");
-                continue;
+                println!("exit");
+                break;
             }
             Ok(ReadResult::Signal(s)) => {
                 println!("readline signal: {:?}", s);
