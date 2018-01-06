@@ -77,9 +77,7 @@ fn main() {
         match rl.read_line() {
             Ok(ReadResult::Input(line)) => {
                 let cmd;
-                if line.trim() == "exit" {
-                    break;
-                } else if line.trim() == "" {
+                if line.trim() == "" {
                     continue;
                 } else {
                     cmd = line.clone();
