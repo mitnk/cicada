@@ -16,7 +16,7 @@ pub fn run(tokens: &Vec<(String, String)>) -> i32 {
                 code = x;
             }
             Err(_) => {
-                println_stderr!("cicada: exit: a: numeric argument required");
+                println_stderr!("cicada: exit: {}: numeric argument required", _code);
                 code = 255;
             }
         }
