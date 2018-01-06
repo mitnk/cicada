@@ -105,23 +105,11 @@ pub fn unquote(s: &str) -> String {
 }
 
 pub fn is_env(line: &str) -> bool {
-    let re;
-    if let Ok(x) = Regex::new(r"^ *export +[a-zA-Z0-9_]+=.*$") {
-        re = x;
-    } else {
-        return false;
-    }
-    re.is_match(line)
+    re_contains(line, r"^ *export +[a-zA-Z0-9_]+=.*$")
 }
 
 fn should_extend_brace(line: &str) -> bool {
-    let re;
-    if let Ok(x) = Regex::new(r"\{.*,.*\}") {
-        re = x;
-    } else {
-        return false;
-    }
-    re.is_match(line)
+    re_contains(line, r"\{.*,.*\}")
 }
 
 pub fn extend_home(s: &mut String) {
@@ -147,13 +135,7 @@ pub fn extend_home(s: &mut String) {
 }
 
 pub fn needs_extend_home(line: &str) -> bool {
-    let re;
-    if let Ok(x) = Regex::new(r"( +~ +)|( +~/)|(^ *~/)|( +~ *$)") {
-        re = x;
-    } else {
-        return false;
-    }
-    re.is_match(line)
+    re_contains(line, r"( +~ +)|( +~/)|(^ *~/)|( +~ *$)")
 }
 
 pub fn wrap_sep_string(sep: &str, s: &str) -> String {
@@ -173,15 +155,7 @@ fn do_command_substitution(line: &mut String) {
 }
 
 fn should_do_brace_command_extension(line: &str) -> bool {
-    let ptn = r"\$\([^\)]+\)";
-    let re;
-    if let Ok(x) = Regex::new(ptn) {
-        re = x;
-    } else {
-        log!("re build failed");
-        return false;
-    }
-    return re.is_match(line);
+    re_contains(line, r"\$\([^\)]+\)")
 }
 
 fn do_command_substitution_for_dollar(line: &mut String) {
@@ -394,7 +368,6 @@ fn needs_globbing(line: &str) -> bool {
         }
     }
     false
-
 }
 
 fn extend_glob(line: &mut String) {
@@ -403,7 +376,10 @@ fn extend_glob(line: &mut String) {
     let _tokens: Vec<&str> = _line.split(' ').collect();
     let mut result: Vec<String> = Vec::new();
     for item in &_tokens {
-        if item.trim().starts_with('\'') || item.trim().starts_with('"') {
+        if !item.contains('*') {
+            result.push(item.to_string());
+        }
+        else if item.trim().starts_with('\'') || item.trim().starts_with('"') {
             result.push(item.to_string());
         } else {
             match glob::glob(item) {
@@ -413,13 +389,17 @@ fn extend_glob(line: &mut String) {
                         match entry {
                             Ok(path) => {
                                 let s = path.to_string_lossy();
-                                if s.starts_with('.') {
+                                if !item.starts_with('.') && s.starts_with('.') && !s.contains('/') {
+                                    // skip hidden files, you may need to
+                                    // type `ls .*rc` instead of `ls *rc`
                                     continue;
                                 }
                                 result.push(s.into_owned());
                                 is_empty = false;
                             }
-                            Err(e) => println!("{:?}", e),
+                            Err(e) => {
+                                log!("glob error: {:?}", e);
+                            }
                         }
                     }
                     if is_empty {
@@ -465,13 +445,7 @@ pub fn env_args_to_command_line() -> String {
 }
 
 pub fn is_alias(line: &str) -> bool {
-    let re;
-    if let Ok(x) = Regex::new(r"^ *alias +[a-zA-Z0-9_\.-]+=.*$") {
-        re = x;
-    } else {
-        return false;
-    }
-    re.is_match(line)
+    re_contains(line, r"^ *alias +[a-zA-Z0-9_\.-]+=.*$")
 }
 
 extern "C" {
@@ -508,12 +482,19 @@ pub fn get_hostname() -> String {
 }
 
 pub fn is_arithmetic(line: &str) -> bool {
+    re_contains(line, r"^[ 0-9\.\(\)\+\-\*/]+$")
+}
+
+pub fn re_contains(line: &str, ptn: &str) -> bool {
     let re;
-    if let Ok(x) = Regex::new(r"^[ 0-9\.\(\)\+\-\*/]+$") {
-        re = x;
-    } else {
-        println!("regex error for arithmetic");
-        return false;
+    match Regex::new(ptn) {
+        Ok(x) => {
+            re = x;
+        }
+        Err(e) => {
+            println!("Regex new: {:?}", e);
+            return false;
+        }
     }
     re.is_match(line)
 }
