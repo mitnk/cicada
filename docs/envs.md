@@ -34,6 +34,12 @@ Specify the table name of the history to save in.
 
 default: `cicada_history`
 
+## NO_EXIT_ON_CTRL_D
+
+Do not exit cicada on `Ctrl-D`, if this env is set to `1`.
+
+default: `0`
+
 ## Other Built-in Variables
 
 ```

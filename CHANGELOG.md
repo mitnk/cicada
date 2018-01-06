@@ -4,6 +4,7 @@
 
 - Fixed a glob bug like `ls ../*.md`.
 - Upgraded `linefeed` to its latest master to fix a cmd line length issue.
+- Make `Ctrl-D` exit cicada; and added env `NO_EXIT_ON_CTRL_D`.
 
 ## v0.7.2 - 2017-10-06
 
