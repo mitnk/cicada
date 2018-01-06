@@ -13,6 +13,11 @@ Print information of cicada and OS.
 If command is specified, it replaces the shell. No new process is created.
 The arguments become the arguments to command.
 
+## exit
+
+Exit the current progress (the shell). Can exit with an extra code like:
+`exit 2`.
+
 ## export
 
 Change environment variables for current session. You can also use `export` in
@@ -35,11 +40,15 @@ $ history
 2: find . -name '*.bk' | xargs rm
 3: find . -name '*.bk'
 ```
-Search history items:
+
+Search history items (use `%` from SQL to match "anything"):
 ```
 $ history curl
 0: curl -x http://127.0.0.1:1080 https://hugo.wang/http/ip/
-1: curl -x socks5://192.168.1.170:51080 https://hugo.wang/http/ip/
+1: curl -I https://twitter.com/
+
+$ history 'curl%hugo'
+0: curl -x http://127.0.0.1:1080 https://hugo.wang/http/ip/
 ```
 
 ## vox

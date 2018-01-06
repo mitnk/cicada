@@ -93,7 +93,6 @@ fn main() {
             }
             Ok(ReadResult::Eof) => {
                 if let Ok(x) = env::var("NO_EXIT_ON_CTRL_D") {
-                    log!("NO_EXIT_ON_CTRL_D: {:?}", x);
                     if x == "1" {
                         println!("");
                         continue;
