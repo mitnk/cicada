@@ -140,7 +140,7 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
             continue;
         }
 
-        if c == '\\' {
+        if c == '\\' && sep != "\'" {
             if !has_backslash {
                 has_backslash = true;
             } else {
@@ -461,6 +461,10 @@ mod tests {
                 "echo a || echo b",
                 vec![("", "echo"), ("", "a"), ("", "||"), ("", "echo"), ("", "b")]
             ),
+            (
+                "echo \'{\\\"size\\\": 12}\'",
+                vec![("", "echo"), ("\'", "{\\\"size\\\": 12}")]
+            ),
         ];
         for (left, right) in v {
             println!("\ninput: {:?}", left);
@@ -498,6 +502,12 @@ mod tests {
             ("echo \"foo\\|bar\"", vec!["echo", "foo\\|bar"]),
             ("echo 'foo\\|bar'", vec!["echo", "foo\\|bar"]),
             ("echo a || echo b", vec!["echo", "a", "||", "echo", "b"]),
+            ("echo \'{\\\"size\\\": 12}\'", vec!["echo", "{\\\"size\\\": 12}"]),
+            (
+                // that is: echo '{"q": "{\"size\": 12}"}'
+                "echo \'{\"q\": \"{\\\"size\\\": 12}\"}\'",
+                vec!["echo", "{\"q\": \"{\\\"size\\\": 12}\"}"]
+            ),
         ];
 
         for (left, right) in v {

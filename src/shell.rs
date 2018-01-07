@@ -159,9 +159,9 @@ mod tests {
         extend_env(&sh, &mut s);
         assert_eq!(s, "echo 'hi $PATH'");
 
-        let mut s = String::from("echo '\\\''");
+        let mut s = String::from("echo \'\\\'");
         extend_env(&sh, &mut s);
-        assert_eq!(s, "echo '\\\''");
+        assert_eq!(s, "echo \'\\\'");
 
         let mut s = String::from("export DIR=`brew --prefix openssl`/include");
         extend_env(&sh, &mut s);
