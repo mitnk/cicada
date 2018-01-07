@@ -384,8 +384,7 @@ fn extend_glob(line: &mut String) {
     for item in &_tokens {
         if !item.contains('*') {
             result.push(item.to_string());
-        }
-        else if item.trim().starts_with('\'') || item.trim().starts_with('"') {
+        } else if item.trim().starts_with('\'') || item.trim().starts_with('"') {
             result.push(item.to_string());
         } else {
             match glob::glob(item) {
@@ -395,7 +394,9 @@ fn extend_glob(line: &mut String) {
                         match entry {
                             Ok(path) => {
                                 let s = path.to_string_lossy();
-                                if !item.starts_with('.') && s.starts_with('.') && !s.contains('/') {
+                                if !item.starts_with('.') && s.starts_with('.') &&
+                                    !s.contains('/')
+                                {
                                     // skip hidden files, you may need to
                                     // type `ls .*rc` instead of `ls *rc`
                                     continue;

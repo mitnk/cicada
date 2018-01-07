@@ -144,39 +144,38 @@ pub fn run(line: &str) -> Result<String, &str> {
         return Ok(String::new());
     }
 
-    let (_, _, output) =
-        if len > 2 && (tokens[len - 2].1 == ">" || tokens[len - 2].1 == ">>") {
-            let append = tokens[len - 2].1 == ">>";
-            let redirect_to;
-            match tokens.pop() {
-                Some(x) => redirect_to = x.1,
-                None => {
-                    return Err("cicada: redirect_to pop error");
-                }
+    let (_, _, output) = if len > 2 && (tokens[len - 2].1 == ">" || tokens[len - 2].1 == ">>") {
+        let append = tokens[len - 2].1 == ">>";
+        let redirect_to;
+        match tokens.pop() {
+            Some(x) => redirect_to = x.1,
+            None => {
+                return Err("cicada: redirect_to pop error");
             }
-            tokens.pop(); // pop '>>' or '>'
-            execute::run_pipeline(
-                tokens,
-                redirect_from.as_str(),
-                redirect_to.as_str(),
-                append,
-                false,
-                false,
-                true,
-                Some(envs),
-            )
-        } else {
-            execute::run_pipeline(
-                tokens.clone(),
-                redirect_from.as_str(),
-                "",
-                false,
-                false,
-                false,
-                true,
-                Some(envs),
-            )
-        };
+        }
+        tokens.pop(); // pop '>>' or '>'
+        execute::run_pipeline(
+            tokens,
+            redirect_from.as_str(),
+            redirect_to.as_str(),
+            append,
+            false,
+            false,
+            true,
+            Some(envs),
+        )
+    } else {
+        execute::run_pipeline(
+            tokens.clone(),
+            redirect_from.as_str(),
+            "",
+            false,
+            false,
+            false,
+            true,
+            Some(envs),
+        )
+    };
 
     match output {
         Some(x) => {

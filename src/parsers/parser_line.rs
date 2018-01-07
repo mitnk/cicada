@@ -302,9 +302,7 @@ fn is_valid_cmd(cmd: &str) -> bool {
 
 #[allow(dead_code)]
 pub fn is_valid_input(line: &str) -> bool {
-    let cmd_splitors = vec![
-        ";", "||", "&&",
-    ];
+    let cmd_splitors = vec![";", "||", "&&"];
 
     let mut cmds = line_to_cmds(line);
     let mut len = cmds.len();
@@ -502,7 +500,10 @@ mod tests {
             ("echo \"foo\\|bar\"", vec!["echo", "foo\\|bar"]),
             ("echo 'foo\\|bar'", vec!["echo", "foo\\|bar"]),
             ("echo a || echo b", vec!["echo", "a", "||", "echo", "b"]),
-            ("echo \'{\\\"size\\\": 12}\'", vec!["echo", "{\\\"size\\\": 12}"]),
+            (
+                "echo \'{\\\"size\\\": 12}\'",
+                vec!["echo", "{\\\"size\\\": 12}"]
+            ),
             (
                 // that is: echo '{"q": "{\"size\": 12}"}'
                 "echo \'{\"q\": \"{\\\"size\\\": 12}\"}\'",
@@ -562,12 +563,30 @@ mod tests {
     #[test]
     fn test_is_valid_input() {
         let invalid_list = vec![
-            "foo |", "foo ||", "foo &&", "foo|", "foo | ", "| foo",
-            "foo ; ; bar", "foo && && bar", "foo || || bar", "foo | | bar",
-            "foo && ; bar", "foo || && bar", "foo | || bar", "foo ; | bar",
-            "foo | ; bar", "foo | && bar", "foo | ; bar",
-            "& foo", "foo & bar",
-            "", ";", "||", "&&", "|",
+            "foo |",
+            "foo ||",
+            "foo &&",
+            "foo|",
+            "foo | ",
+            "| foo",
+            "foo ; ; bar",
+            "foo && && bar",
+            "foo || || bar",
+            "foo | | bar",
+            "foo && ; bar",
+            "foo || && bar",
+            "foo | || bar",
+            "foo ; | bar",
+            "foo | ; bar",
+            "foo | && bar",
+            "foo | ; bar",
+            "& foo",
+            "foo & bar",
+            "",
+            ";",
+            "||",
+            "&&",
+            "|",
         ];
         for line in &invalid_list {
             let valid = is_valid_input(line);
@@ -578,9 +597,17 @@ mod tests {
         }
 
         let valid_list = vec![
-            "foo", "foo bar", "foo;", "foo ;", "foo | bar", "foo; bar",
-            "foo && bar", "foo || bar", "foo &",
-            "echo 'foo & bar'", "echo `foo | | bar`"
+            "foo",
+            "foo bar",
+            "foo;",
+            "foo ;",
+            "foo | bar",
+            "foo; bar",
+            "foo && bar",
+            "foo || bar",
+            "foo &",
+            "echo 'foo & bar'",
+            "echo `foo | | bar`",
         ];
         for line in &valid_list {
             assert!(is_valid_input(line));
