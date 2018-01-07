@@ -1,5 +1,9 @@
 # Change Logs
 
+## v0.7.4
+
+- Improved completion on soft links on directories.
+
 ## v0.7.3
 
 - Fixed a glob bug like `ls ../*.md`.

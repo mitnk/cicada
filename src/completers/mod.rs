@@ -16,33 +16,15 @@ use tools;
 use parsers;
 
 fn for_make(line: &str) -> bool {
-    let re;
-    if let Ok(x) = Regex::new(r"^ *make ") {
-        re = x;
-    } else {
-        return false;
-    }
-    re.is_match(line)
+    tools::re_contains(line, r"^ *make ")
 }
 
 fn for_ssh(line: &str) -> bool {
-    let re;
-    if let Ok(x) = Regex::new(r"^ *(ssh|scp).* +[^ \./]+ *$") {
-        re = x;
-    } else {
-        return false;
-    }
-    re.is_match(line)
+    tools::re_contains(line, r"^ *(ssh|scp).* +[^ \./]+ *$")
 }
 
 fn for_cd(line: &str) -> bool {
-    let re;
-    if let Ok(x) = Regex::new(r"^ *cd +") {
-        re = x;
-    } else {
-        return false;
-    }
-    re.is_match(line)
+    tools::re_contains(line, r"^ *cd +")
 }
 
 fn for_bin(line: &str) -> bool {
