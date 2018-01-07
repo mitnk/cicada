@@ -113,6 +113,9 @@ fn should_extend_brace(line: &str) -> bool {
 }
 
 pub fn extend_home(s: &mut String) {
+    if !needs_extend_home(s) {
+        return;
+    }
     let v = vec![
         r"(?P<head> +)~(?P<tail> +)",
         r"(?P<head> +)~(?P<tail>/)",
@@ -371,6 +374,9 @@ fn needs_globbing(line: &str) -> bool {
 }
 
 fn extend_glob(line: &mut String) {
+    if !needs_globbing(&line) {
+        return;
+    }
     let _line = line.clone();
     // XXX: spliting needs to consider cases like `echo 'a * b'`
     let _tokens: Vec<&str> = _line.split(' ').collect();
@@ -418,15 +424,11 @@ fn extend_glob(line: &mut String) {
 }
 
 pub fn pre_handle_cmd_line(sh: &shell::Shell, line: &mut String) {
-    if needs_extend_home(line.as_str()) {
-        extend_home(line);
-    }
-    if needs_globbing(line.as_str()) {
-        extend_glob(line);
-    }
+    extend_home(line);
+    do_brace_expansion(line);
+    extend_glob(line);
     shell::extend_env(sh, line);
     do_command_substitution(line);
-    do_brace_expansion(line);
 }
 
 pub fn env_args_to_command_line() -> String {

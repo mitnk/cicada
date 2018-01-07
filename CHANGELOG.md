@@ -6,6 +6,7 @@
 - Upgraded `linefeed` to its latest master to fix a cmd line length issue.
 - Make `Ctrl-D` exit cicada; and added env `NO_EXIT_ON_CTRL_D`.
 - Added `exit` as a built-in.
+- Extend brace before globbing, for cmds like `echo {a,b,c}*`.
 
 ## v0.7.2 - 2017-10-06
 
