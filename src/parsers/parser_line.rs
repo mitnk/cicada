@@ -157,6 +157,8 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
                 sep = c.to_string();
             } else {
                 sep = String::new();
+
+                // handle inline comments
                 if c == '#' {
                     if has_backslash {
                         has_backslash = false;
@@ -165,6 +167,7 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
                     }
                     break;
                 }
+
                 if c == '|' {
                     if i + 1 < count_chars && line.chars().nth(i + 1).unwrap() == '|' {
                         result.push((String::from(""), "||".to_string()));
@@ -462,6 +465,26 @@ mod tests {
             (
                 "echo \'{\\\"size\\\": 12}\'",
                 vec![("", "echo"), ("\'", "{\\\"size\\\": 12}")]
+            ),
+            (
+                "echo foo >/dev/null",
+                vec![("", "echo"), ("", "foo"), ("", ">/dev/null")]
+            ),
+            (
+                "ls foo 2>/dev/null",
+                vec![("", "ls"), ("", "foo"), ("", "2>/dev/null")]
+            ),
+            (
+                "ls foo 2> '/dev/null'",
+                vec![("", "ls"), ("", "foo"), ("", "2>"), ("\'", "/dev/null")]
+            ),
+            (
+                "ls > /dev/null 2>&1",
+                vec![("", "ls"), ("", ">"), ("", "/dev/null"), ("", "2>&1")]
+            ),
+            (
+                "ls > /dev/null 2>& 1",
+                vec![("", "ls"), ("", ">"), ("", "/dev/null"), ("", "2>&"), ("", "1")]
             ),
         ];
         for (left, right) in v {

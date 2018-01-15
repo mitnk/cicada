@@ -34,12 +34,12 @@ extern "C" fn handle_sigchld(_: i32) {
 
 /// Entry point for non-ttys (e.g. Cmd-N on MacVim)
 pub fn handle_non_tty(sh: &mut shell::Shell) {
-    log!("handle non tty");
     let mut buffer = String::new();
     let stdin = io::stdin();
     let mut handle = stdin.lock();
     match handle.read_to_string(&mut buffer) {
         Ok(_) => {
+            log!("run non tty command: {}", &buffer);
             run_procs(sh, &buffer, false);
         }
         Err(e) => {

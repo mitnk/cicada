@@ -65,10 +65,9 @@ pub fn complete_path(path: &str, for_dir: bool) -> Vec<Completion> {
     let dir_lookup = _dir_lookup.unwrap_or(".");
     if let Ok(entries) = read_dir(dir_lookup) {
         for entry in entries {
-            let mut is_dir;
             if let Ok(entry) = entry {
                 let pathbuf = entry.path();
-                is_dir = pathbuf.is_dir();
+                let is_dir = pathbuf.is_dir();
                 if for_dir && !is_dir {
                     continue;
                 }
