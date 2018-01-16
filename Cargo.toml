@@ -19,8 +19,7 @@ name = "cicada"
 doc = false
 
 [dependencies]
-# linefeed = "0.3.0"
-linefeed = { git = "https://github.com/murarth/linefeed" }
+linefeed = "^0.4"
 libc = "0.2.0"
 errno = "0.2.0"
 nom = "^3.0"

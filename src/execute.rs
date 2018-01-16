@@ -292,6 +292,7 @@ pub fn run_pipeline(
     capture_stdout: bool,
     envs: Option<HashMap<String, String>>,
 ) -> (i32, bool, Option<Output>) {
+
     let sig_action = signal::SigAction::new(
         signal::SigHandler::Handler(handle_sigchld),
         signal::SaFlags::empty(),
