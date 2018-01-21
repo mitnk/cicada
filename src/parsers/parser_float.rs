@@ -1,4 +1,5 @@
 // via: https://github.com/Geal/nom/blob/master/tests/arithmetic.rs
+#![allow(unused_parens)]
 use nom::digit;
 
 // Parser definition

@@ -112,6 +112,55 @@ fn should_extend_brace(line: &str) -> bool {
     re_contains(line, r"\{.*,.*\}")
 }
 
+pub fn extend_bandband(sh: &shell::Shell, line: &mut String) {
+    if !re_contains(line, r"!!") {
+        return;
+    }
+    if sh.previous_cmd.is_empty() {
+        return;
+    }
+
+    let re;
+    match Regex::new(r"!!") {
+        Ok(x) => {
+            re = x;
+        }
+        Err(e) => {
+            println_stderr!("Regex new: {:?}", e);
+            return;
+        }
+    }
+
+    let mut replaced = false;
+    let mut new_line = String::new();
+    let tokens = parsers::parser_line::cmd_to_tokens(line);
+    for (sep, token) in tokens {
+        if !sep.is_empty() {
+            new_line.push_str(&sep);
+        }
+
+        if re_contains(&token, r"!!") && sep != "'" {
+            let line2 = token.clone();
+            let result = re.replace_all(&line2, sh.previous_cmd.as_str());
+            new_line.push_str(&result);
+            replaced = true;
+        } else {
+            new_line.push_str(&token);
+        }
+
+        if !sep.is_empty() {
+            new_line.push_str(&sep);
+        }
+        new_line.push(' ');
+    }
+
+    *line = new_line.trim_right().to_string();
+    // print full line after extending
+    if replaced {
+        println!("{}", line);
+    }
+}
+
 pub fn extend_home(s: &mut String) {
     if !needs_extend_home(s) {
         return;
@@ -601,6 +650,7 @@ mod tests {
     use super::should_do_brace_command_extension;
     use super::extend_alias;
     use super::remove_envs_from_line;
+    use super::extend_bandband;
 
     #[test]
     fn dots_test() {
@@ -741,5 +791,27 @@ mod tests {
         assert_eq!(envs["bar"], "2");
         assert_eq!(envs["baz"], "3");
         assert_eq!(envs["bbq"], "4");
+    }
+
+    #[test]
+    fn test_extend_bandband() {
+        let mut sh = shell::Shell::new();
+        sh.previous_cmd = "foo".to_string();
+
+        let mut line = "echo !!".to_string();
+        extend_bandband(&sh, &mut line);
+        assert_eq!(line, "echo foo");
+
+        line = "echo \"!!\"".to_string();
+        extend_bandband(&sh, &mut line);
+        assert_eq!(line, "echo \"foo\"");
+
+        line = "echo '!!'".to_string();
+        extend_bandband(&sh, &mut line);
+        assert_eq!(line, "echo '!!'");
+
+        line = "echo '!!' && echo !!".to_string();
+        extend_bandband(&sh, &mut line);
+        assert_eq!(line, "echo '!!' && echo foo");
     }
 }

@@ -1,10 +1,14 @@
 # Change Logs
 
+## v0.8.0
+
+- Added support for `!!` (the last command string, eg. `sudo !!`).
+
 ## v0.7.4
 
 - Improved completion on soft links on directories.
 - Upgraded linefeed to `0.4.0`.
-- Removed binding of history-search-forward
+- Removed binding of `history-search-forward`.
 
 ## v0.7.3
 

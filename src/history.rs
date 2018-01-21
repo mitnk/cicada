@@ -164,6 +164,7 @@ pub fn add(
     tsb: f64,
     tse: f64,
 ) {
+    sh.previous_status = status;
     if line == sh.previous_cmd {
         return;
     }

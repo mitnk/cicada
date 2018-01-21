@@ -69,19 +69,19 @@ fn main() {
         rl.set_prompt(&prompt);
         match rl.read_line() {
             Ok(ReadResult::Input(line)) => {
-                let cmd;
                 if line.trim() == "" {
                     continue;
-                } else {
-                    cmd = line.clone();
                 }
 
                 let tsb_spec = time::get_time();
                 let tsb = (tsb_spec.sec as f64) + tsb_spec.nsec as f64 / 1000000000.0;
-                status = execute::run_procs(&mut sh, &cmd, true);
+
+                let mut line = line.clone();
+                tools::extend_bandband(&sh, &mut line);
+                status = execute::run_procs(&mut sh, &line, true);
+
                 let tse_spec = time::get_time();
                 let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1000000000.0;
-                sh.previous_status = status;
                 history::add(&mut sh, &mut rl, &line, status, tsb, tse);
             }
             Ok(ReadResult::Eof) => {
