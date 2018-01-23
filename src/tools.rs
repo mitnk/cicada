@@ -404,7 +404,7 @@ fn needs_globbing(line: &str) -> bool {
     }
 
     let re;
-    if let Ok(x) = Regex::new(r"[\*]+") {
+    if let Ok(x) = Regex::new(r"\*+") {
         re = x;
     } else {
         return false;
@@ -413,7 +413,7 @@ fn needs_globbing(line: &str) -> bool {
     let tokens = parsers::parser_line::cmd_to_tokens(line);
     for (sep, token) in tokens {
         if !sep.is_empty() {
-            return false;
+            continue;
         }
         if re.is_match(&token) {
             return true;
@@ -669,9 +669,11 @@ mod tests {
     fn test_needs_globbing() {
         assert!(needs_globbing("ls *"));
         assert!(needs_globbing("ls  *.txt"));
+        assert!(needs_globbing("grep -i 'desc' /etc/*release*"));
         assert!(!needs_globbing("2 * 3"));
         assert!(!needs_globbing("ls '*.md'"));
         assert!(!needs_globbing("ls 'a * b'"));
+        assert!(!needs_globbing("ls foo"));
     }
 
     #[test]

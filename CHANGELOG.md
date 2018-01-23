@@ -3,6 +3,7 @@
 ## v0.8.0
 
 - Added support for `!!` (the last command string, eg. `sudo !!`).
+- Fixed an issue on glob extending.
 
 ## v0.7.4
 
