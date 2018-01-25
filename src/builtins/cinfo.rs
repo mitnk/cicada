@@ -1,12 +1,17 @@
-use os_type;
+use execute;
 
 pub fn run(_tokens: &Vec<(String, String)>) -> i32 {
     const VERSION: &'static str = env!("CARGO_PKG_VERSION");
     println!("Cicada Version: {}", VERSION);
     println!("Git Hash: {}", env!("GIT_HASH"));
     println!("Built at: {}", env!("BUILD_DATE"));
-    let os = os_type::current_platform();
-    println!("OS Type: {:?}", os.os_type);
-    println!("OS Version: {}", os.version);
+    match execute::run("grep -i DISTRIB_DESCRIPTION /etc/*release*") {
+        Ok(x) => {
+            println!("OS: {}", x.stdout);
+        }
+        Err(e) => {
+            println!("OS: {:?}", e);
+        }
+    }
     0
 }

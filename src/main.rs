@@ -5,7 +5,6 @@ extern crate glob;
 extern crate libc;
 extern crate linefeed;
 extern crate nix;
-extern crate os_type;
 extern crate regex;
 extern crate sqlite;
 extern crate time;
@@ -29,6 +28,8 @@ mod rcfile;
 mod shell;
 
 use tools::clog;
+
+pub use tools::CommandResult;
 
 fn main() {
     let mut sh = shell::Shell::new();

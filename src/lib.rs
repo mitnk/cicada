@@ -5,15 +5,12 @@ extern crate glob;
 extern crate libc;
 extern crate linefeed;
 extern crate nix;
-extern crate os_type;
 extern crate regex;
 extern crate sqlite;
 extern crate time;
 
 #[macro_use]
 extern crate nom;
-
-use std::collections::HashMap;
 
 #[macro_use]
 mod tools;
@@ -24,6 +21,8 @@ mod history;
 mod builtins;
 mod execute;
 mod parsers;
+
+use tools::CommandResult;
 
 /// Parse command line to multiple commands.
 ///
@@ -112,77 +111,6 @@ pub fn is_valid_input(line: &str) -> bool {
 /// out3: Ok("")
 /// out4: Ok("Fri Oct  6 14:53:25 CST 2017\n")
 /// ```
-pub fn run(line: &str) -> Result<String, &str> {
-    let mut envs = HashMap::new();
-    let cmd_line = tools::remove_envs_from_line(line, &mut envs);
-
-    let mut tokens = parsers::parser_line::cmd_to_tokens(&cmd_line);
-    if tokens.is_empty() {
-        return Ok(String::new());
-    }
-
-    let mut len = tokens.len();
-    if len > 1 && tokens[len - 1].1 == "&" {
-        tokens.pop();
-        len -= 1;
-    }
-    let mut redirect_from = String::new();
-    let has_redirect_from = tokens.iter().any(|x| x.1 == "<");
-    if has_redirect_from {
-        if let Some(idx) = tokens.iter().position(|x| x.1 == "<") {
-            tokens.remove(idx);
-            len -= 1;
-            if len >= idx + 1 {
-                redirect_from = tokens.remove(idx).1;
-                len -= 1;
-            } else {
-                return Err("cicada: invalid command: cannot get redirect from");
-            }
-        }
-    }
-    if len == 0 {
-        return Ok(String::new());
-    }
-
-    let (_, _, output) = if len > 2 && (tokens[len - 2].1 == ">" || tokens[len - 2].1 == ">>") {
-        let append = tokens[len - 2].1 == ">>";
-        let redirect_to;
-        match tokens.pop() {
-            Some(x) => redirect_to = x.1,
-            None => {
-                return Err("cicada: redirect_to pop error");
-            }
-        }
-        tokens.pop(); // pop '>>' or '>'
-        execute::run_pipeline(
-            tokens,
-            redirect_from.as_str(),
-            redirect_to.as_str(),
-            append,
-            false,
-            false,
-            true,
-            Some(envs),
-        )
-    } else {
-        execute::run_pipeline(
-            tokens.clone(),
-            redirect_from.as_str(),
-            "",
-            false,
-            false,
-            false,
-            true,
-            Some(envs),
-        )
-    };
-
-    match output {
-        Some(x) => {
-            return Ok(String::from_utf8_lossy(&x.stdout).into_owned());
-        }
-        None => {
-            return Err("no output");
-        }
-    }
+pub fn run(line: &str) -> Result<CommandResult, &str> {
+    execute::run(line)
 }

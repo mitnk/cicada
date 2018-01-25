@@ -13,7 +13,7 @@ use nix::sys::signal;
 use nom::IResult;
 use libc;
 
-use tools::{self, clog};
+use tools::{self, clog, CommandResult};
 use builtins;
 use parsers;
 use shell;
@@ -533,6 +533,85 @@ pub fn run_pipeline(
         i += 1;
     }
     (status, term_given, output)
+}
+
+pub fn run(line: &str) -> Result<CommandResult, &str> {
+    let mut envs = HashMap::new();
+    let cmd_line = tools::remove_envs_from_line(line, &mut envs);
+
+    let mut tokens = parsers::parser_line::cmd_to_tokens(&cmd_line);
+    if tokens.is_empty() {
+        return Ok(CommandResult::new());
+    }
+
+    let mut len = tokens.len();
+    if len > 1 && tokens[len - 1].1 == "&" {
+        tokens.pop();
+        len -= 1;
+    }
+    let mut redirect_from = String::new();
+    let has_redirect_from = tokens.iter().any(|x| x.1 == "<");
+    if has_redirect_from {
+        if let Some(idx) = tokens.iter().position(|x| x.1 == "<") {
+            tokens.remove(idx);
+            len -= 1;
+            if len >= idx + 1 {
+                redirect_from = tokens.remove(idx).1;
+                len -= 1;
+            } else {
+                return Err("cicada: invalid command: cannot get redirect from");
+            }
+        }
+    }
+    if len == 0 {
+        return Ok(CommandResult::new());
+    }
+
+    let (status, _, output) = if len > 2 && (tokens[len - 2].1 == ">" || tokens[len - 2].1 == ">>") {
+        let append = tokens[len - 2].1 == ">>";
+        let redirect_to;
+        match tokens.pop() {
+            Some(x) => redirect_to = x.1,
+            None => {
+                return Err("cicada: redirect_to pop error");
+            }
+        }
+        tokens.pop(); // pop '>>' or '>'
+        run_pipeline(
+            tokens,
+            redirect_from.as_str(),
+            redirect_to.as_str(),
+            append,
+            false,
+            false,
+            true,
+            Some(envs),
+        )
+    } else {
+        run_pipeline(
+            tokens.clone(),
+            redirect_from.as_str(),
+            "",
+            false,
+            false,
+            false,
+            true,
+            Some(envs),
+        )
+    };
+
+    match output {
+        Some(x) => {
+            return Ok(CommandResult {
+                status: status,
+                stdout: String::from_utf8_lossy(&x.stdout).into_owned(),
+                stderr: String::new(),
+            })
+        }
+        None => {
+            return Err("no output");
+        }
+    }
 }
 
 
