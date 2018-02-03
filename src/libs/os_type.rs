@@ -10,11 +10,11 @@ pub fn get_os_name() -> String {
 }
 
 fn get_other_os_name() -> String {
-    let mut name = get_release_value("DISTRIB_DESCRIPTION");
+    let mut name = get_release_value("PRETTY_NAME");
     if !name.is_empty() {
         return name;
     }
-    name = get_release_value("PRETTY_NAME");
+    name = get_release_value("DISTRIB_DESCRIPTION");
     if !name.is_empty() {
         return name;
     }

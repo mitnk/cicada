@@ -537,7 +537,9 @@ pub fn run_pipeline(
 
 pub fn run(line: &str) -> Result<CommandResult, &str> {
     let mut envs = HashMap::new();
-    let cmd_line = tools::remove_envs_from_line(line, &mut envs);
+    let mut cmd_line = tools::remove_envs_from_line(line, &mut envs);
+    let sh = shell::Shell::new();
+    tools::pre_handle_cmd_line(&sh, &mut cmd_line);
 
     let mut tokens = parsers::parser_line::cmd_to_tokens(&cmd_line);
     if tokens.is_empty() {
