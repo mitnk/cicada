@@ -4,6 +4,8 @@
 
 - Added support for `!!` (the last command string, eg. `sudo !!`).
 - Fixed an issue on glob extending.
+- Removed `os_type` from dependency.
+- Updated `cicada::run()` API (BETA).
 
 ## v0.7.4
 
