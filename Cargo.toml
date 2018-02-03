@@ -29,7 +29,7 @@ sqlite = "0.23.0"
 time = "0.1"
 yaml-rust = "0.3.0"
 glob = "0.2.0"
-exec = "0.2.0"
+exec = "0.3.0"
 
 [build-dependencies]
 time = "0.1"

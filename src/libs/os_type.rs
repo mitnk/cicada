@@ -18,6 +18,10 @@ fn get_other_os_name() -> String {
     if !name.is_empty() {
         return name;
     }
+    name = get_release_value("IMAGE_DESCRIPTION");
+    if !name.is_empty() {
+        return name;
+    }
     String::new()
 }
 
