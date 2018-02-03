@@ -118,10 +118,23 @@ fn complete_bin(path: &str) -> Vec<Completion> {
     match env::var("PATH") {
         Ok(x) => env_path = x,
         Err(e) => {
-            println!("cicada: env error when complete_bin: {:?}", e);
+            println_stderr!("cicada: env error when complete_bin: {:?}", e);
             return res;
         }
     }
+
+    // handle alias and builtins
+    for alias in sh.alias.keys() {
+        if !alias.starts_with(fname) {
+            continue;
+        }
+        res.push(Completion {
+            completion: alias,
+            display: alias,
+            suffix: Suffix::Default,
+        });
+    }
+
     let vec_path: Vec<&str> = env_path.split(':').collect();
     let path_list: HashSet<&str> = HashSet::from_iter(vec_path.iter().cloned());
 
@@ -136,7 +149,7 @@ fn complete_bin(path: &str) -> Vec<Completion> {
                             match entry.metadata() {
                                 Ok(x) => _mode = x,
                                 Err(e) => {
-                                    println!("cicada: metadata error: {:?}", e);
+                                    println_stderr!("cicada: metadata error: {:?}", e);
                                     continue;
                                 }
                             }
