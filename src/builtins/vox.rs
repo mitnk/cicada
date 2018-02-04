@@ -115,7 +115,7 @@ pub fn run(sh: &shell::Shell, tokens: &Vec<(String, String)>) -> i32 {
         exit_env(sh)
     } else {
         println!("vox: invalid command");
-        println!("vox (ls | enter <env-name> | exit)");
+        println!("usage: vox (ls | enter <env-name> | exit)");
         1
     }
 }

@@ -34,7 +34,7 @@ pub fn run(tokens: &Vec<(String, String)>) -> i32 {
 fn list_current_history(conn: &sqlite::Connection) -> i32 {
     let history_table = history::get_history_table();
     let q = format!(
-        "SELECT inp FROM {} ORDER BY tsb desc limit 10;",
+        "SELECT inp FROM {} ORDER BY tsb desc limit 20;",
         history_table
     );
     match conn.prepare(q) {

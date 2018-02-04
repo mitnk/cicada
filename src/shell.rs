@@ -9,6 +9,7 @@ use regex::Regex;
 use parsers;
 use tools::{self, clog};
 
+#[derive(Debug, Clone)]
 pub struct Shell {
     pub alias: HashMap<String, String>,
     pub previous_dir: String,

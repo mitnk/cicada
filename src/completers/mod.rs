@@ -10,10 +10,14 @@ pub mod dots;
 pub mod make;
 pub mod path;
 pub mod ssh;
-pub struct CicadaCompleter;
 
-use tools;
 use parsers;
+use shell;
+use tools;
+
+pub struct CicadaCompleter {
+    pub sh: Rc<shell::Shell>,
+}
 
 fn for_make(line: &str) -> bool {
     tools::re_contains(line, r"^ *make ")
@@ -60,7 +64,7 @@ impl<Term: Terminal> Completer<Term> for CicadaCompleter {
 
         // these completions should not fail back to path completion.
         if for_bin(line) {
-            let cpl = Rc::new(path::BinCompleter);
+            let cpl = Rc::new(path::BinCompleter{sh: self.sh.clone()});
             return cpl.complete(word, reader, start, _end);
         }
         if for_cd(line) {

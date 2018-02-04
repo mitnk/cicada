@@ -8,7 +8,8 @@ use parsers;
 
 pub fn run(sh: &shell::Shell, line: &str) -> i32 {
     if !tools::is_env(line) {
-        println!("export: expected syntax like XXX=YYY");
+        println!("export: invalid command");
+        println!("usage: export XXX=YYY");
         return 1;
     }
 

@@ -6,6 +6,7 @@
 - Fixed an issue on glob extending.
 - Removed `os_type` from dependency.
 - Updated `cicada::run()` API (BETA).
+- Added completion on aliases and builtins.
 
 ## v0.7.4
 
