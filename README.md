@@ -79,115 +79,23 @@ $ (1 + 2) * (3 - 4) / 8.0
 -0.375
 ```
 
-## Install Cicada
-
-### Install via Pre-built Binaries
-
-First download the latest right binary for your system from
-[Release Page](https://github.com/mitnk/cicada/releases).
-
-Move it to right place and add runable permisson:
-
-```
-# on Mac
-$ mv cicada-mac-v0.6.5 /usr/local/bin/cicada
-
-# on Linux
-$ mv cicada-linux64-v0.6.5 /usr/local/bin/cicada
-
-$ chmod +x /usr/local/bin/cicada
-```
-
-Then you can try it by run `cicada` in your shell.
-
-### Install Cicada via Source
-
-Note: [Rust environment](https://rustup.rs/) is needed for installation.
-
-You can try `cicada` out without installing it by checking out the repository
-and run `cargo run` in its root directory.
-
-```
-$ git clone https://github.com/mitnk/cicada
-$ cd cicada
-$ cargo run
-```
-
-### install from code repository
-
-If you've checked out the cicada repository, you can do this:
-
-```
-$ make install
-```
-
-This will install `cicada` under your `/usr/local/bin`. Use `sudo` if needed.
-
-### install via cargo crates
-
-```
-$ cargo install -f cicada
-```
-
-This will install cicada into `~/.cargo/bin/`.
-
-### Set cicada as your login shell
-
-Appending `/usr/local/bin/cicada` into your `/etc/shells`, then run
-```
-$ chsh -s /usr/local/bin/cicada
-```
-
-## Cicada is also a library
+## Cicada is also a library (BETA)
 
 Read APIs here: [https://docs.rs/cicada/0.7.2/cicada/](https://docs.rs/cicada/0.7.2/cicada/)
 
+## Install Cicada
+
+Please refer to [docs/install.md](https://github.com/mitnk/cicada/blob/master/docs/install.md).
+
 ## FAQs
 
-### Why another shell?
-
-- for fun
-- to learn Rust
-- have a shell that can customize a bit for my own needs
-
-I think it's fair to say cicada is just a toy.
-
-### Compare to bash?
-
-Bash is where most people come from and familiar with. So cicada is trying to support common cases that bash supports. Cicada will only be a "subset" of bash. If bash is a steamship, cicada is just a boat.
-
-### Compare to ion?
-
-[Ion](https://github.com/redox-os/ion) is a modern system shell that is also written in Rust. It's more mature as a general shell. Ion is to Rust what [xonsh](http://xon.sh) to Python, which supports following stuff:
-```
-$ let string = "one two three"
-$ echo $string[0]
-o
-$ echo $string[..3]
-one
-```
-While cicada do not and will not support these features.
-
-### Why functions support is in won't do list?
-
-I don't think i have interests or energy to add (bash) functions support or (bash) shell scripting ability. If you're a heavy function/scripting user, cicada may not be your tool. If you found cicada useful, you can always add your things based on it.
-
-As far as I can see, cicada will not introduce such complex things, and will not be another zsh/fish.
-
-### Will cicada be POSIX-compatible?
-
-As the above anwsers hints, while cicada is trying to be POSIX, but it will not be a fully POSIX shell. However, If any command pattern is common and cicada is missing, we can add it.
-
-### Will my bash/zsh scripts continue work in cicada?
-
-It depends. If the script is only doing external things, like an configure/installation script, you can still run it. You can invoke scripts with `$ ./my-script.sh` as long as it have "#!/bin/bash" stuff on the top. Or you can always run them as: `$ bash my-script.sh`.
-
-Cicada does not recognize these scripts itself. You cannot integrate these shell scripts/functions in RC files to initiate cicada shell.
-
-### Windows support?
-
-Cicada is a Unix shell.
-
+- [Why another shell?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#why-another-shell)
+- [Compare to bash?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#compare-to-bash)
+- [Compare to ion?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#compare-to-ion)
+- [Why functions support is in won't do list?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#why-functions-support-is-in-wont-do-list)
+- [Will cicada be POSIX-compatible?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#will-cicada-be-posix-compatible)
+- [Will my bash/zsh scripts continue work in cicada?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#will-my-bashzsh-scripts-continue-work-in-cicada)
+- [Windows support?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#windows-support)
 
 ## To do list
 
