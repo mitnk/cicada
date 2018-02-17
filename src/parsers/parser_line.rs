@@ -199,6 +199,9 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
             if has_backslash {
                 has_backslash = false;
                 token.push(c);
+                if sep.is_empty() {
+                    sep = String::from("\"");
+                }
                 continue;
             }
             if sep.is_empty() {
@@ -255,7 +258,7 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
         }
     }
     if !token.is_empty() {
-        result.push((String::from(""), token));
+        result.push((sep, token));
     }
     result
 }
@@ -397,7 +400,7 @@ mod tests {
             ("echo \"hi $USER\"", vec![("", "echo"), ("\"", "hi $USER")]),
             ("echo 'hi $USER'", vec![("", "echo"), ("'", "hi $USER")]),
             ("echo '###'", vec![("", "echo"), ("'", "###")]),
-            ("echo a\\ bc", vec![("", "echo"), ("", "a bc")]),
+            ("echo a\\ bc", vec![("", "echo"), ("\"", "a bc")]),
             ("echo \\#", vec![("", "echo"), ("", "#")]),
             (
                 "echo 'hi $USER' |  wc  -l ",

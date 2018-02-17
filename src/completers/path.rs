@@ -11,6 +11,7 @@ use linefeed::Reader;
 use linefeed::terminal::Terminal;
 use linefeed::complete::{Completer, Completion, Suffix};
 
+use parsers;
 use tools;
 use shell;
 
@@ -45,37 +46,47 @@ impl<Term: Terminal> Completer<Term> for BinCompleter {
 impl<Term: Terminal> Completer<Term> for PathCompleter {
     fn complete(
         &self,
-        word: &str,
-        _reader: &Reader<Term>,
+        _word: &str,
+        reader: &Reader<Term>,
         _start: usize,
         _end: usize,
     ) -> Option<Vec<Completion>> {
-        Some(complete_path(word, false))
+        let buffer = reader.buffer();
+        Some(complete_path(buffer, false))
     }
 }
 
 impl<Term: Terminal> Completer<Term> for CdCompleter {
     fn complete(
         &self,
-        word: &str,
-        _reader: &Reader<Term>,
+        _word: &str,
+        reader: &Reader<Term>,
         _start: usize,
         _end: usize,
     ) -> Option<Vec<Completion>> {
-        Some(complete_path(word, true))
+        let buffer = reader.buffer();
+        Some(complete_path(buffer, true))
     }
 }
 
 /// Returns a sorted list of paths whose prefix matches the given path.
-pub fn complete_path(path: &str, for_dir: bool) -> Vec<Completion> {
-    let (_dir_orig, _) = split_path(path);
+pub fn complete_path(buffer: &str, for_dir: bool) -> Vec<Completion> {
+    let mut res = Vec::new();
+    let tokens = parsers::parser_line::cmd_to_tokens(buffer);
+    if tokens.is_empty() {
+        return res;
+    }
+
+    let (ref path_sep, ref path) = tokens[tokens.len() - 1];
+    let path = path.clone();
+    let (_dir_orig, _) = split_path(&path);
     let dir_orig = if let Some(_dir) = _dir_orig { _dir } else { "" };
-    let mut path_extended = String::from(path);
+    // let mut path_extended = String::from(path);
+    let mut path_extended = path.clone();
     if tools::needs_extend_home(path_extended.as_str()) {
         tools::extend_home(&mut path_extended)
     }
     let (_dir_lookup, file_name) = split_path(path_extended.as_str());
-    let mut res = Vec::new();
     let dir_lookup = _dir_lookup.unwrap_or(".");
     if let Ok(entries) = read_dir(dir_lookup) {
         for entry in entries {
@@ -93,12 +104,15 @@ pub fn complete_path(path: &str, for_dir: bool) -> Vec<Completion> {
                         let (name, display) = if dir_orig != "" {
                             (
                                 format!("{}{}{}", dir_orig, MAIN_SEPARATOR, _path),
-                                Some(_path),
+                                Some(_path)
                             )
                         } else {
                             (_path, None)
                         };
-                        let name = str::replace(name.as_str(), "//", "/");
+                        let mut name = str::replace(name.as_str(), "//", "/");
+                        if path_sep.is_empty() {
+                            name = str::replace(name.as_str(), " ", "\\ ");
+                        }
                         let suffix = if is_dir {
                             Suffix::Some(MAIN_SEPARATOR)
                         } else {
