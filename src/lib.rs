@@ -12,6 +12,8 @@ extern crate time;
 #[macro_use]
 extern crate nom;
 
+mod types;
+
 #[macro_use]
 mod tools;
 

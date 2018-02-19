@@ -47,7 +47,7 @@ impl<Term: Terminal> Completer<Term> for DotsCompleter {
 
 fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
     let mut res = Vec::new();
-    let args = parsers::parser_line::parse_line(line);
+    let args = parsers::parser_line::line_to_plain_tokens(line);
     if args.is_empty() {
         return res;
     }

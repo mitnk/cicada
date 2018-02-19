@@ -1,4 +1,11 @@
-pub fn parse_line(line: &str) -> Vec<String> {
+use regex::Regex;
+
+use tools::{self, clog};
+use types::Command;
+use types::Tokens;
+
+
+pub fn line_to_plain_tokens(line: &str) -> Vec<String> {
     let mut result = Vec::new();
     let v = cmd_to_tokens(line);
     for (_, r) in v {
@@ -264,6 +271,114 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
 }
 
 
+pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
+    let mut tokens_new = Vec::new();
+    let mut redirects = Vec::new();
+    let mut to_be_continued = false;
+    let mut to_be_continued_s1 = String::new();
+    let mut to_be_continued_s2 = String::new();
+
+    for token in tokens {
+        let sep = &token.0;
+        if !sep.is_empty() && !to_be_continued {
+            tokens_new.push(token.clone());
+            continue;
+        }
+        let word = &token.1;
+
+        if to_be_continued {
+            if sep.is_empty() && word.starts_with('&') {
+                return Err(String::from("bad redirection syntax near &"));
+            }
+
+            let s3 = format!("{}{}{}", sep, word, sep);
+            if tools::re_contains(&to_be_continued_s1, r"^\d+$") {
+                if to_be_continued_s1 != "1" && to_be_continued_s1 != "2" {
+                    return Err(String::from("Bad file descriptor #3"));
+                }
+                let s1 = to_be_continued_s1.clone();
+                let s2 = to_be_continued_s2.clone();
+                redirects.push((s1, s2, s3));
+            } else {
+                if to_be_continued_s1 != "" {
+                    tokens_new.push((sep.clone(), to_be_continued_s1.to_string()));
+                }
+                redirects.push(("1".to_string(), to_be_continued_s2.clone(), s3));
+            }
+
+            to_be_continued = false;
+            continue;
+        }
+
+        let ptn1 = r"^(\S*)(>)(\S+)$";
+        let ptn2 = r"^(\S*)(>)$";
+        if !tools::re_contains(word, r">") {
+            tokens_new.push(token.clone());
+        } else if tools::re_contains(word, ptn1) {
+            let re;
+            if let Ok(x) = Regex::new(ptn1) {
+                re = x;
+            } else {
+                return Err(String::from("Failed to build Regex"));
+            }
+            match re.captures(&word) {
+                Some(caps) => {
+                    let s1 = caps.get(1).unwrap().as_str();
+                    let s2 = caps.get(2).unwrap().as_str();
+                    let s3 = caps.get(3).unwrap().as_str();
+                    if s3.starts_with('&') {
+                        if s3 != "&1" && s3 != "&2" {
+                            return Err(String::from("Bad file descriptor #1"));
+                        }
+                    }
+
+                    if tools::re_contains(s1, r"^\d+$") {
+                        if s1 != "1" && s1 != "2" {
+                            return Err(String::from("Bad file descriptor #2"));
+                        }
+                        redirects.push((s1.to_string(), s2.to_string(), s3.to_string()));
+                    } else {
+                        if s1 != "" {
+                            tokens_new.push((sep.clone(), s1.to_string()));
+                        }
+                        redirects.push((String::from("1"), s2.to_string(), s3.to_string()));
+                    }
+                }
+                None => {}
+            }
+        } else if tools::re_contains(word, ptn2) {
+            let re;
+            if let Ok(x) = Regex::new(ptn2) {
+                re = x;
+            } else {
+                return Err(String::from("Failed to build Regex"));
+            }
+            match re.captures(&word) {
+                Some(caps) => {
+                    let s1 = caps.get(1).unwrap().as_str();
+                    let s2 = caps.get(2).unwrap().as_str();
+
+                    to_be_continued = true;
+                    to_be_continued_s1 = s1.to_string();
+                    to_be_continued_s2 = s2.to_string();
+                }
+                None => {}
+            }
+
+        }
+
+    }
+
+    if to_be_continued {
+        return Err(String::from("redirection syntax error"));
+    }
+
+    log!("tokens_new: {:?}", tokens_new);
+    log!("redirects: {:?}", redirects);
+    Ok(Command{tokens: tokens_new, redirects: redirects})
+}
+
+
 #[allow(dead_code)]
 fn is_valid_cmd(cmd: &str) -> bool {
     match cmd.chars().nth(0) {
@@ -365,7 +480,7 @@ pub fn is_valid_input(line: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::cmd_to_tokens;
-    use super::parse_line;
+    use super::line_to_plain_tokens;
     use super::line_to_cmds;
     use super::is_valid_input;
 
@@ -506,6 +621,7 @@ mod tests {
             ("  ls   ", vec!["ls"]),
             ("ls -lh", vec!["ls", "-lh"]),
             ("ls 'abc'", vec!["ls", "abc"]),
+            ("ls a c", vec!["ls", "a", "c"]),
             ("ls a\\ c", vec!["ls", "a c"]),
             ("ls \"abc\"", vec!["ls", "abc"]),
             ("ls \"Hi 你好\"", vec!["ls", "Hi 你好"]),
@@ -540,7 +656,7 @@ mod tests {
         for (left, right) in v {
             println!("\ninput: {:?}", left);
             println!("expected: {:?}", right);
-            let real = parse_line(left);
+            let real = line_to_plain_tokens(left);
             println!("real: {:?}", real);
             _assert_vec_str_eq(real, right);
         }

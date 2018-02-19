@@ -16,6 +16,7 @@ use std::env;
 use std::rc::Rc;
 use linefeed::{Reader, ReadResult};
 
+mod types;
 #[macro_use]
 mod tools;
 mod builtins;

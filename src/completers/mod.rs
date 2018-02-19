@@ -42,7 +42,7 @@ fn for_bin(line: &str) -> bool {
 }
 
 fn for_dots(line: &str) -> bool {
-    let args = parsers::parser_line::parse_line(line);
+    let args = parsers::parser_line::line_to_plain_tokens(line);
     let len = args.len();
     if len == 0 {
         return false;

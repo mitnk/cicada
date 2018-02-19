@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::error::Error as STDError;
 use std::fs::File;
-use std::fs::OpenOptions;
 use std::io::{self, Error, Read, Write};
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::os::unix::process::CommandExt;
@@ -13,6 +12,7 @@ use nix::sys::signal;
 use nom::IResult;
 use libc;
 
+use types;
 use tools::{self, clog, CommandResult};
 use builtins;
 use parsers;
@@ -48,10 +48,11 @@ pub fn handle_non_tty(sh: &mut shell::Shell) {
     }
 }
 
-fn tokens_to_cmds(tokens: Vec<(String, String)>) -> Vec<Vec<String>> {
-    let mut cmd: Vec<String> = Vec::new();
-    let mut cmds: Vec<Vec<String>> = Vec::new();
-    for token in &tokens {
+// TODO: write tests
+fn tokens_to_cmd_tokens(tokens: &types::Tokens) -> Vec<types::Tokens> {
+    let mut cmd = Vec::new();
+    let mut cmds = Vec::new();
+    for token in tokens {
         let sep = &token.0;
         let value = &token.1;
         if sep.is_empty() && value == "|" {
@@ -61,7 +62,7 @@ fn tokens_to_cmds(tokens: Vec<(String, String)>) -> Vec<Vec<String>> {
             cmds.push(cmd.clone());
             cmd = Vec::new();
         } else {
-            cmd.push(value.clone());
+            cmd.push(token.clone());
         }
     }
     if cmd.is_empty() {
@@ -69,38 +70,6 @@ fn tokens_to_cmds(tokens: Vec<(String, String)>) -> Vec<Vec<String>> {
     }
     cmds.push(cmd.clone());
     cmds
-}
-
-fn args_to_redirections(tokens: Vec<(String, String)>) -> (Vec<(String, String)>, Vec<i32>) {
-    let mut vec_redirected = Vec::new();
-    let mut args_new = tokens.clone();
-    let mut redirected_to = 0;
-    for arg in &args_new {
-        let value = &arg.1;
-        if value == "2>&1" {
-            redirected_to = 1;
-        }
-        if value == "1>&2" {
-            redirected_to = 2;
-        }
-        if value == "|" {
-            vec_redirected.push(redirected_to);
-            redirected_to = 0;
-        }
-    }
-    vec_redirected.push(redirected_to);
-
-    while args_new.iter().any(|x| x.1 == "2>&1") {
-        if let Some(index) = args_new.iter().position(|x| x.1 == "2>&1") {
-            args_new.remove(index);
-        }
-    }
-    while args_new.iter().any(|x| x.1 == "1>&2") {
-        if let Some(index) = args_new.iter().position(|x| x.1 == "1>&2") {
-            args_new.remove(index);
-        }
-    }
-    (args_new, vec_redirected)
 }
 
 pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
@@ -211,40 +180,10 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         return 0;
     }
 
-    let (result, term_given, _) =
-        if len > 2 && (tokens[len - 2].1 == ">" || tokens[len - 2].1 == ">>") {
-            let append = tokens[len - 2].1 == ">>";
-            let redirect_to;
-            match tokens.pop() {
-                Some(x) => redirect_to = x.1,
-                None => {
-                    println!("cicada: redirect_to pop error");
-                    return 1;
-                }
-            }
-            tokens.pop(); // pop '>>' or '>'
-            run_pipeline(
-                tokens,
-                redirect_from.as_str(),
-                redirect_to.as_str(),
-                append,
-                background,
-                tty,
-                false,
-                Some(envs),
-            )
-        } else {
-            run_pipeline(
-                tokens.clone(),
-                redirect_from.as_str(),
-                "",
-                false,
-                background,
-                tty,
-                false,
-                Some(envs),
-            )
-        };
+    let (result, term_given, _) = run_pipeline(
+        tokens.clone(), redirect_from.as_str(), false, background,
+        tty, false, Some(envs));
+
     if term_given {
         unsafe {
             let gid = libc::getpgid(0);
@@ -283,9 +222,8 @@ fn run_calc_int(line: &str) -> Result<i64, String> {
 }
 
 pub fn run_pipeline(
-    args: Vec<(String, String)>,
+    tokens: types::Tokens,
     redirect_from: &str,
-    redirect_to: &str,
     append: bool,
     background: bool,
     tty: bool,
@@ -306,8 +244,9 @@ pub fn run_pipeline(
     }
 
     let mut term_given = false;
-    let (args_new, vec_redirected) = args_to_redirections(args);
-    let mut cmds = tokens_to_cmds(args_new);
+    let cmds = tokens_to_cmd_tokens(&tokens);
+    log!("run: {:?}", cmds);
+
     let length = cmds.len();
     if length == 0 {
         println!("cicada: invalid command: cmds with empty length");
@@ -326,26 +265,9 @@ pub fn run_pipeline(
         pipes.push(fds);
     }
     if pipes.len() + 1 != length {
-        println!("cicada: invalid command: too many pipes");
+        println!("cicada: invalid command: unmatched pipes count");
         return (1, false, None);
     }
-
-    let mut info = String::from("run: ");
-    for cmd in &cmds {
-        for x in cmd {
-            info.push_str(format!("{} ", x).as_str());
-        }
-        info.push_str("| ");
-    }
-    match info.pop() {
-        Some(_) => {}
-        None => println!("cicada: debug pop error"),
-    }
-    match info.pop() {
-        Some(_) => {}
-        None => println!("cicada: debug pop error"),
-    }
-    log!("{}", info);
 
     let isatty = if tty {
         unsafe { libc::isatty(0) == 1 }
@@ -363,11 +285,28 @@ pub fn run_pipeline(
         _envs = x;
     }
 
-    for cmd in &mut cmds {
-        let program = &cmd[0];
+    for cmd in &cmds {
+        let cmd_new;
+        match parsers::parser_line::cmd_to_with_redirects(&cmd) {
+            Ok(x) => {
+                cmd_new = x;
+            }
+            Err(e) => {
+                println!("cicada: cmd_to_with_redirects failed: {:?}", e);
+                return (1, false, None);
+            }
+        }
+
+        let cmd_ = parsers::parser_line::tokens_to_args(&cmd_new.tokens);
+
+        if cmd_.len() == 0 {
+            println!("cicada: cmd_ is empty");
+            return (1, false, None);
+        }
+        let program = &cmd_[0];
         // treat `(ls)` as `ls`
         let mut p = Command::new(program.trim_matches(|c| c == '(' || c == ')'));
-        p.args(&cmd[1..]);
+        p.args(&cmd_[1..]);
         p.envs(&_envs);
 
         if isatty {
@@ -385,6 +324,12 @@ pub fn run_pipeline(
             });
         }
 
+        if i > 0 {
+            let fds_prev = pipes[i - 1];
+            let pipe_in = unsafe { Stdio::from_raw_fd(fds_prev.0) };
+            p.stdin(pipe_in);
+        }
+
         // all processes except the last one need to get stdout piped
         if i < length - 1 {
             let fds = pipes[i];
@@ -394,33 +339,47 @@ pub fn run_pipeline(
             p.stdout(Stdio::piped());
         }
 
-        if vec_redirected[i] > 0 {
-            if vec_redirected[i] == 1 {
-                if i == length - 1 {
-                    unsafe {
-                        let fd_std = libc::dup(1);
-                        p.stderr(Stdio::from_raw_fd(fd_std));
-                    }
-                } else {
-                    let fds = pipes[i];
-                    let pipe_out = unsafe { Stdio::from_raw_fd(fds.1) };
-                    p.stderr(pipe_out);
-                }
-            } else if vec_redirected[i] == 2 {
+        for item in &cmd_new.redirects {
+            let from_ = &item.0;
+            let to_ = &item.2;
+            if to_ == "&1" {
                 unsafe {
-                    let fd_std = libc::dup(2);
-                    p.stdout(Stdio::from_raw_fd(fd_std));
+                    if from_ == "1" {
+                        let fd_std = libc::dup(1);
+                        p.stdout(Stdio::from_raw_fd(fd_std));
+                    } else {
+                        if i < length - 1 {
+                            let fds = pipes[i];
+                            let pipe_out = Stdio::from_raw_fd(fds.1);
+                            p.stderr(pipe_out);
+                        } else {
+                            // ???
+                        }
+                    }
                 }
-            }
-        }
-
-        if i > 0 {
-            if vec_redirected[i - 1] == 2 {
-                p.stdin(Stdio::null());
+            } else if to_ == "&2" {
+                unsafe {
+                    let fd = libc::dup(2);
+                    if from_ == "1" {
+                        p.stdout(Stdio::from_raw_fd(fd));
+                    } else {
+                        p.stderr(Stdio::from_raw_fd(fd));
+                    }
+                }
             } else {
-                let fds_prev = pipes[i - 1];
-                let pipe_in = unsafe { Stdio::from_raw_fd(fds_prev.0) };
-                p.stdin(pipe_in);
+                match tools::create_fd_from_file(to_, append) {
+                    Ok(fd) => {
+                        if from_ == "1" {
+                            p.stdout(fd);
+                        } else {
+                            p.stderr(fd);
+                        }
+                    }
+                    Err(e) => {
+                        println_stderr!("cicada: {}", e);
+                        return (1, false, None);
+                    }
+                }
             }
         }
 
@@ -434,27 +393,6 @@ pub fn run_pipeline(
             let fd = file.into_raw_fd();
             let file_in = unsafe { Stdio::from_raw_fd(fd) };
             p.stdin(file_in);
-        }
-
-        // redirect output if needed
-        if redirect_to != "" && i == length - 1 {
-            let mut oos = OpenOptions::new();
-            if append {
-                oos.append(true);
-            } else {
-                oos.write(true);
-                oos.truncate(true);
-            }
-            match oos.create(true).open(redirect_to) {
-                Ok(x) => {
-                    let fd = x.into_raw_fd();
-                    let file_out = unsafe { Stdio::from_raw_fd(fd) };
-                    p.stdout(file_out);
-                }
-                Err(e) => {
-                    println_stderr!("cicada: redirect file create error - {:?}", e);
-                }
-            }
         }
 
         let mut child;
@@ -569,38 +507,9 @@ pub fn run(line: &str) -> Result<CommandResult, &str> {
         return Ok(CommandResult::new());
     }
 
-    let (status, _, output) = if len > 2 && (tokens[len - 2].1 == ">" || tokens[len - 2].1 == ">>") {
-        let append = tokens[len - 2].1 == ">>";
-        let redirect_to;
-        match tokens.pop() {
-            Some(x) => redirect_to = x.1,
-            None => {
-                return Err("cicada: redirect_to pop error");
-            }
-        }
-        tokens.pop(); // pop '>>' or '>'
-        run_pipeline(
-            tokens,
-            redirect_from.as_str(),
-            redirect_to.as_str(),
-            append,
-            false,
-            false,
-            true,
-            Some(envs),
-        )
-    } else {
-        run_pipeline(
-            tokens.clone(),
-            redirect_from.as_str(),
-            "",
-            false,
-            false,
-            false,
-            true,
-            Some(envs),
-        )
-    };
+    let (status, _, output) = run_pipeline(
+        tokens.clone(), redirect_from.as_str(), false, false, false, true,
+        Some(envs));
 
     match output {
         Some(x) => {
@@ -619,84 +528,16 @@ pub fn run(line: &str) -> Result<CommandResult, &str> {
 
 #[cfg(test)]
 mod tests {
-    use super::tokens_to_cmds;
     use super::run_pipeline;
     use super::run_calc_float;
     use super::run_calc_int;
-
-    #[test]
-    fn test_args_to_cmd() {
-        let str_empty = String::new();
-        let s = vec![(str_empty.clone(), "ls".to_string())];
-        let result = tokens_to_cmds(s);
-        let expected = vec![vec!["ls".to_string()]];
-        assert_eq!(result.len(), expected.len());
-        for (i, item) in result.iter().enumerate() {
-            assert_eq!(*item, expected[i]);
-        }
-
-        let s = vec![
-            (str_empty.clone(), String::from("ls")),
-            (str_empty.clone(), String::from("|")),
-            (str_empty.clone(), String::from("wc")),
-        ];
-        let result = tokens_to_cmds(s);
-        let expected = vec![vec!["ls".to_string()], vec!["wc".to_string()]];
-        assert_eq!(result.len(), expected.len());
-        for (i, item) in result.iter().enumerate() {
-            assert_eq!(*item, expected[i]);
-        }
-
-        let s = vec![
-            (str_empty.clone(), String::from("echo")),
-            (str_empty.clone(), String::from(" ")),
-        ];
-        let result = tokens_to_cmds(s);
-        let expected = vec![vec!["echo".to_string(), " ".to_string()]];
-        assert_eq!(result.len(), expected.len());
-        for (i, item) in result.iter().enumerate() {
-            assert_eq!(*item, expected[i]);
-        }
-
-        let s = vec![
-            (str_empty.clone(), String::from("ls")),
-            (str_empty.clone(), String::from("-lh")),
-            (str_empty.clone(), String::from("|")),
-            (str_empty.clone(), String::from("wc")),
-            (str_empty.clone(), String::from("-l")),
-            (str_empty.clone(), String::from("|")),
-            (str_empty.clone(), String::from("less")),
-        ];
-        let result = tokens_to_cmds(s);
-        let expected = vec![
-            vec!["ls".to_string(), "-lh".to_string()],
-            vec!["wc".to_string(), "-l".to_string()],
-            vec!["less".to_string()],
-        ];
-        assert_eq!(result.len(), expected.len());
-        for (i, item) in result.iter().enumerate() {
-            assert_eq!(*item, expected[i]);
-        }
-
-        let s = vec![
-            (str_empty.clone(), String::from("echo")),
-            (str_empty.clone(), String::from("")),
-        ];
-        let result = tokens_to_cmds(s);
-        let expected = vec![vec!["echo".to_string(), "".to_string()]];
-        assert_eq!(result.len(), expected.len());
-        for (i, item) in result.iter().enumerate() {
-            assert_eq!(*item, expected[i]);
-        }
-
-    }
 
     #[test]
     fn test_run_pipeline() {
         let str_empty = String::new();
         let cmd = vec![(str_empty.clone(), String::from("ls"))];
         let (result, term_given, output) =
-            run_pipeline(cmd, "", "", false, false, false, true, None);
+            run_pipeline(cmd, "", false, false, false, true, None);
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {
@@ -715,7 +556,7 @@ mod tests {
             (str_empty.clone(), String::from("cat")),
         ];
         let (result, term_given, output) =
-            run_pipeline(cmd, "", "", false, false, false, true, None);
+            run_pipeline(cmd, "", false, false, false, true, None);
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {
@@ -738,7 +579,7 @@ mod tests {
             (str_empty.clone(), String::from("more")),
         ];
         let (result, term_given, output) =
-            run_pipeline(cmd, "", "", false, false, false, true, None);
+            run_pipeline(cmd, "", false, false, false, true, None);
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {
@@ -763,7 +604,7 @@ mod tests {
             (str_empty.clone(), String::from("{print $3, $2, $1}")),
         ];
         let (result, term_given, output) =
-            run_pipeline(cmd, "", "", false, false, false, true, None);
+            run_pipeline(cmd, "", false, false, false, true, None);
         assert_eq!(result, 0);
         assert_eq!(term_given, false);
         if let Some(x) = output {

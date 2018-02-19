@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs::OpenOptions;
 use std::io::Write;
+use std::process::Stdio;
+use std::os::unix::io::{FromRawFd, IntoRawFd};
 use time;
 
 use glob;
@@ -114,7 +116,7 @@ pub fn get_rc_file() -> String {
 }
 
 pub fn unquote(s: &str) -> String {
-    let args = parsers::parser_line::parse_line(s);
+    let args = parsers::parser_line::line_to_plain_tokens(s);
     if args.is_empty() {
         return String::new();
     }
@@ -245,7 +247,7 @@ fn do_command_substitution_for_dollar(line: &mut String) {
         }
 
         let _args = parsers::parser_line::cmd_to_tokens(&cmd);
-        let (_, _, output) = execute::run_pipeline(_args, "", "", false, false, false, true, None);
+        let (_, _, output) = execute::run_pipeline(_args, "", false, false, false, true, None);
         let _stdout;
         let output_txt;
         if let Some(x) = output {
@@ -286,7 +288,7 @@ fn do_command_substitution_for_dot(line: &mut String) {
         if sep == "`" {
             let _args = parsers::parser_line::cmd_to_tokens(token.as_str());
             let (_, _, output) =
-                execute::run_pipeline(_args, "", "", false, false, false, true, None);
+                execute::run_pipeline(_args, "", false, false, false, true, None);
             if let Some(x) = output {
                 match String::from_utf8(x.stdout) {
                     Ok(stdout) => {
@@ -331,7 +333,7 @@ fn do_command_substitution_for_dot(line: &mut String) {
                     _tail = cap[3].to_string();
                     let _args = parsers::parser_line::cmd_to_tokens(&cap[2]);
                     let (_, _, output) =
-                        execute::run_pipeline(_args, "", "", false, false, false, true, None);
+                        execute::run_pipeline(_args, "", false, false, false, true, None);
                     if let Some(x) = output {
                         match String::from_utf8(x.stdout) {
                             Ok(stdout) => {
@@ -653,6 +655,26 @@ pub fn remove_envs_from_line(line: &str, envs: &mut HashMap<String, String>) -> 
         }
     }
     result
+}
+
+pub fn create_fd_from_file(file_name: &str, append: bool) -> Result<Stdio, String> {
+    let mut oos = OpenOptions::new();
+    if append {
+        oos.append(true);
+    } else {
+        oos.write(true);
+        oos.truncate(true);
+    }
+    match oos.create(true).open(file_name) {
+        Ok(x) => {
+            let fd = x.into_raw_fd();
+            let file_out = unsafe { Stdio::from_raw_fd(fd) };
+            Ok(file_out)
+        }
+        Err(e) => {
+            Err(format!("failed to create fd from file: {:?}", e))
+        }
+    }
 }
 
 #[cfg(test)]
