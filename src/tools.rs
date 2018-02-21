@@ -16,7 +16,7 @@ use execute;
 use shell;
 use libs;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CommandResult {
     pub status: i32,
     pub stdout: String,

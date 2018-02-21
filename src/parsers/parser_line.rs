@@ -1,6 +1,6 @@
 use regex::Regex;
 
-use tools::{self, clog};
+use tools;
 use types::Command;
 use types::Tokens;
 
@@ -373,8 +373,6 @@ pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
         return Err(String::from("redirection syntax error"));
     }
 
-    log!("tokens_new: {:?}", tokens_new);
-    log!("redirects: {:?}", redirects);
     Ok(Command{tokens: tokens_new, redirects: redirects})
 }
 

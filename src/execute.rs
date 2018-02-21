@@ -227,9 +227,19 @@ pub fn run_pipeline(
     append: bool,
     background: bool,
     tty: bool,
-    capture_stdout: bool,
+    capture_output: bool,
     envs: Option<HashMap<String, String>>,
 ) -> (i32, bool, Option<Output>) {
+
+    if background && capture_output {
+        println_stderr!("cicada: cannot capture output of background cmd");
+        return (1, false, None);
+    }
+
+    // the defaults to return
+    let mut status = 0;
+    let mut term_given = false;
+    let mut output = None;
 
     let sig_action = signal::SigAction::new(
         signal::SigHandler::Handler(handle_sigchld),
@@ -243,11 +253,26 @@ pub fn run_pipeline(
         }
     }
 
-    let mut term_given = false;
     let cmds = tokens_to_cmd_tokens(&tokens);
-    log!("run: {:?}", cmds);
-
     let length = cmds.len();
+
+    // info is built here only for printing log
+    let mut info = String::new();
+    for (i, cmd) in cmds.iter().enumerate() {
+        for item in cmd {
+            let sep = &item.0;
+            let token = &item.1;
+            info.push_str(sep);
+            info.push_str(token);
+            info.push_str(sep);
+            info.push(' ');
+        }
+        if length > 1 && i < length - 1 {
+            info.push_str("| ")
+        }
+    }
+    log!("run: {}", info);
+
     if length == 0 {
         println!("cicada: invalid command: cmds with empty length");
         return (1, false, None);
@@ -277,8 +302,6 @@ pub fn run_pipeline(
     let mut i = 0;
     let mut pgid: u32 = 0;
     let mut children: Vec<u32> = Vec::new();
-    let mut status = 0;
-    let mut output = None;
 
     let mut _envs: HashMap<String, String> = HashMap::new();
     if let Some(x) = envs {
@@ -335,35 +358,46 @@ pub fn run_pipeline(
             let fds = pipes[i];
             let pipe_out = unsafe { Stdio::from_raw_fd(fds.1) };
             p.stdout(pipe_out);
-        } else if capture_stdout && i == length - 1 {
+        }
+
+        // capture output of last process if needed.
+        if i == length - 1 && capture_output {
             p.stdout(Stdio::piped());
+            p.stderr(Stdio::piped());
         }
 
         for item in &cmd_new.redirects {
             let from_ = &item.0;
             let to_ = &item.2;
-            if to_ == "&1" {
+            if to_ == "&1" && from_ == "2" {
                 unsafe {
-                    if from_ == "1" {
-                        let fd_std = libc::dup(1);
-                        p.stdout(Stdio::from_raw_fd(fd_std));
+                    if i < length - 1 {
+                        let fds = pipes[i];
+                        let pipe_out = Stdio::from_raw_fd(fds.1);
+                        p.stderr(pipe_out);
                     } else {
-                        if i < length - 1 {
-                            let fds = pipes[i];
-                            let pipe_out = Stdio::from_raw_fd(fds.1);
-                            p.stderr(pipe_out);
+                        if !capture_output {
+                            let fd = libc::dup(1);
+                            p.stderr(Stdio::from_raw_fd(fd));
                         } else {
-                            // ???
+                            // note: capture output with redirections does not
+                            // make much sense
                         }
                     }
                 }
-            } else if to_ == "&2" {
+            } else if to_ == "&2" && from_ == "1" {
                 unsafe {
-                    let fd = libc::dup(2);
-                    if from_ == "1" {
+                    if i < length - 1 {
+                        let fd = libc::dup(2);
                         p.stdout(Stdio::from_raw_fd(fd));
                     } else {
-                        p.stderr(Stdio::from_raw_fd(fd));
+                        if !capture_output {
+                            let fd = libc::dup(2);
+                            p.stdout(Stdio::from_raw_fd(fd));
+                        } else {
+                            // note: capture output with redirections does not
+                            // make much sense
+                        }
                     }
                 }
             } else {
@@ -383,7 +417,7 @@ pub fn run_pipeline(
             }
         }
 
-        if i == 0 && redirect_from != "" {
+        if i == 0 && !redirect_from.is_empty() {
             let path = Path::new(redirect_from);
             let display = path.display();
             let file = match File::open(&path) {
@@ -418,7 +452,7 @@ pub fn run_pipeline(
         }
 
         if !background && i == length - 1 {
-            if capture_stdout {
+            if capture_output {
                 match child.wait_with_output() {
                     Ok(x) => {
                         output = Some(x);
@@ -516,7 +550,7 @@ pub fn run(line: &str) -> Result<CommandResult, &str> {
             return Ok(CommandResult {
                 status: status,
                 stdout: String::from_utf8_lossy(&x.stdout).into_owned(),
-                stderr: String::new(),
+                stderr: String::from_utf8_lossy(&x.stderr).into_owned(),
             })
         }
         None => {
@@ -528,92 +562,10 @@ pub fn run(line: &str) -> Result<CommandResult, &str> {
 
 #[cfg(test)]
 mod tests {
-    use super::run_pipeline;
     use super::run_calc_float;
     use super::run_calc_int;
-
-    #[test]
-    fn test_run_pipeline() {
-        let str_empty = String::new();
-        let cmd = vec![(str_empty.clone(), String::from("ls"))];
-        let (result, term_given, output) =
-            run_pipeline(cmd, "", false, false, false, true, None);
-        assert_eq!(result, 0);
-        assert_eq!(term_given, false);
-        if let Some(x) = output {
-            let stdout = String::from_utf8_lossy(&x.stdout);
-            assert!(stdout.contains("README.md"));
-            assert!(stdout.contains("Cargo.toml"));
-            assert!(stdout.contains("src"));
-            assert!(stdout.contains("LICENSE"));
-        } else {
-            assert_eq!(1, 2);
-        }
-
-        let cmd = vec![
-            (str_empty.clone(), String::from("ls")),
-            (str_empty.clone(), String::from("|")),
-            (str_empty.clone(), String::from("cat")),
-        ];
-        let (result, term_given, output) =
-            run_pipeline(cmd, "", false, false, false, true, None);
-        assert_eq!(result, 0);
-        assert_eq!(term_given, false);
-        if let Some(x) = output {
-            let stdout = String::from_utf8_lossy(&x.stdout);
-            assert!(stdout.contains("README.md"));
-            assert!(stdout.contains("Cargo.toml"));
-            assert!(stdout.contains("src"));
-            assert!(stdout.contains("LICENSE"));
-        } else {
-            assert_eq!(1, 2);
-        }
-
-        let cmd = vec![
-            (str_empty.clone(), String::from("ls")),
-            (str_empty.clone(), String::from("|")),
-            (str_empty.clone(), String::from("cat")),
-            (str_empty.clone(), String::from("|")),
-            (str_empty.clone(), String::from("cat")),
-            (str_empty.clone(), String::from("|")),
-            (str_empty.clone(), String::from("more")),
-        ];
-        let (result, term_given, output) =
-            run_pipeline(cmd, "", false, false, false, true, None);
-        assert_eq!(result, 0);
-        assert_eq!(term_given, false);
-        if let Some(x) = output {
-            let stdout = String::from_utf8_lossy(&x.stdout);
-            assert!(stdout.contains("README.md"));
-            assert!(stdout.contains("Cargo.toml"));
-            assert!(stdout.contains("src"));
-            assert!(stdout.contains("LICENSE"));
-        } else {
-            assert_eq!(1, 2);
-        }
-
-        let cmd = vec![
-            (str_empty.clone(), String::from("echo")),
-            (str_empty.clone(), String::from("foo")),
-            (str_empty.clone(), String::from("bar")),
-            (str_empty.clone(), String::from("\"baz")),
-            (str_empty.clone(), String::from("|")),
-            (str_empty.clone(), String::from("awk")),
-            (str_empty.clone(), String::from("-F")),
-            (str_empty.clone(), String::from("[ \"]+")),
-            (str_empty.clone(), String::from("{print $3, $2, $1}")),
-        ];
-        let (result, term_given, output) =
-            run_pipeline(cmd, "", false, false, false, true, None);
-        assert_eq!(result, 0);
-        assert_eq!(term_given, false);
-        if let Some(x) = output {
-            let stdout = String::from_utf8_lossy(&x.stdout);
-            assert_eq!(stdout, "baz bar foo\n");
-        } else {
-            assert_eq!(1, 2);
-        }
-    }
+    use super::run;
+    use super::tools;
 
     #[test]
     fn test_run_calc_float() {
@@ -626,5 +578,70 @@ mod tests {
     #[test]
     fn test_run_calc_int() {
         assert_eq!(run_calc_int("(5 + 2 * 3 - 4) / 3"), Ok(2));
+    }
+
+    #[test]
+    fn test_run_itself() {
+        use std::fs::File;
+        use std::io::BufRead;
+        use std::io::BufReader;
+
+        let f = File::open("./tests/run_procs.txt").expect("file not found");
+        let file = BufReader::new(&f);
+        let mut input = String::new();
+        let mut expected_stdout = String::new();
+        for (num, l) in file.lines().enumerate() {
+            let line = l.unwrap();
+            match num % 3 {
+                0 => {
+                    input = line.clone();
+                }
+                1 => {
+                    expected_stdout = line.clone();
+                }
+                2 => {
+                    match run(&input) {
+                        Ok(c) => {
+                            let ptn = if expected_stdout.is_empty() {
+                                r"^$"
+                            } else {
+                                expected_stdout.as_str()
+                            };
+                            let matched = tools::re_contains(&c.stdout.trim(), &ptn);
+                            if !matched {
+                                println!("\nSTDOUT Check Failed:");
+                                println!("input: {}", &input);
+                                println!("stdout: {:?}", &c.stdout);
+                                println!("expected: {}", &expected_stdout);
+                                println!("line number: {}\n", num);
+                            }
+                            assert!(matched);
+
+                            let ptn = if line.is_empty() {
+                                r"^$"
+                            } else {
+                                line.as_str()
+                            };
+                            let matched = tools::re_contains(&c.stderr.trim(), &ptn);
+                            if !matched {
+                                println!("\nSTDERR Check Failed:");
+                                println!("input: {}", &input);
+                                println!("stderr: {:?}", &c.stderr);
+                                println!("expected: {}", &ptn);
+                                println!("line number: {}\n", num + 1);
+                            }
+                            assert!(matched);
+                        }
+                        Err(e) => {
+                            println!("run error on {} - {:?}", &input, e);
+                            assert!(false);
+                        }
+                    }
+                }
+                _ => {
+                    assert!(false);
+                }
+            }
+        }
     }
 }

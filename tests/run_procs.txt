@@ -1,0 +1,81 @@
+ls
+Cargo\.toml
+
+ls foo.txt
+
+ls.*foo\.txt.*such file
+ls foo.txt | wc
+^0.*0.*0$
+^$
+ls foo.txt 2>&1 | wc  # cannot both do redirect and capture output
+^1.*\d+.*\d+$
+^$
+echo hi
+hi
+
+echo foo bar
+foo bar
+
+echo foo | wc
+1\s+1\s+4
+
+echo foo 1>&2 | wc  # cannot both do redirect and capture output
+0\s+0\s+0
+
+echo foo >&2 | wc  # cannot both do redirect and capture output
+0\s+0\s+0
+
+echo foo 2>&1 | wc
+1\s+1\s+4
+
+echo foo > bar | wc
+0\s+0\s+0
+
+echo foo>bar | wc
+0\s+0\s+0
+
+echo foo> bar | wc
+0\s+0\s+0
+
+echo foo >bar | wc
+0\s+0\s+0
+
+echo foo > bar
+
+
+cat bar
+^foo$
+
+echo foo>bar
+
+
+cat bar
+^foo$
+
+echo foo> bar
+
+
+cat bar
+^foo$
+
+echo foo >bar
+
+
+cat bar
+^foo$
+
+echo foo > /dev/null
+
+
+echo foo bar baz | awk -F '[ \"]+' '{print $3, $2, $1}'
+^baz bar foo$
+
+ls | cat
+Cargo\.lock
+
+ls | cat | cat | more
+Cargo\.toml
+
+rm -f bar  # clean up
+
+

@@ -7,6 +7,7 @@
 - Removed `os_type` from dependency.
 - Updated `cicada::run()` API (BETA).
 - Added completion on aliases and builtins.
+- Better support for stdio redirection.
 
 ## v0.7.4
 
