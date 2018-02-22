@@ -81,7 +81,7 @@ $ (1 + 2) * (3 - 4) / 8.0
 
 ## Cicada is also a library (BETA)
 
-Read APIs here: [https://docs.rs/cicada/0.7.2/cicada/](https://docs.rs/cicada/0.7.2/cicada/)
+Read APIs here: [https://docs.rs/cicada/0.8.0/cicada/](https://docs.rs/cicada/0.8.0/cicada/)
 
 ## Install Cicada
 

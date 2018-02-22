@@ -91,27 +91,27 @@ pub fn is_valid_input(line: &str) -> bool {
 /// extern crate cicada;
 ///
 /// fn main() {
-///     let out1 = cicada::run("ls");
-///     println!("out1: {:?}", out1);
+///     let out1 = cicada::run("ls").unwrap();
+///     println!("out1: {:?}", out1.stdout);
 ///
-///     let out2 = cicada::run("ls | wc");
-///     println!("out2: {:?}", out2);
+///     let out2 = cicada::run("ls | wc").unwrap();
+///     println!("out2: {:?}", out2.stdout);
 ///
-///     let out3 = cicada::run("date >> out.txt");
-///     println!("out3: {:?}", out3);
+///     let out3 = cicada::run("date >> out.txt").unwrap();
+///     println!("out3: {:?}", out3.stdout);
 ///
-///     let out4 = cicada::run("cat out.txt");
-///     println!("out4: {:?}", out4);
+///     let out4 = cicada::run("cat out.txt").unwrap();
+///     println!("out4: {:?}", out4.stdout);
 /// }
 /// ```
 ///
 /// Output:
 ///
 /// ```no-run
-/// out1: Ok("Cargo.lock\nCargo.toml\nsrc\ntarget\n")
-/// out2: Ok("       4       4      33\n")
-/// out3: Ok("")
-/// out4: Ok("Fri Oct  6 14:53:25 CST 2017\n")
+/// out1: "Cargo.lock\nCargo.toml\nsrc\ntarget\n"
+/// out2: "       4       4      33\n"
+/// out3: ""
+/// out4: "Fri Oct  6 14:53:25 CST 2017\n"
 /// ```
 pub fn run(line: &str) -> Result<CommandResult, &str> {
     execute::run(line)
