@@ -247,7 +247,7 @@ fn do_command_substitution_for_dollar(line: &mut String) {
         }
 
         let _args = parsers::parser_line::cmd_to_tokens(&cmd);
-        let (_, _, output) = execute::run_pipeline(_args, "", false, false, false, true, None);
+        let (_, _, output) = execute::run_pipeline(_args, "", false, false, true, None);
         let _stdout;
         let output_txt;
         if let Some(x) = output {
@@ -288,7 +288,7 @@ fn do_command_substitution_for_dot(line: &mut String) {
         if sep == "`" {
             let _args = parsers::parser_line::cmd_to_tokens(token.as_str());
             let (_, _, output) =
-                execute::run_pipeline(_args, "", false, false, false, true, None);
+                execute::run_pipeline(_args, "", false, false, true, None);
             if let Some(x) = output {
                 match String::from_utf8(x.stdout) {
                     Ok(stdout) => {
@@ -333,7 +333,7 @@ fn do_command_substitution_for_dot(line: &mut String) {
                     _tail = cap[3].to_string();
                     let _args = parsers::parser_line::cmd_to_tokens(&cap[2]);
                     let (_, _, output) =
-                        execute::run_pipeline(_args, "", false, false, false, true, None);
+                        execute::run_pipeline(_args, "", false, false, true, None);
                     if let Some(x) = output {
                         match String::from_utf8(x.stdout) {
                             Ok(stdout) => {

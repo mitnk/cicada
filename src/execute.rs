@@ -181,8 +181,8 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     }
 
     let (result, term_given, _) = run_pipeline(
-        tokens.clone(), redirect_from.as_str(), false, background,
-        tty, false, Some(envs));
+        tokens.clone(), redirect_from.as_str(), background, tty, false,
+        Some(envs));
 
     if term_given {
         unsafe {
@@ -224,7 +224,6 @@ fn run_calc_int(line: &str) -> Result<i64, String> {
 pub fn run_pipeline(
     tokens: types::Tokens,
     redirect_from: &str,
-    append: bool,
     background: bool,
     tty: bool,
     capture_output: bool,
@@ -368,6 +367,7 @@ pub fn run_pipeline(
 
         for item in &cmd_new.redirects {
             let from_ = &item.0;
+            let op_ = &item.1;
             let to_ = &item.2;
             if to_ == "&1" && from_ == "2" {
                 unsafe {
@@ -401,6 +401,7 @@ pub fn run_pipeline(
                     }
                 }
             } else {
+                let append = op_ == ">>";
                 match tools::create_fd_from_file(to_, append) {
                     Ok(fd) => {
                         if from_ == "1" {
@@ -542,7 +543,7 @@ pub fn run(line: &str) -> Result<CommandResult, &str> {
     }
 
     let (status, _, output) = run_pipeline(
-        tokens.clone(), redirect_from.as_str(), false, false, false, true,
+        tokens.clone(), redirect_from.as_str(), false, false, true,
         Some(envs));
 
     match output {

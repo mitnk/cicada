@@ -64,6 +64,15 @@ echo foo >bar
 cat bar
 ^foo$
 
+echo 123 >> bar
+
+
+wc bar
+^2\s+2\s+8\s+bar$
+
+rm -f bar  # clean up
+
+
 echo foo > /dev/null
 
 
@@ -75,7 +84,4 @@ Cargo\.lock
 
 ls | cat | cat | more
 Cargo\.toml
-
-rm -f bar  # clean up
-
 

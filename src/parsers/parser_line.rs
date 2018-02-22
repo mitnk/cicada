@@ -310,8 +310,8 @@ pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
             continue;
         }
 
-        let ptn1 = r"^(\S*)(>)(\S+)$";
-        let ptn2 = r"^(\S*)(>)$";
+        let ptn1 = r"^([^>]*)(>>?)([^>]+)$";
+        let ptn2 = r"^([^>]*)(>>?)$";
         if !tools::re_contains(word, r">") {
             tokens_new.push(token.clone());
         } else if tools::re_contains(word, ptn1) {
