@@ -11,6 +11,15 @@ fn main() {
             println!("cargo:rustc-env=GIT_HASH={:?}", e);
         }
     }
+    match Command::new("rustc").args(&["-V"]).output() {
+        Ok(x) => {
+            let output = String::from_utf8_lossy(&x.stdout);
+            println!("cargo:rustc-env=BUILD_RUSTC_VERSION={}", output);
+        }
+        Err(e) => {
+            println!("cargo:rustc-env=BUILD_RUSTC_VERSION={:?}", e);
+        }
+    }
     let tm = time::now();
     println!("cargo:rustc-env=BUILD_DATE={}", tm.rfc822());
 }

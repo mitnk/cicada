@@ -1,7 +1,7 @@
 [package]
 build = "src/build.rs"
 name = "cicada"
-version = "0.8.0"
+version = "0.8.1"
 authors = ["Hugo Wang <w@mitnk.com>"]
 
 description = "A simple Unix shell."
@@ -19,7 +19,7 @@ name = "cicada"
 doc = false
 
 [dependencies]
-linefeed = "^0.4"
+linefeed = { path = "../../projects/linefeed" }
 libc = "0.2.0"
 errno = "0.2.0"
 nom = "^3.0"

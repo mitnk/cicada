@@ -1,5 +1,9 @@
 # Change Logs
 
+## v0.8.1
+
+- Minor updates on `cinfo`.
+
 ## v0.8.0
 
 - Added support for `!!` (the last command string, eg. `sudo !!`).
