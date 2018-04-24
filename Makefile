@@ -16,4 +16,4 @@ test:
 
 clean:
 	cargo clean
-	find . -name '*.rs.bk' | xargs rm
+	find . -name '*.rs.bk' | xargs rm -f
