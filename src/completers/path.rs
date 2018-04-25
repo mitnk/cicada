@@ -72,13 +72,18 @@ impl<Term: Terminal> Completer<Term> for CdCompleter {
 /// Returns a sorted list of paths whose prefix matches the given path.
 pub fn complete_path(buffer: &str, for_dir: bool) -> Vec<Completion> {
     let mut res = Vec::new();
-    let tokens = parsers::parser_line::cmd_to_tokens(buffer);
-    if tokens.is_empty() {
-        return res;
-    }
+    let mut path_sep = String::new();
+    let mut path = String::new();
+    if !buffer.ends_with(' ') {
+        let tokens = parsers::parser_line::cmd_to_tokens(buffer);
+        if tokens.is_empty() {
+            return res;
+        }
 
-    let (ref path_sep, ref path) = tokens[tokens.len() - 1];
-    let path = path.clone();
+        let (ref _path_sep, ref _path) = tokens[tokens.len() - 1];
+        path = _path.clone();
+        path_sep = _path_sep.clone();
+    }
     let (_dir_orig, _) = split_path(&path);
     let dir_orig = if let Some(_dir) = _dir_orig { _dir } else { "" };
     // let mut path_extended = String::from(path);
@@ -97,9 +102,9 @@ pub fn complete_path(buffer: &str, for_dir: bool) -> Vec<Completion> {
                     continue;
                 }
 
-                let ent_name = entry.file_name();
+                let entry_name = entry.file_name();
                 // TODO: Deal with non-UTF8 paths in some way
-                if let Ok(_path) = ent_name.into_string() {
+                if let Ok(_path) = entry_name.into_string() {
                     if _path.starts_with(file_name) {
                         let (name, display) = if dir_orig != "" {
                             (

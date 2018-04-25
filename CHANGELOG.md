@@ -3,6 +3,7 @@
 ## v0.8.1
 
 - Minor updates on `cinfo`.
+- Fixed a path completion bug.
 
 ## v0.8.0
 
