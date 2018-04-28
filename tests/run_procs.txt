@@ -85,3 +85,9 @@ Cargo\.lock
 ls | cat | cat | more
 Cargo\.toml
 
+echo foo`which ls`
+^foo/.*/ls$
+
+echo --author='Hugo Wang <w@mitnk.com>'
+--author=Hugo Wang <w@mitnk.com>
+

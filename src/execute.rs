@@ -612,8 +612,8 @@ mod tests {
                             if !matched {
                                 println!("\nSTDOUT Check Failed:");
                                 println!("input: {}", &input);
-                                println!("stdout: {:?}", &c.stdout);
-                                println!("expected: {}", &expected_stdout);
+                                println!("stdout: {:?}", &c.stdout.trim());
+                                println!("expected: {:?}", &expected_stdout);
                                 println!("line number: {}\n", num);
                             }
                             assert!(matched);

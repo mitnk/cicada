@@ -4,6 +4,7 @@
 
 - Minor updates on `cinfo`.
 - Fixed a path completion bug.
+- Fixed parsing strings like `foo'bar baz'`.
 
 ## v0.8.0
 

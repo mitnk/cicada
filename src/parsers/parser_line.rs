@@ -214,8 +214,6 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
             if sep.is_empty() {
                 if sep_second.is_empty() {
                     result.push((String::from(""), token));
-                    sep = String::new();
-                    sep_second = String::new();
                     token = String::new();
                     new_round = true;
                     continue;
@@ -237,6 +235,11 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
             }
 
             if sep.is_empty() {
+                if c == '\'' || c == '"' {
+                    sep = c.to_string();
+                    continue;
+                }
+
                 token.push(c);
                 if sep_second.is_empty() {
                     sep_second = c.to_string();
@@ -542,7 +545,7 @@ mod tests {
             ),
             (
                 "export FOO=\"`date` and `go version`\"",
-                vec![("", "export"), ("", "FOO=\"`date` and `go version`\"")]
+                vec![("", "export"), ("\"", "FOO=`date` and `go version`")]
             ),
             ("ps|wc", vec![("", "ps"), ("", "|"), ("", "wc")]),
             (
@@ -602,12 +605,20 @@ mod tests {
                 "ls > /dev/null 2>& 1",
                 vec![("", "ls"), ("", ">"), ("", "/dev/null"), ("", "2>&"), ("", "1")]
             ),
+            (
+                "echo foo`date`",
+                vec![("", "echo"), ("", "foo`date`")]
+            ),
+            (
+                "echo 123'foo bar'",
+                vec![("", "echo"), ("\'", "123foo bar")]
+            ),
         ];
         for (left, right) in v {
             println!("\ninput: {:?}", left);
             println!("expected: {:?}", right);
             let args = cmd_to_tokens(left);
-            println!("real: {:?}", args);
+            println!("real    : {:?}", args);
             _assert_vec_tuple_eq(args, right);
         }
     }
@@ -655,7 +666,7 @@ mod tests {
             println!("\ninput: {:?}", left);
             println!("expected: {:?}", right);
             let real = line_to_plain_tokens(left);
-            println!("real: {:?}", real);
+            println!("real    : {:?}", real);
             _assert_vec_str_eq(real, right);
         }
     }

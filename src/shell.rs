@@ -170,7 +170,7 @@ mod tests {
 
         let mut s = String::from("export FOO=\"`date` and `go version`\"");
         extend_env(&sh, &mut s);
-        assert_eq!(s, "export FOO=\"`date` and `go version`\"");
+        assert_eq!(s, "export \"FOO=`date` and `go version`\"");
 
         let mut s = String::from("foo is XX${CICADA_NOT_EXIST}XX");
         extend_env(&sh, &mut s);
