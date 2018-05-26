@@ -15,7 +15,7 @@ $ cargo run
 
 ### install from code repository
 
-If you've checked out the cicada repository, you can do this:
+If you have checked out the cicada repository, you can do this:
 
 ```
 $ make install
@@ -40,12 +40,16 @@ Move it to right place and add runable permisson:
 
 ```
 # on Mac
-$ mv cicada-mac-v0.6.5 /usr/local/bin/cicada
+$ mv cicada-0.8.1-mac /usr/local/bin/cicada
 
 # on Linux
-$ mv cicada-linux64-v0.6.5 /usr/local/bin/cicada
+$ mv cicada-0.8.1-linux-64 /usr/local/bin/cicada
 
 $ chmod +x /usr/local/bin/cicada
+
+# try it
+$ cicada
+(in-cicada) $ cinfo
 ```
 
 Then you can try it by run `cicada` in your shell.
