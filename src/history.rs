@@ -4,14 +4,14 @@ use std::fs;
 use std::io::Write;
 use std::path::Path;
 
-use linefeed::Reader;
+use linefeed::Interface;
 use linefeed::terminal::DefaultTerminal;
 use sqlite;
 
 use tools;
 use shell;
 
-pub fn init(rl: &mut Reader<DefaultTerminal>) {
+pub fn init(rl: &mut Interface<DefaultTerminal>) {
     let mut hist_size: usize = 999;
     if let Ok(x) = env::var("HISTORY_SIZE") {
         if let Ok(y) = x.parse::<usize>() {
@@ -158,7 +158,7 @@ fn delete_duplicated_histories() {
 
 pub fn add(
     sh: &mut shell::Shell,
-    rl: &mut Reader<DefaultTerminal>,
+    rl: &mut Interface<DefaultTerminal>,
     line: &str,
     status: i32,
     tsb: f64,

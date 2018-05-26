@@ -13,8 +13,9 @@ extern crate yaml_rust;
 extern crate nom;
 
 use std::env;
-use std::rc::Rc;
-use linefeed::{Reader, ReadResult};
+use std::sync::Arc;
+
+use linefeed::{Interface, ReadResult};
 
 mod types;
 #[macro_use]
@@ -54,16 +55,16 @@ fn main() {
     }
 
     let mut rl;
-    match Reader::new("cicada") {
+    match Interface::new("cicada") {
         Ok(x) => rl = x,
         Err(e) => {
             // non-tty will raise errors here
-            println!("Reader Error: {:?}", e);
+            println!("linefeed Interface Error: {:?}", e);
             return;
         }
     }
     history::init(&mut rl);
-    rl.set_completer(Rc::new(completers::CicadaCompleter{sh: Rc::new(sh.clone())}));
+    rl.set_completer(Arc::new(completers::CicadaCompleter{sh: Arc::new(sh.clone())}));
 
     let mut status = 0;
     loop {

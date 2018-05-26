@@ -3,13 +3,13 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 
-use linefeed::Reader;
 use linefeed::terminal::Terminal;
 use linefeed::complete::{Completer, Completion};
 use linefeed::complete::Suffix;
 use linefeed::complete::escape;
 use linefeed::complete::unescape;
 use linefeed::complete::escaped_word_start;
+use linefeed::prompter::Prompter;
 
 use yaml_rust::YamlLoader;
 use yaml_rust::yaml;
@@ -24,7 +24,7 @@ impl<Term: Terminal> Completer<Term> for DotsCompleter {
     fn complete(
         &self,
         word: &str,
-        reader: &Reader<Term>,
+        reader: &Prompter<Term>,
         _start: usize,
         _end: usize,
     ) -> Option<Vec<Completion>> {
@@ -32,7 +32,7 @@ impl<Term: Terminal> Completer<Term> for DotsCompleter {
         Some(complete_dots(line, word))
     }
 
-    fn word_start(&self, line: &str, end: usize, _reader: &Reader<Term>) -> usize {
+    fn word_start(&self, line: &str, end: usize, _reader: &Prompter<Term>) -> usize {
         escaped_word_start(&line[..end])
     }
 

@@ -1,7 +1,7 @@
 use std::path::Path;
-use std::rc::Rc;
+use std::sync::Arc;
 
-use linefeed::Reader;
+use linefeed::prompter::Prompter;
 use linefeed::complete::{Completer, Completion};
 use linefeed::terminal::Terminal;
 use regex::Regex;
@@ -16,7 +16,7 @@ use shell;
 use tools;
 
 pub struct CicadaCompleter {
-    pub sh: Rc<shell::Shell>,
+    pub sh: Arc<shell::Shell>,
 }
 
 fn for_make(line: &str) -> bool {
@@ -56,7 +56,7 @@ impl<Term: Terminal> Completer<Term> for CicadaCompleter {
     fn complete(
         &self,
         word: &str,
-        reader: &Reader<Term>,
+        reader: &Prompter<Term>,
         start: usize,
         _end: usize,
     ) -> Option<Vec<Completion>> {
@@ -64,18 +64,18 @@ impl<Term: Terminal> Completer<Term> for CicadaCompleter {
 
         // these completions should not fail back to path completion.
         if for_bin(line) {
-            let cpl = Rc::new(path::BinCompleter{sh: self.sh.clone()});
+            let cpl = Arc::new(path::BinCompleter{sh: self.sh.clone()});
             return cpl.complete(word, reader, start, _end);
         }
         if for_cd(line) {
-            let cpl = Rc::new(path::CdCompleter);
+            let cpl = Arc::new(path::CdCompleter);
             return cpl.complete(word, reader, start, _end);
         }
 
         // the following completions needs fail back to use path completion,
         // so that `$ make generate /path/to/fi<Tab>` still works.
         if for_ssh(line) {
-            let cpl = Rc::new(ssh::SshCompleter);
+            let cpl = Arc::new(ssh::SshCompleter);
             if let Some(x) = cpl.complete(word, reader, start, _end) {
                 if !x.is_empty() {
                     return Some(x);
@@ -83,7 +83,7 @@ impl<Term: Terminal> Completer<Term> for CicadaCompleter {
             }
         }
         if for_make(line) {
-            let cpl = Rc::new(make::MakeCompleter);
+            let cpl = Arc::new(make::MakeCompleter);
             if let Some(x) = cpl.complete(word, reader, start, _end) {
                 if !x.is_empty() {
                     return Some(x);
@@ -91,7 +91,7 @@ impl<Term: Terminal> Completer<Term> for CicadaCompleter {
             }
         }
         if for_dots(line) {
-            let cpl = Rc::new(dots::DotsCompleter);
+            let cpl = Arc::new(dots::DotsCompleter);
             if let Some(x) = cpl.complete(word, reader, start, _end) {
                 if !x.is_empty() {
                     return Some(x);
@@ -99,7 +99,7 @@ impl<Term: Terminal> Completer<Term> for CicadaCompleter {
             }
         }
 
-        let cpl = Rc::new(path::PathCompleter);
+        let cpl = Arc::new(path::PathCompleter);
         cpl.complete(word, reader, start, _end)
     }
 }

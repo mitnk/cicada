@@ -5,6 +5,7 @@
 - Minor updates on `cinfo`.
 - Fixed a path completion bug.
 - Fixed parsing strings like `foo'bar baz'`.
+- Upgraded linefeed to 0.5.
 
 ## v0.8.0
 

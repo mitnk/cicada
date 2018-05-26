@@ -5,9 +5,9 @@ use std::io::Write;
 use std::iter::FromIterator;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{is_separator, MAIN_SEPARATOR};
-use std::rc::Rc;
+use std::sync::Arc;
 
-use linefeed::Reader;
+use linefeed::Prompter;
 use linefeed::terminal::Terminal;
 use linefeed::complete::{Completer, Completion, Suffix};
 
@@ -16,7 +16,7 @@ use tools;
 use shell;
 
 pub struct BinCompleter {
-    pub sh: Rc<shell::Shell>,
+    pub sh: Arc<shell::Shell>,
 }
 pub struct CdCompleter;
 pub struct PathCompleter;
@@ -25,12 +25,12 @@ impl<Term: Terminal> Completer<Term> for BinCompleter {
     fn complete(
         &self,
         word: &str,
-        _reader: &Reader<Term>,
+        _reader: &Prompter<Term>,
         _start: usize,
         _end: usize,
     ) -> Option<Vec<Completion>> {
         // TODO: use RC::into_raw() instead
-        let sh = Rc::try_unwrap(self.sh.clone());
+        let sh = Arc::try_unwrap(self.sh.clone());
         match sh {
             Ok(x) => {
                 Some(complete_bin(&x, word))
@@ -47,7 +47,7 @@ impl<Term: Terminal> Completer<Term> for PathCompleter {
     fn complete(
         &self,
         _word: &str,
-        reader: &Reader<Term>,
+        reader: &Prompter<Term>,
         _start: usize,
         _end: usize,
     ) -> Option<Vec<Completion>> {
@@ -60,7 +60,7 @@ impl<Term: Terminal> Completer<Term> for CdCompleter {
     fn complete(
         &self,
         _word: &str,
-        reader: &Reader<Term>,
+        reader: &Prompter<Term>,
         _start: usize,
         _end: usize,
     ) -> Option<Vec<Completion>> {

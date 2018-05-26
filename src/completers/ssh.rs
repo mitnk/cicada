@@ -3,7 +3,7 @@ use std::io::{BufRead, BufReader};
 
 use regex::Regex;
 
-use linefeed::Reader;
+use linefeed::Prompter;
 use linefeed::terminal::Terminal;
 use linefeed::complete::{Completer, Completion, Suffix};
 
@@ -15,7 +15,7 @@ impl<Term: Terminal> Completer<Term> for SshCompleter {
     fn complete(
         &self,
         word: &str,
-        _reader: &Reader<Term>,
+        _reader: &Prompter<Term>,
         _start: usize,
         _end: usize,
     ) -> Option<Vec<Completion>> {

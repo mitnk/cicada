@@ -49,13 +49,24 @@ fn get_uname() -> String {
 }
 
 fn get_macos_name() -> String {
-    let mut os_name = String::from("macOS");
+    let mut os_name = get_osx_codename();
     let ver = get_osx_version();
     if !ver.is_empty() {
         os_name.push(' ');
         os_name.push_str(&ver);
     }
     os_name
+}
+
+fn get_osx_codename() -> String {
+    match execute::run("grep -o 'SOFTWARE LICENSE AGREEMENT FOR .*[a-zA-Z]' '/System/Library/CoreServices/Setup Assistant.app/Contents/Resources/en.lproj/OSXSoftwareLicense.rtf' | sed 's/SOFTWARE LICENSE AGREEMENT FOR *//'") {
+        Ok(x) => {
+            return x.stdout.trim().to_string();
+        }
+        Err(_) => {
+            return String::new();
+        }
+    }
 }
 
 fn get_osx_version() -> String {
