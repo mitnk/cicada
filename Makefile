@@ -1,5 +1,6 @@
 run:
 	@rustc -V
+	cargo update
 	cargo build
 	./target/debug/cicada
 
