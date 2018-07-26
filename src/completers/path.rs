@@ -120,8 +120,8 @@ pub fn complete_path(buffer: &str, for_dir: bool) -> Vec<Completion> {
                         };
                         res.push(Completion {
                             completion: name,
-                            display: display,
-                            suffix: suffix,
+                            display,
+                            suffix,
                         });
                     }
                 }
@@ -206,8 +206,8 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
                             checker.insert(name.clone());
                             res.push(Completion {
                                 completion: name,
-                                display: display,
-                                suffix: suffix,
+                                display,
+                                suffix,
                             });
                         }
                     }

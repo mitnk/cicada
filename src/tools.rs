@@ -16,7 +16,7 @@ use libs;
 use parsers;
 use shell;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct CommandResult {
     pub status: i32,
     pub stdout: String,
@@ -130,6 +130,7 @@ fn should_extend_brace(line: &str) -> bool {
     re_contains(line, r"\{.*,.*\}")
 }
 
+#[allow(trivial_regex)]
 pub fn extend_bandband(sh: &shell::Shell, line: &mut String) {
     if !re_contains(line, r"!!") {
         return;
@@ -447,9 +448,7 @@ fn extend_glob(line: &mut String) {
     let _tokens: Vec<&str> = _line.split(' ').collect();
     let mut result: Vec<String> = Vec::new();
     for item in &_tokens {
-        if !item.contains('*') {
-            result.push(item.to_string());
-        } else if item.trim().starts_with('\'') || item.trim().starts_with('"') {
+        if !item.contains('*') || item.trim().starts_with('\'') || item.trim().starts_with('"') {
             result.push(item.to_string());
         } else {
             match glob::glob(item) {
@@ -633,23 +632,17 @@ pub fn extend_alias(sh: &shell::Shell, line: &str) -> String {
 
 pub fn remove_envs_from_line(line: &str, envs: &mut HashMap<String, String>) -> String {
     let mut result = line.to_string();
-    loop {
-        match libs::re::find_first_group(r"^( *[a-zA-Z][a-zA-Z0-9_]+=[^ ]*)", &result) {
-            Some(x) => {
-                let v: Vec<&str> = x.split('=').collect();
-                if v.len() != 2 {
-                    println_stderr!("remove envs error");
-                    break;
-                }
-                envs.insert(v[0].to_string(), v[1].to_string());
 
-                result = result.trim().replace(&x, "").trim().to_owned();
-            }
-            None => {
-                break;
-            }
+    while let Some(x) = libs::re::find_first_group(r"^( *[a-zA-Z][a-zA-Z0-9_]+=[^ ]*)", &result) {
+        let v: Vec<&str> = x.split('=').collect();
+        if v.len() != 2 {
+            println_stderr!("remove envs error");
+            break;
         }
+        envs.insert(v[0].to_string(), v[1].to_string());
+        result = result.trim().replace(&x, "").trim().to_owned();
     }
+
     result
 }
 

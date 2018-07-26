@@ -106,8 +106,8 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
                             let suffix = Suffix::Default;
                             res.push(Completion {
                                 completion: name.to_string(),
-                                display: display,
-                                suffix: suffix,
+                                display,
+                                suffix,
                             });
                         }
                         yaml::Yaml::Hash(ref h) => {
@@ -126,8 +126,8 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
                                         let suffix = Suffix::Default;
                                         res.push(Completion {
                                             completion: name,
-                                            display: display,
-                                            suffix: suffix,
+                                            display,
+                                            suffix,
                                         });
                                     } else if let yaml::Yaml::Array(ref v) = *v {
                                         for x in v {
@@ -141,8 +141,8 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
                                                 let suffix = Suffix::Default;
                                                 res.push(Completion {
                                                     completion: name,
-                                                    display: display,
-                                                    suffix: suffix,
+                                                    display,
+                                                    suffix,
                                                 });
                                             }
                                         }

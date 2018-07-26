@@ -33,6 +33,7 @@ use tools::clog;
 
 pub use tools::CommandResult;
 
+#[allow(cast_lossless)]
 fn main() {
     let mut sh = shell::Shell::new();
     rcfile::load_rcfile(&mut sh);
@@ -73,7 +74,9 @@ fn main() {
         let prompt = libs::prompt::get_prompt(status);
         match rl.set_prompt(&prompt) {
             Ok(_) => {}
-            Err(_) => {}
+            Err(e) => {
+                println!("error when setting prompt: {:?}\n", e);
+            }
         }
         match rl.read_line() {
             Ok(ReadResult::Input(line)) => {
@@ -82,20 +85,20 @@ fn main() {
                 }
 
                 let tsb_spec = time::get_time();
-                let tsb = (tsb_spec.sec as f64) + tsb_spec.nsec as f64 / 1000000000.0;
+                let tsb = (tsb_spec.sec as f64) + tsb_spec.nsec as f64 / 1_000_000_000.0;
 
                 let mut line = line.clone();
                 tools::extend_bandband(&sh, &mut line);
                 status = execute::run_procs(&mut sh, &line, true);
 
                 let tse_spec = time::get_time();
-                let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1000000000.0;
+                let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1_000_000_000.0;
                 history::add(&mut sh, &mut rl, &line, status, tsb, tse);
             }
             Ok(ReadResult::Eof) => {
                 if let Ok(x) = env::var("NO_EXIT_ON_CTRL_D") {
                     if x == "1" {
-                        println!("");
+                        println!();
                         continue;
                     }
                 }

@@ -126,6 +126,7 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
 ///     ("", "grep"),
 ///     ("\"", "hi"),
 /// ]
+#[allow(cyclomatic_complexity)]
 pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
     let mut result = Vec::new();
     let mut sep = String::new();
@@ -320,30 +321,26 @@ pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
             } else {
                 return Err(String::from("Failed to build Regex"));
             }
-            match re.captures(&word) {
-                Some(caps) => {
-                    let s1 = caps.get(1).unwrap().as_str();
-                    let s2 = caps.get(2).unwrap().as_str();
-                    let s3 = caps.get(3).unwrap().as_str();
-                    if s3.starts_with('&') {
-                        if s3 != "&1" && s3 != "&2" {
-                            return Err(String::from("Bad file descriptor #1"));
-                        }
-                    }
 
-                    if tools::re_contains(s1, r"^\d+$") {
-                        if s1 != "1" && s1 != "2" {
-                            return Err(String::from("Bad file descriptor #2"));
-                        }
-                        redirects.push((s1.to_string(), s2.to_string(), s3.to_string()));
-                    } else {
-                        if s1 != "" {
-                            tokens_new.push((sep.clone(), s1.to_string()));
-                        }
-                        redirects.push((String::from("1"), s2.to_string(), s3.to_string()));
-                    }
+            if let Some(caps) = re.captures(&word) {
+                let s1 = caps.get(1).unwrap().as_str();
+                let s2 = caps.get(2).unwrap().as_str();
+                let s3 = caps.get(3).unwrap().as_str();
+                if s3.starts_with('&') && s3 != "&1" && s3 != "&2" {
+                    return Err(String::from("Bad file descriptor #1"));
                 }
-                None => {}
+
+                if tools::re_contains(s1, r"^\d+$") {
+                    if s1 != "1" && s1 != "2" {
+                        return Err(String::from("Bad file descriptor #2"));
+                    }
+                    redirects.push((s1.to_string(), s2.to_string(), s3.to_string()));
+                } else {
+                    if s1 != "" {
+                        tokens_new.push((sep.clone(), s1.to_string()));
+                    }
+                    redirects.push((String::from("1"), s2.to_string(), s3.to_string()));
+                }
             }
         } else if tools::re_contains(word, ptn2) {
             let re;
@@ -352,16 +349,14 @@ pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
             } else {
                 return Err(String::from("Failed to build Regex"));
             }
-            match re.captures(&word) {
-                Some(caps) => {
-                    let s1 = caps.get(1).unwrap().as_str();
-                    let s2 = caps.get(2).unwrap().as_str();
 
-                    to_be_continued = true;
-                    to_be_continued_s1 = s1.to_string();
-                    to_be_continued_s2 = s2.to_string();
-                }
-                None => {}
+            if let Some(caps) = re.captures(&word) {
+                let s1 = caps.get(1).unwrap().as_str();
+                let s2 = caps.get(2).unwrap().as_str();
+
+                to_be_continued = true;
+                to_be_continued_s1 = s1.to_string();
+                to_be_continued_s2 = s2.to_string();
             }
         }
     }
@@ -378,22 +373,17 @@ pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
 
 #[allow(dead_code)]
 fn is_valid_cmd(cmd: &str) -> bool {
-    match cmd.chars().nth(0) {
-        Some(c) => {
-            if c == '|' {
-                return false;
-            }
+    if let Some(c) = cmd.chars().nth(0) {
+        if c == '|' {
+            return false;
         }
-        None => {}
     }
-    match cmd.chars().rev().nth(0) {
-        Some(c) => {
-            if c == '|' {
-                return false;
-            }
+    if let Some(c) = cmd.chars().rev().nth(0) {
+        if c == '|' {
+            return false;
         }
-        None => {}
     }
+
     let tokens = cmd_to_tokens(cmd);
     let mut found_pipe = false;
     let len = tokens.len();
@@ -461,7 +451,7 @@ pub fn is_valid_input(line: &str) -> bool {
         for sep in cmd_splitors {
             if cmds.contains(&sep.to_string()) {
                 if let Some(pos) = cmds.iter().position(|x| x == sep) {
-                    if pos + 1 <= len - 1 && cmds[pos + 1] == sep {
+                    if pos < len - 1 && cmds[pos + 1] == sep {
                         return false;
                     }
                 }

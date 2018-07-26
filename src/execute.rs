@@ -167,7 +167,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         if let Some(idx) = tokens.iter().position(|x| x.1 == "<") {
             tokens.remove(idx);
             len -= 1;
-            if len >= idx + 1 {
+            if len > idx {
                 redirect_from = tokens.remove(idx).1;
                 len -= 1;
             } else {
@@ -200,32 +200,21 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
 
 fn run_calc_float(line: &str) -> Result<f64, String> {
     match parsers::parser_float::expr_float(line.as_bytes()) {
-        IResult::Done(_, x) => {
-            return Ok(x);
-        }
-        IResult::Error(e) => {
-            return Err(e.description().to_owned());
-        }
-        IResult::Incomplete(_) => {
-            return Err(String::from("Incomplete arithmetic"));
-        }
+        IResult::Done(_, x) => Ok(x),
+        IResult::Error(e) => Err(e.description().to_owned()),
+        IResult::Incomplete(_) => Err(String::from("Incomplete arithmetic")),
     }
 }
 
 fn run_calc_int(line: &str) -> Result<i64, String> {
     match parsers::parser_int::expr_int(line.as_bytes()) {
-        IResult::Done(_, x) => {
-            return Ok(x);
-        }
-        IResult::Error(e) => {
-            return Err(e.description().to_owned());
-        }
-        IResult::Incomplete(_) => {
-            return Err(String::from("Incomplete arithmetic"));
-        }
+        IResult::Done(_, x) => Ok(x),
+        IResult::Error(e) => Err(e.description().to_owned()),
+        IResult::Incomplete(_) => Err(String::from("Incomplete arithmetic")),
     }
 }
 
+#[allow(cyclomatic_complexity)]
 pub fn run_pipeline(
     tokens: types::Tokens,
     redirect_from: &str,
@@ -325,7 +314,7 @@ pub fn run_pipeline(
 
         let cmd_ = parsers::parser_line::tokens_to_args(&cmd_new.tokens);
 
-        if cmd_.len() == 0 {
+        if cmd_.is_empty() {
             println!("cicada: cmd_ is empty");
             return (1, false, None);
         }
@@ -379,29 +368,22 @@ pub fn run_pipeline(
                         let fds = pipes[i];
                         let pipe_out = Stdio::from_raw_fd(fds.1);
                         p.stderr(pipe_out);
+                    } else if !capture_output {
+                        let fd = libc::dup(1);
+                        p.stderr(Stdio::from_raw_fd(fd));
                     } else {
-                        if !capture_output {
-                            let fd = libc::dup(1);
-                            p.stderr(Stdio::from_raw_fd(fd));
-                        } else {
-                            // note: capture output with redirections does not
-                            // make much sense
-                        }
+                        // note: capture output with redirections does not
+                        // make much sense
                     }
                 }
             } else if to_ == "&2" && from_ == "1" {
                 unsafe {
-                    if i < length - 1 {
+                    if i < length - 1 || !capture_output {
                         let fd = libc::dup(2);
                         p.stdout(Stdio::from_raw_fd(fd));
                     } else {
-                        if !capture_output {
-                            let fd = libc::dup(2);
-                            p.stdout(Stdio::from_raw_fd(fd));
-                        } else {
-                            // note: capture output with redirections does not
-                            // make much sense
-                        }
+                        // note: capture output with redirections does not
+                        // make much sense
                     }
                 }
             } else {
@@ -534,7 +516,7 @@ pub fn run(line: &str) -> Result<CommandResult, &str> {
         if let Some(idx) = tokens.iter().position(|x| x.1 == "<") {
             tokens.remove(idx);
             len -= 1;
-            if len >= idx + 1 {
+            if len > idx {
                 redirect_from = tokens.remove(idx).1;
                 len -= 1;
             } else {
@@ -556,16 +538,12 @@ pub fn run(line: &str) -> Result<CommandResult, &str> {
     );
 
     match output {
-        Some(x) => {
-            return Ok(CommandResult {
-                status: status,
-                stdout: String::from_utf8_lossy(&x.stdout).into_owned(),
-                stderr: String::from_utf8_lossy(&x.stderr).into_owned(),
-            })
-        }
-        None => {
-            return Err("no output");
-        }
+        Some(x) => Ok(CommandResult {
+            status,
+            stdout: String::from_utf8_lossy(&x.stdout).into_owned(),
+            stderr: String::from_utf8_lossy(&x.stderr).into_owned(),
+        }),
+        None => Err("no output"),
     }
 }
 
