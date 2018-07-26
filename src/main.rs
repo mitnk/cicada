@@ -23,9 +23,9 @@ mod tools;
 mod builtins;
 mod completers;
 mod execute;
+mod history;
 mod libs;
 mod parsers;
-mod history;
 mod rcfile;
 mod shell;
 
@@ -64,12 +64,17 @@ fn main() {
         }
     }
     history::init(&mut rl);
-    rl.set_completer(Arc::new(completers::CicadaCompleter{sh: Arc::new(sh.clone())}));
+    rl.set_completer(Arc::new(completers::CicadaCompleter {
+        sh: Arc::new(sh.clone()),
+    }));
 
     let mut status = 0;
     loop {
         let prompt = libs::prompt::get_prompt(status);
-        rl.set_prompt(&prompt);
+        match rl.set_prompt(&prompt) {
+            Ok(_) => {}
+            Err(_) => {}
+        }
         match rl.read_line() {
             Ok(ReadResult::Input(line)) => {
                 if line.trim() == "" {

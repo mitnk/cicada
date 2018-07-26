@@ -1,10 +1,10 @@
+use regex::Regex;
 use std::env;
 use std::io::Write;
-use regex::Regex;
 
+use parsers;
 use shell;
 use tools;
-use parsers;
 
 pub fn run(sh: &shell::Shell, line: &str) -> i32 {
     if !tools::is_env(line) {

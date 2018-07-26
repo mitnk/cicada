@@ -4,7 +4,6 @@ use tools;
 use types::Command;
 use types::Tokens;
 
-
 pub fn line_to_plain_tokens(line: &str) -> Vec<String> {
     let mut result = Vec::new();
     let v = cmd_to_tokens(line);
@@ -14,7 +13,6 @@ pub fn line_to_plain_tokens(line: &str) -> Vec<String> {
     result
 }
 
-
 pub fn tokens_to_args(tokens: &Vec<(String, String)>) -> Vec<String> {
     let mut result = Vec::new();
     for s in tokens {
@@ -22,7 +20,6 @@ pub fn tokens_to_args(tokens: &Vec<(String, String)>) -> Vec<String> {
     }
     result
 }
-
 
 /// Parse command line for multiple commands. Examples:
 /// >>> line_to_cmds("echo foo && echo bar; echo end");
@@ -273,7 +270,6 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
     result
 }
 
-
 pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
     let mut tokens_new = Vec::new();
     let mut redirects = Vec::new();
@@ -367,18 +363,18 @@ pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
                 }
                 None => {}
             }
-
         }
-
     }
 
     if to_be_continued {
         return Err(String::from("redirection syntax error"));
     }
 
-    Ok(Command{tokens: tokens_new, redirects: redirects})
+    Ok(Command {
+        tokens: tokens_new,
+        redirects,
+    })
 }
-
 
 #[allow(dead_code)]
 fn is_valid_cmd(cmd: &str) -> bool {
@@ -420,7 +416,6 @@ fn is_valid_cmd(cmd: &str) -> bool {
     }
     true
 }
-
 
 #[allow(dead_code)]
 pub fn is_valid_input(line: &str) -> bool {
@@ -465,7 +460,7 @@ pub fn is_valid_input(line: &str) -> bool {
     if len > 1 {
         for sep in cmd_splitors {
             if cmds.contains(&sep.to_string()) {
-                if let Some(pos) = cmds.iter().position(|&ref x| x == sep) {
+                if let Some(pos) = cmds.iter().position(|x| x == sep) {
                     if pos + 1 <= len - 1 && cmds[pos + 1] == sep {
                         return false;
                     }
@@ -477,13 +472,12 @@ pub fn is_valid_input(line: &str) -> bool {
     true
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::cmd_to_tokens;
-    use super::line_to_plain_tokens;
-    use super::line_to_cmds;
     use super::is_valid_input;
+    use super::line_to_cmds;
+    use super::line_to_plain_tokens;
 
     fn _assert_vec_tuple_eq(a: Vec<(String, String)>, b: Vec<(&str, &str)>) {
         assert_eq!(a.len(), b.len());
@@ -526,26 +520,26 @@ mod tests {
                     ("", "|"),
                     ("", "wc"),
                     ("", "-l"),
-                ]
+                ],
             ),
             (
                 "echo `uname -m` | wc",
-                vec![("", "echo"), ("`", "uname -m"), ("", "|"), ("", "wc")]
+                vec![("", "echo"), ("`", "uname -m"), ("", "|"), ("", "wc")],
             ),
             (
                 "echo `uname -m` | wc # test it",
-                vec![("", "echo"), ("`", "uname -m"), ("", "|"), ("", "wc")]
+                vec![("", "echo"), ("`", "uname -m"), ("", "|"), ("", "wc")],
             ),
             ("echo '`uname -m`'", vec![("", "echo"), ("'", "`uname -m`")]),
             ("'\"\"\"\"'", vec![("'", "\"\"\"\"")]),
             ("\"\'\'\'\'\"", vec![("\"", "''''")]),
             (
                 "export DIR=`brew --prefix openssl`/include",
-                vec![("", "export"), ("", "DIR=`brew --prefix openssl`/include")]
+                vec![("", "export"), ("", "DIR=`brew --prefix openssl`/include")],
             ),
             (
                 "export FOO=\"`date` and `go version`\"",
-                vec![("", "export"), ("\"", "FOO=`date` and `go version`")]
+                vec![("", "export"), ("\"", "FOO=`date` and `go version`")],
             ),
             ("ps|wc", vec![("", "ps"), ("", "|"), ("", "wc")]),
             (
@@ -558,7 +552,7 @@ mod tests {
                     ("", "-n"),
                     ("", "|"),
                     ("", "wc"),
-                ]
+                ],
             ),
             (
                 "man awk| awk -F \"[ ,.\\\"]+\" 'foo' |sort -k2nr|head",
@@ -575,43 +569,46 @@ mod tests {
                     ("", "-k2nr"),
                     ("", "|"),
                     ("", "head"),
-                ]
+                ],
             ),
             (
                 "echo a || echo b",
-                vec![("", "echo"), ("", "a"), ("", "||"), ("", "echo"), ("", "b")]
+                vec![("", "echo"), ("", "a"), ("", "||"), ("", "echo"), ("", "b")],
             ),
             (
                 "echo \'{\\\"size\\\": 12}\'",
-                vec![("", "echo"), ("\'", "{\\\"size\\\": 12}")]
+                vec![("", "echo"), ("\'", "{\\\"size\\\": 12}")],
             ),
             (
                 "echo foo >/dev/null",
-                vec![("", "echo"), ("", "foo"), ("", ">/dev/null")]
+                vec![("", "echo"), ("", "foo"), ("", ">/dev/null")],
             ),
             (
                 "ls foo 2>/dev/null",
-                vec![("", "ls"), ("", "foo"), ("", "2>/dev/null")]
+                vec![("", "ls"), ("", "foo"), ("", "2>/dev/null")],
             ),
             (
                 "ls foo 2> '/dev/null'",
-                vec![("", "ls"), ("", "foo"), ("", "2>"), ("\'", "/dev/null")]
+                vec![("", "ls"), ("", "foo"), ("", "2>"), ("\'", "/dev/null")],
             ),
             (
                 "ls > /dev/null 2>&1",
-                vec![("", "ls"), ("", ">"), ("", "/dev/null"), ("", "2>&1")]
+                vec![("", "ls"), ("", ">"), ("", "/dev/null"), ("", "2>&1")],
             ),
             (
                 "ls > /dev/null 2>& 1",
-                vec![("", "ls"), ("", ">"), ("", "/dev/null"), ("", "2>&"), ("", "1")]
+                vec![
+                    ("", "ls"),
+                    ("", ">"),
+                    ("", "/dev/null"),
+                    ("", "2>&"),
+                    ("", "1"),
+                ],
             ),
-            (
-                "echo foo`date`",
-                vec![("", "echo"), ("", "foo`date`")]
-            ),
+            ("echo foo`date`", vec![("", "echo"), ("", "foo`date`")]),
             (
                 "echo 123'foo bar'",
-                vec![("", "echo"), ("\'", "123foo bar")]
+                vec![("", "echo"), ("\'", "123foo bar")],
             ),
         ];
         for (left, right) in v {
@@ -639,12 +636,12 @@ mod tests {
             ("echo 'hi $USER'", vec!["echo", "hi $USER"]),
             (
                 "echo 'hi $USER' |  wc  -l ",
-                vec!["echo", "hi $USER", "|", "wc", "-l"]
+                vec!["echo", "hi $USER", "|", "wc", "-l"],
             ),
             ("echo `uname -m` | wc", vec!["echo", "uname -m", "|", "wc"]),
             (
                 "echo `uptime` | wc # testing",
-                vec!["echo", "uptime", "|", "wc"]
+                vec!["echo", "uptime", "|", "wc"],
             ),
             ("awk -F \"[ ,.\\\"]+\"", vec!["awk", "-F", "[ ,.\"]+"]),
             ("echo foo\\|bar", vec!["echo", "foo|bar"]),
@@ -653,12 +650,12 @@ mod tests {
             ("echo a || echo b", vec!["echo", "a", "||", "echo", "b"]),
             (
                 "echo \'{\\\"size\\\": 12}\'",
-                vec!["echo", "{\\\"size\\\": 12}"]
+                vec!["echo", "{\\\"size\\\": 12}"],
             ),
             (
                 // that is: echo '{"q": "{\"size\": 12}"}'
                 "echo \'{\"q\": \"{\\\"size\\\": 12}\"}\'",
-                vec!["echo", "{\"q\": \"{\\\"size\\\": 12}\"}"]
+                vec!["echo", "{\"q\": \"{\\\"size\\\": 12}\"}"],
             ),
         ];
 
@@ -679,7 +676,7 @@ mod tests {
             ("ls -lh", vec!["ls -lh"]),
             (
                 "awk -F \" \" '{print $1}' README.md",
-                vec!["awk -F \" \" '{print $1}' README.md"]
+                vec!["awk -F \" \" '{print $1}' README.md"],
             ),
             ("ls | wc", vec!["ls | wc"]),
             ("echo #foo; echo bar", vec!["echo"]),
@@ -690,16 +687,16 @@ mod tests {
             ("echo foo && echo bar", vec!["echo foo", "&&", "echo bar"]),
             (
                 "echo foo && echo bar && echo baz",
-                vec!["echo foo", "&&", "echo bar", "&&", "echo baz"]
+                vec!["echo foo", "&&", "echo bar", "&&", "echo baz"],
             ),
             ("echo foo || echo bar", vec!["echo foo", "||", "echo bar"]),
             (
                 "echo foo && echo bar; echo end",
-                vec!["echo foo", "&&", "echo bar", ";", "echo end"]
+                vec!["echo foo", "&&", "echo bar", ";", "echo end"],
             ),
             (
                 "man awk| awk -F \"[ ,.\\\"]+\" 'foo' |sort -k2nr|head",
-                vec!["man awk| awk -F \"[ ,.\\\"]+\" 'foo' |sort -k2nr|head"]
+                vec!["man awk| awk -F \"[ ,.\\\"]+\" 'foo' |sort -k2nr|head"],
             ),
             (";", vec![";"]),
             ("||", vec!["||"]),

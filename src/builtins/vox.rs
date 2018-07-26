@@ -94,11 +94,10 @@ fn exit_env(sh: &shell::Shell) -> i32 {
     let mut _tokens: Vec<&str> = env_path.split(':').collect();
     let mut path_virtual_env = String::from("${VIRTUAL_ENV}/bin");
     shell::extend_env(sh, &mut path_virtual_env);
-    _tokens.iter().position(|&n| n == path_virtual_env).map(
-        |e| {
-            _tokens.remove(e)
-        },
-    );
+    _tokens
+        .iter()
+        .position(|&n| n == path_virtual_env)
+        .map(|e| _tokens.remove(e));
     let env_path_new = _tokens.join(":");
     env::set_var("PATH", &env_path_new);
     env::set_var("VIRTUAL_ENV", "");

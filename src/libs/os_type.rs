@@ -26,7 +26,10 @@ fn get_other_os_name() -> String {
 }
 
 fn get_release_value(ptn: &str) -> String {
-    let line = format!("grep -i '{}' /etc/*release* | grep -o '=.*' | tr '\"=' ' '", ptn);
+    let line = format!(
+        "grep -i '{}' /etc/*release* | grep -o '=.*' | tr '\"=' ' '",
+        ptn
+    );
     match execute::run(&line) {
         Ok(x) => {
             return x.stdout.trim().to_string();

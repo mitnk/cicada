@@ -7,13 +7,13 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::{is_separator, MAIN_SEPARATOR};
 use std::sync::Arc;
 
-use linefeed::Prompter;
-use linefeed::terminal::Terminal;
 use linefeed::complete::{Completer, Completion, Suffix};
+use linefeed::terminal::Terminal;
+use linefeed::Prompter;
 
 use parsers;
-use tools;
 use shell;
+use tools;
 
 pub struct BinCompleter {
     pub sh: Arc<shell::Shell>,
@@ -32,16 +32,11 @@ impl<Term: Terminal> Completer<Term> for BinCompleter {
         // TODO: use RC::into_raw() instead
         let sh = Arc::try_unwrap(self.sh.clone());
         match sh {
-            Ok(x) => {
-                Some(complete_bin(&x, word))
-            }
-            Err(e) => {
-                Some(complete_bin(&e, word))
-            }
+            Ok(x) => Some(complete_bin(&x, word)),
+            Err(e) => Some(complete_bin(&e, word)),
         }
     }
 }
-
 
 impl<Term: Terminal> Completer<Term> for PathCompleter {
     fn complete(
@@ -109,7 +104,7 @@ pub fn complete_path(buffer: &str, for_dir: bool) -> Vec<Completion> {
                         let (name, display) = if dir_orig != "" {
                             (
                                 format!("{}{}{}", dir_orig, MAIN_SEPARATOR, _path),
-                                Some(_path)
+                                Some(_path),
                             )
                         } else {
                             (_path, None)

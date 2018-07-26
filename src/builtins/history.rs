@@ -76,8 +76,7 @@ fn search_history(conn: &sqlite::Connection, q: &str) {
         "SELECT inp FROM {}
                      WHERE inp like '%{}%'
                      ORDER BY tsb desc limit 20;",
-        history_table,
-        q
+        history_table, q
     );
     match conn.prepare(q) {
         Ok(mut statement) => {

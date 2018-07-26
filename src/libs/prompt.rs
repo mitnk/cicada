@@ -1,6 +1,6 @@
+use libs;
 use std::env;
 use std::error::Error;
-use libs;
 use tools;
 
 pub fn get_prompt(status: i32) -> String {

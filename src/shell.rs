@@ -1,7 +1,7 @@
-use std::env;
 use errno::errno;
 use libc;
 use std::collections::HashMap;
+use std::env;
 use std::mem;
 
 use regex::Regex;

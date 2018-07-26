@@ -4,9 +4,9 @@ use std::io::{BufRead, BufReader};
 
 use regex::Regex;
 
+use linefeed::complete::{Completer, Completion, Suffix};
 use linefeed::prompter::Prompter;
 use linefeed::terminal::Terminal;
-use linefeed::complete::{Completer, Completion, Suffix};
 
 pub struct MakeCompleter;
 

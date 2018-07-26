@@ -17,12 +17,12 @@ mod types;
 #[macro_use]
 mod tools;
 
-mod shell;
-mod libs;
-mod history;
 mod builtins;
 mod execute;
+mod history;
+mod libs;
 mod parsers;
+mod shell;
 
 use tools::CommandResult;
 
@@ -40,7 +40,6 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
     return parsers::parser_line::line_to_cmds(line);
 }
 
-
 /// Parse a command to tokens.
 ///
 /// # Examples
@@ -57,7 +56,6 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
 pub fn cmd_to_tokens(cmd: &str) -> Vec<(String, String)> {
     return parsers::parser_line::cmd_to_tokens(cmd);
 }
-
 
 /// Determine whether line a valid input.
 ///
@@ -79,7 +77,6 @@ pub fn cmd_to_tokens(cmd: &str) -> Vec<(String, String)> {
 pub fn is_valid_input(line: &str) -> bool {
     return parsers::parser_line::is_valid_input(line);
 }
-
 
 /// Run a command or a pipeline.
 ///

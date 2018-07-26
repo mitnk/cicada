@@ -1,8 +1,8 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use linefeed::prompter::Prompter;
 use linefeed::complete::{Completer, Completion};
+use linefeed::prompter::Prompter;
 use linefeed::terminal::Terminal;
 use regex::Regex;
 
@@ -64,7 +64,9 @@ impl<Term: Terminal> Completer<Term> for CicadaCompleter {
 
         // these completions should not fail back to path completion.
         if for_bin(line) {
-            let cpl = Arc::new(path::BinCompleter{sh: self.sh.clone()});
+            let cpl = Arc::new(path::BinCompleter {
+                sh: self.sh.clone(),
+            });
             return cpl.complete(word, reader, start, _end);
         }
         if for_cd(line) {

@@ -1,20 +1,20 @@
-use std::env;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::env;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::process::Stdio;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
+use std::process::Stdio;
 use time;
 
 use glob;
 use regex::Regex;
 
-use libc;
-use parsers;
 use execute;
-use shell;
+use libc;
 use libs;
+use parsers;
+use shell;
 
 #[derive(Clone, Debug)]
 pub struct CommandResult {
@@ -65,8 +65,7 @@ pub fn clog(s: &str) {
     }
     let pid = unsafe { libc::getpid() };
     let now = time::now();
-    let s =
-        format!(
+    let s = format!(
         "[{:04}-{:02}-{:02} {:02}:{:02}:{:02}][{}]{}",
         now.tm_year + 1900,
         now.tm_mon + 1,
@@ -287,8 +286,7 @@ fn do_command_substitution_for_dot(line: &mut String) {
     for (sep, token) in tokens {
         if sep == "`" {
             let _args = parsers::parser_line::cmd_to_tokens(token.as_str());
-            let (_, _, output) =
-                execute::run_pipeline(_args, "", false, false, true, None);
+            let (_, _, output) = execute::run_pipeline(_args, "", false, false, true, None);
             if let Some(x) = output {
                 match String::from_utf8(x.stdout) {
                     Ok(stdout) => {
@@ -332,8 +330,7 @@ fn do_command_substitution_for_dot(line: &mut String) {
                     _head = cap[1].to_string();
                     _tail = cap[3].to_string();
                     let _args = parsers::parser_line::cmd_to_tokens(&cap[2]);
-                    let (_, _, output) =
-                        execute::run_pipeline(_args, "", false, false, true, None);
+                    let (_, _, output) = execute::run_pipeline(_args, "", false, false, true, None);
                     if let Some(x) = output {
                         match String::from_utf8(x.stdout) {
                             Ok(stdout) => {
@@ -462,8 +459,7 @@ fn extend_glob(line: &mut String) {
                         match entry {
                             Ok(path) => {
                                 let s = path.to_string_lossy();
-                                if !item.starts_with('.') && s.starts_with('.') &&
-                                    !s.contains('/')
+                                if !item.starts_with('.') && s.starts_with('.') && !s.contains('/')
                                 {
                                     // skip hidden files, you may need to
                                     // type `ls .*rc` instead of `ls *rc`
@@ -671,25 +667,23 @@ pub fn create_fd_from_file(file_name: &str, append: bool) -> Result<Stdio, Strin
             let file_out = unsafe { Stdio::from_raw_fd(fd) };
             Ok(file_out)
         }
-        Err(e) => {
-            Err(format!("failed to create fd from file: {:?}", e))
-        }
+        Err(e) => Err(format!("failed to create fd from file: {:?}", e)),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use shell;
-    use std::collections::HashMap;
-    use super::needs_extend_home;
-    use super::needs_globbing;
-    use super::is_alias;
     use super::do_brace_expansion;
     use super::do_command_substitution;
-    use super::should_do_brace_command_extension;
     use super::extend_alias;
-    use super::remove_envs_from_line;
     use super::extend_bandband;
+    use super::is_alias;
+    use super::needs_extend_home;
+    use super::needs_globbing;
+    use super::remove_envs_from_line;
+    use super::should_do_brace_command_extension;
+    use shell;
+    use std::collections::HashMap;
 
     #[test]
     fn dots_test() {

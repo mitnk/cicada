@@ -3,19 +3,19 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 
-use linefeed::terminal::Terminal;
-use linefeed::complete::{Completer, Completion};
-use linefeed::complete::Suffix;
 use linefeed::complete::escape;
-use linefeed::complete::unescape;
 use linefeed::complete::escaped_word_start;
+use linefeed::complete::unescape;
+use linefeed::complete::Suffix;
+use linefeed::complete::{Completer, Completion};
 use linefeed::prompter::Prompter;
+use linefeed::terminal::Terminal;
 
-use yaml_rust::YamlLoader;
 use yaml_rust::yaml;
+use yaml_rust::YamlLoader;
 
-use tools;
 use parsers;
+use tools;
 
 /// Performs completion by searching dotfiles
 pub struct DotsCompleter;
@@ -57,8 +57,8 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
     if !Path::new(dot_file).exists() {
         return res;
     }
-    let sub_cmd = if (args.len() >= 3 && !args[1].starts_with('-')) ||
-        (args.len() >= 2 && !args[1].starts_with('-') && line.ends_with(' '))
+    let sub_cmd = if (args.len() >= 3 && !args[1].starts_with('-'))
+        || (args.len() >= 2 && !args[1].starts_with('-') && line.ends_with(' '))
     {
         args[1].as_str()
     } else {
@@ -147,7 +147,6 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
                                             }
                                         }
                                     }
-
                                 }
                             }
                         }

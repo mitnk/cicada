@@ -5,18 +5,18 @@ use std::io::{self, Error, Read, Write};
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::os::unix::process::CommandExt;
 use std::path::Path;
-use std::process::{Command, Stdio, Output};
+use std::process::{Command, Output, Stdio};
 
-use nix::unistd::pipe;
-use nix::sys::signal;
-use nom::IResult;
 use libc;
+use nix::sys::signal;
+use nix::unistd::pipe;
+use nom::IResult;
 
-use types;
-use tools::{self, clog, CommandResult};
 use builtins;
 use parsers;
 use shell;
+use tools::{self, clog, CommandResult};
+use types;
 
 extern "C" fn handle_sigchld(_: i32) {
     // When handle waitpid here & for commands like `ls | cmd-not-exist`
@@ -181,8 +181,13 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     }
 
     let (result, term_given, _) = run_pipeline(
-        tokens.clone(), redirect_from.as_str(), background, tty, false,
-        Some(envs));
+        tokens.clone(),
+        redirect_from.as_str(),
+        background,
+        tty,
+        false,
+        Some(envs),
+    );
 
     if term_given {
         unsafe {
@@ -229,7 +234,6 @@ pub fn run_pipeline(
     capture_output: bool,
     envs: Option<HashMap<String, String>>,
 ) -> (i32, bool, Option<Output>) {
-
     if background && capture_output {
         println_stderr!("cicada: cannot capture output of background cmd");
         return (1, false, None);
@@ -543,8 +547,13 @@ pub fn run(line: &str) -> Result<CommandResult, &str> {
     }
 
     let (status, _, output) = run_pipeline(
-        tokens.clone(), redirect_from.as_str(), false, false, true,
-        Some(envs));
+        tokens.clone(),
+        redirect_from.as_str(),
+        false,
+        false,
+        true,
+        Some(envs),
+    );
 
     match output {
         Some(x) => {
@@ -560,12 +569,11 @@ pub fn run(line: &str) -> Result<CommandResult, &str> {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
+    use super::run;
     use super::run_calc_float;
     use super::run_calc_int;
-    use super::run;
     use super::tools;
 
     #[test]
@@ -600,45 +608,43 @@ mod tests {
                 1 => {
                     expected_stdout = line.clone();
                 }
-                2 => {
-                    match run(&input) {
-                        Ok(c) => {
-                            let ptn = if expected_stdout.is_empty() {
-                                r"^$"
-                            } else {
-                                expected_stdout.as_str()
-                            };
-                            let matched = tools::re_contains(&c.stdout.trim(), &ptn);
-                            if !matched {
-                                println!("\nSTDOUT Check Failed:");
-                                println!("input: {}", &input);
-                                println!("stdout: {:?}", &c.stdout.trim());
-                                println!("expected: {:?}", &expected_stdout);
-                                println!("line number: {}\n", num);
-                            }
-                            assert!(matched);
+                2 => match run(&input) {
+                    Ok(c) => {
+                        let ptn = if expected_stdout.is_empty() {
+                            r"^$"
+                        } else {
+                            expected_stdout.as_str()
+                        };
+                        let matched = tools::re_contains(&c.stdout.trim(), &ptn);
+                        if !matched {
+                            println!("\nSTDOUT Check Failed:");
+                            println!("input: {}", &input);
+                            println!("stdout: {:?}", &c.stdout.trim());
+                            println!("expected: {:?}", &expected_stdout);
+                            println!("line number: {}\n", num);
+                        }
+                        assert!(matched);
 
-                            let ptn = if line.is_empty() {
-                                r"^$"
-                            } else {
-                                line.as_str()
-                            };
-                            let matched = tools::re_contains(&c.stderr.trim(), &ptn);
-                            if !matched {
-                                println!("\nSTDERR Check Failed:");
-                                println!("input: {}", &input);
-                                println!("stderr: {:?}", &c.stderr);
-                                println!("expected: {}", &ptn);
-                                println!("line number: {}\n", num + 1);
-                            }
-                            assert!(matched);
+                        let ptn = if line.is_empty() {
+                            r"^$"
+                        } else {
+                            line.as_str()
+                        };
+                        let matched = tools::re_contains(&c.stderr.trim(), &ptn);
+                        if !matched {
+                            println!("\nSTDERR Check Failed:");
+                            println!("input: {}", &input);
+                            println!("stderr: {:?}", &c.stderr);
+                            println!("expected: {}", &ptn);
+                            println!("line number: {}\n", num + 1);
                         }
-                        Err(e) => {
-                            println!("run error on {} - {:?}", &input, e);
-                            assert!(false);
-                        }
+                        assert!(matched);
                     }
-                }
+                    Err(e) => {
+                        println!("run error on {} - {:?}", &input, e);
+                        assert!(false);
+                    }
+                },
                 _ => {
                     assert!(false);
                 }

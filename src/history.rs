@@ -4,12 +4,12 @@ use std::fs;
 use std::io::Write;
 use std::path::Path;
 
-use linefeed::Interface;
 use linefeed::terminal::DefaultTerminal;
+use linefeed::Interface;
 use sqlite;
 
-use tools;
 use shell;
+use tools;
 
 pub fn init(rl: &mut Interface<DefaultTerminal>) {
     let mut hist_size: usize = 999;
@@ -83,11 +83,7 @@ pub fn init(rl: &mut Interface<DefaultTerminal>) {
                 }
             }
 
-            let sql_select =
-                format!(
-                "SELECT inp FROM {} ORDER BY tsb;",
-                history_table,
-            );
+            let sql_select = format!("SELECT inp FROM {} ORDER BY tsb;", history_table,);
             match conn.iterate(sql_select, |pairs| {
                 for &(_, value) in pairs.iter() {
                     let inp;
@@ -144,8 +140,7 @@ fn delete_duplicated_histories() {
             let sql = format!(
                 "DELETE FROM {} WHERE rowid NOT IN (
                 SELECT MAX(rowid) FROM {} GROUP BY inp)",
-                history_table,
-                history_table
+                history_table, history_table
             );
             match conn.execute(sql) {
                 Ok(_) => {}
@@ -183,8 +178,8 @@ pub fn add(
     }
     let sql = format!(
         "INSERT INTO \
-        {} (inp, rtn, tsb, tse, sessionid) \
-        VALUES('{}', {}, {}, {}, '{}');",
+         {} (inp, rtn, tsb, tse, sessionid) \
+         VALUES('{}', {}, {}, {}, '{}');",
         history_table,
         str::replace(line.trim(), "'", "''"),
         status,

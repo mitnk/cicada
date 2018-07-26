@@ -1,6 +1,5 @@
 use regex;
 
-
 pub fn find_first_group(ptn: &str, text: &str) -> Option<String> {
     let re;
     match regex::Regex::new(ptn) {
