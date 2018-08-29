@@ -83,6 +83,7 @@ fn main() {
                 if line.trim() == "" {
                     continue;
                 }
+                sh.cmd = line.clone();
 
                 let tsb_spec = time::get_time();
                 let tsb = (tsb_spec.sec as f64) + tsb_spec.nsec as f64 / 1_000_000_000.0;

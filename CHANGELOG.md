@@ -1,5 +1,9 @@
 # Change Logs
 
+## v0.8.2
+
+- Skip from saving into history for commands start with spaces.
+
 ## v0.8.1
 
 - Minor updates on `cinfo`.

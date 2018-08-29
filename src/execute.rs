@@ -115,7 +115,7 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         if sep == "||" && status == 0 {
             break;
         }
-        status = run_proc(sh, token.as_str(), tty);
+        status = run_proc(sh, &token, tty);
     }
     status
 }
@@ -180,12 +180,14 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         return 0;
     }
 
+    let log_cmd = !sh.cmd.starts_with(" ");
     let (result, term_given, _) = run_pipeline(
         tokens.clone(),
         redirect_from.as_str(),
         background,
         tty,
         false,
+        log_cmd,
         Some(envs),
     );
 
@@ -221,6 +223,7 @@ pub fn run_pipeline(
     background: bool,
     tty: bool,
     capture_output: bool,
+    log_cmd: bool,
     envs: Option<HashMap<String, String>>,
 ) -> (i32, bool, Option<Output>) {
     if background && capture_output {
@@ -263,7 +266,10 @@ pub fn run_pipeline(
             info.push_str("| ")
         }
     }
-    log!("run: {}", info);
+
+    if log_cmd {
+        log!("run: {}", info);
+    }
 
     if length == 0 {
         println!("cicada: invalid command: cmds with empty length");
@@ -534,6 +540,7 @@ pub fn run(line: &str) -> Result<CommandResult, &str> {
         false,
         false,
         true,
+        false,
         Some(envs),
     );
 

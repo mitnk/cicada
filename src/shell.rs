@@ -12,6 +12,7 @@ use tools::{self, clog};
 #[derive(Debug, Clone)]
 pub struct Shell {
     pub alias: HashMap<String, String>,
+    pub cmd: String,
     pub previous_dir: String,
     pub previous_cmd: String,
     pub previous_status: i32,
@@ -21,6 +22,7 @@ impl Shell {
     pub fn new() -> Shell {
         Shell {
             alias: HashMap::new(),
+            cmd: String::new(),
             previous_dir: String::new(),
             previous_cmd: String::new(),
             previous_status: 0,

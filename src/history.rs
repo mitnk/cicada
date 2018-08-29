@@ -159,6 +159,10 @@ pub fn add(
     tsb: f64,
     tse: f64,
 ) {
+    if sh.cmd.starts_with(" ") {
+        return;
+    }
+
     sh.previous_status = status;
     if line == sh.previous_cmd {
         return;
