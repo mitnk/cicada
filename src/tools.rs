@@ -211,8 +211,16 @@ pub fn needs_extend_home(line: &str) -> bool {
 
 pub fn wrap_sep_string(sep: &str, s: &str) -> String {
     let mut _token = String::new();
+    let mut meet_subsep = false;
     for c in s.chars() {
+        // handle cmds like: export DIR=`brew --prefix openssl`/include
+        if c == '`' {
+            meet_subsep = !meet_subsep;
+        }
         if c.to_string() == sep {
+            _token.push('\\');
+        }
+        if c == ' ' && sep.is_empty() && !meet_subsep {
             _token.push('\\');
         }
         _token.push(c);
@@ -221,17 +229,25 @@ pub fn wrap_sep_string(sep: &str, s: &str) -> String {
 }
 
 fn do_command_substitution(line: &mut String) {
-    do_command_substitution_for_dot(line);
-    do_command_substitution_for_dollar(line);
+    if should_do_dot_command_extension(&line) {
+        do_command_substitution_for_dot(line);
+    }
+    if should_do_dollar_command_extension(&line) {
+        do_command_substitution_for_dollar(line);
+    }
 }
 
-fn should_do_brace_command_extension(line: &str) -> bool {
+fn should_do_dollar_command_extension(line: &str) -> bool {
     re_contains(line, r"\$\([^\)]+\)")
+}
+
+fn should_do_dot_command_extension(line: &str) -> bool {
+    re_contains(line, r"`[^`]+`")
 }
 
 fn do_command_substitution_for_dollar(line: &mut String) {
     loop {
-        if !should_do_brace_command_extension(&line) {
+        if !should_do_dollar_command_extension(&line) {
             break;
         }
         let ptn_cmd = r"\$\(([^\(]+)\)";
@@ -364,6 +380,10 @@ fn do_command_substitution_for_dot(line: &mut String) {
 }
 
 pub fn do_brace_expansion(line: &mut String) {
+    if !should_extend_brace(&line) {
+        return;
+    }
+
     let _line = line.clone();
     let args = parsers::parser_line::cmd_to_tokens(_line.as_str());
     let mut result: Vec<String> = Vec::new();
@@ -407,9 +427,9 @@ pub fn do_brace_expansion(line: &mut String) {
             for item in &mut _result {
                 *item = format!("{}{}{}", _prefix, item, _token);
             }
-            result.push(wrap_sep_string(sep.as_str(), _result.join(" ").as_str()));
+            result.push(_result.join(" "));
         } else {
-            result.push(wrap_sep_string(sep.as_str(), token.as_str()));
+            result.push(wrap_sep_string(&sep, &token));
         }
     }
     *line = result.join(" ");
@@ -590,10 +610,7 @@ pub fn extend_alias(sh: &shell::Shell, line: &str) -> String {
             if !sep.is_empty() {
                 is_cmd = false;
                 result.push(' ');
-                result.push_str(&sep);
-                let replace_to = format!("\\{}", sep);
-                result.push_str(&arg.replace(sep, &replace_to));
-                result.push_str(&sep);
+                result.push_str(&wrap_sep_string(&sep, &arg));
                 continue;
             }
 
@@ -601,13 +618,13 @@ pub fn extend_alias(sh: &shell::Shell, line: &str) -> String {
                 is_cmd = true;
             } else if arg == "|" {
                 result.push(' ');
-                result.push_str(&arg);
+                result.push_str(&wrap_sep_string(&sep, &arg));
                 is_cmd = true;
                 continue;
             }
             if !is_cmd {
                 result.push(' ');
-                result.push_str(&arg);
+                result.push_str(&wrap_sep_string(&sep, &arg));
                 continue;
             }
 
@@ -674,7 +691,8 @@ mod tests {
     use super::needs_extend_home;
     use super::needs_globbing;
     use super::remove_envs_from_line;
-    use super::should_do_brace_command_extension;
+    use super::should_do_dollar_command_extension;
+    use super::should_do_dot_command_extension;
     use shell;
     use std::collections::HashMap;
 
@@ -742,14 +760,20 @@ mod tests {
     }
 
     #[test]
-    fn test_should_do_brace_command_extension() {
-        assert!(!should_do_brace_command_extension("ls $HOME"));
-        assert!(!should_do_brace_command_extension("echo $[pwd]"));
-        assert!(should_do_brace_command_extension("echo $(pwd)"));
-        assert!(should_do_brace_command_extension("echo $(pwd) foo"));
-        assert!(should_do_brace_command_extension("echo $(foo bar)"));
-        assert!(should_do_brace_command_extension("echo $(echo foo)"));
-        assert!(should_do_brace_command_extension("$(pwd) foo"));
+    fn test_should_do_dollar_command_extension() {
+        assert!(!should_do_dollar_command_extension("ls $HOME"));
+        assert!(!should_do_dollar_command_extension("echo $[pwd]"));
+        assert!(should_do_dollar_command_extension("echo $(pwd)"));
+        assert!(should_do_dollar_command_extension("echo $(pwd) foo"));
+        assert!(should_do_dollar_command_extension("echo $(foo bar)"));
+        assert!(should_do_dollar_command_extension("echo $(echo foo)"));
+        assert!(should_do_dollar_command_extension("$(pwd) foo"));
+    }
+
+    #[test]
+    fn test_should_do_dot_command_extension() {
+        assert!(should_do_dot_command_extension("ls `pwd`"));
+        assert!(!should_do_dot_command_extension("ls pwd"));
     }
 
     #[test]
@@ -760,7 +784,12 @@ mod tests {
         sh.add_alias("grep", "grep -I --color=auto --exclude-dir=.git");
         sh.add_alias("tx", "tmux");
 
+        assert_eq!(extend_alias(&sh, "echo"), "echo");
+        assert_eq!(extend_alias(&sh, "echo a\\ b xy"), "echo a\\ b xy");
+
         assert_eq!(extend_alias(&sh, "ls"), "ls -G");
+        assert_eq!(extend_alias(&sh, "ls a\\ b xy"), "ls -G a\\ b xy");
+
         assert_eq!(extend_alias(&sh, "ls -lh"), "ls -G -lh");
         assert_eq!(extend_alias(&sh, "ls | wc"), "ls -G | wc -l");
         assert_eq!(

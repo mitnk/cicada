@@ -136,6 +136,7 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
     let mut sep_second = String::new();
     let mut token = String::new();
     let mut has_backslash = false;
+    let mut end_token_when_hit_space = false;
     let mut new_round = true;
     let mut skip_next = false;
     let count_chars = line.chars().count();
@@ -201,12 +202,18 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
         }
 
         if c == ' ' {
+            if end_token_when_hit_space {
+                end_token_when_hit_space = false;
+                result.push((String::from(""), token));
+                token = String::new();
+                new_round = true;
+                continue;
+            }
+
             if has_backslash {
                 has_backslash = false;
                 token.push(c);
-                if sep.is_empty() {
-                    sep = String::from("\"");
-                }
+                end_token_when_hit_space = true;
                 continue;
             }
             if sep.is_empty() {
@@ -500,7 +507,8 @@ mod tests {
             ("echo \"hi $USER\"", vec![("", "echo"), ("\"", "hi $USER")]),
             ("echo 'hi $USER'", vec![("", "echo"), ("'", "hi $USER")]),
             ("echo '###'", vec![("", "echo"), ("'", "###")]),
-            ("echo a\\ bc", vec![("", "echo"), ("\"", "a bc")]),
+            ("echo a\\ bc", vec![("", "echo"), ("", "a bc")]),
+            ("echo a\\ b cd", vec![("", "echo"), ("", "a b"), ("", "cd")]),
             ("echo \\#", vec![("", "echo"), ("", "#")]),
             (
                 "echo 'hi $USER' |  wc  -l ",
@@ -646,6 +654,10 @@ mod tests {
                 // that is: echo '{"q": "{\"size\": 12}"}'
                 "echo \'{\"q\": \"{\\\"size\\\": 12}\"}\'",
                 vec!["echo", "{\"q\": \"{\\\"size\\\": 12}\"}"],
+            ),
+            (
+                "echo a\\ b c",
+                vec!["echo", "a b", "c"],
             ),
         ];
 

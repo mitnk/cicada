@@ -158,6 +158,10 @@ mod tests {
         extend_env(&sh, &mut s);
         assert_eq!(s, "echo '$PATH'");
 
+        let mut s = String::from("echo a\\ b xy");
+        extend_env(&sh, &mut s);
+        assert_eq!(s, "echo a\\ b xy");
+
         let mut s = String::from("echo 'hi $PATH'");
         extend_env(&sh, &mut s);
         assert_eq!(s, "echo 'hi $PATH'");

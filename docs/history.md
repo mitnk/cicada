@@ -3,6 +3,9 @@
 Shell history items are stored with sqlite database. Like bash, you can use
 `Ctrl-R`, `Ctrl-P`, `Ctrl-N`, `Arrow-UP`, `Arrow-DOWN` keys to access history.
 
+You can prevent commands from saving into history by prefixing spaces with
+them.
+
 You can modify the settings of history related value in `~/.cicadarc`. These
 values on the right side are the default ones:
 

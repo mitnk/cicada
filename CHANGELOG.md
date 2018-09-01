@@ -3,6 +3,7 @@
 ## v0.8.2
 
 - Skip from saving into history for commands start with spaces.
+- Fixed parser issue on commands like: `mv a\ b xy`.
 
 ## v0.8.1
 
