@@ -7,7 +7,6 @@ use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::process::Stdio;
 use time;
 
-use glob;
 use regex::Regex;
 
 use execute;
@@ -435,82 +434,10 @@ pub fn do_brace_expansion(line: &mut String) {
     *line = result.join(" ");
 }
 
-fn needs_globbing(line: &str) -> bool {
-    if is_arithmetic(line) {
-        return false;
-    }
-
-    let re;
-    if let Ok(x) = Regex::new(r"\*+") {
-        re = x;
-    } else {
-        return false;
-    }
-
-    let tokens = parsers::parser_line::cmd_to_tokens(line);
-    for (sep, token) in tokens {
-        if !sep.is_empty() {
-            continue;
-        }
-        if re.is_match(&token) {
-            return true;
-        }
-    }
-    false
-}
-
-fn extend_glob(line: &mut String) {
-    if !needs_globbing(&line) {
-        return;
-    }
-    let _line = line.clone();
-    // XXX: spliting needs to consider cases like `echo 'a * b'`
-    let _tokens: Vec<&str> = _line.split(' ').collect();
-    let mut result: Vec<String> = Vec::new();
-    for item in &_tokens {
-        if !item.contains('*') || item.trim().starts_with('\'') || item.trim().starts_with('"') {
-            result.push(item.to_string());
-        } else {
-            match glob::glob(item) {
-                Ok(paths) => {
-                    let mut is_empty = true;
-                    for entry in paths {
-                        match entry {
-                            Ok(path) => {
-                                let s = path.to_string_lossy();
-                                if !item.starts_with('.') && s.starts_with('.') && !s.contains('/')
-                                {
-                                    // skip hidden files, you may need to
-                                    // type `ls .*rc` instead of `ls *rc`
-                                    continue;
-                                }
-                                result.push(s.into_owned());
-                                is_empty = false;
-                            }
-                            Err(e) => {
-                                log!("glob error: {:?}", e);
-                            }
-                        }
-                    }
-                    if is_empty {
-                        result.push(item.to_string());
-                    }
-                }
-                Err(e) => {
-                    println!("glob error: {:?}", e);
-                    result.push(item.to_string());
-                    return;
-                }
-            }
-        }
-    }
-    *line = result.join(" ");
-}
-
 pub fn pre_handle_cmd_line(sh: &shell::Shell, line: &mut String) {
     extend_home(line);
     do_brace_expansion(line);
-    extend_glob(line);
+    shell::extend_glob(line);
     shell::extend_env(sh, line);
     do_command_substitution(line);
 }
@@ -689,7 +616,6 @@ mod tests {
     use super::extend_bandband;
     use super::is_alias;
     use super::needs_extend_home;
-    use super::needs_globbing;
     use super::remove_envs_from_line;
     use super::should_do_dollar_command_extension;
     use super::should_do_dot_command_extension;
@@ -707,17 +633,6 @@ mod tests {
         assert!(!needs_extend_home("echo '~'"));
         assert!(!needs_extend_home("echo \"~\""));
         assert!(!needs_extend_home("echo ~~"));
-    }
-
-    #[test]
-    fn test_needs_globbing() {
-        assert!(needs_globbing("ls *"));
-        assert!(needs_globbing("ls  *.txt"));
-        assert!(needs_globbing("grep -i 'desc' /etc/*release*"));
-        assert!(!needs_globbing("2 * 3"));
-        assert!(!needs_globbing("ls '*.md'"));
-        assert!(!needs_globbing("ls 'a * b'"));
-        assert!(!needs_globbing("ls foo"));
     }
 
     #[test]

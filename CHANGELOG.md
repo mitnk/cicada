@@ -4,6 +4,7 @@
 
 - Skip from saving into history for commands start with spaces.
 - Fixed parser issue on commands like: `mv a\ b xy`.
+- Fixed issue that when extending globs when file name contains spaces.
 
 ## v0.8.1
 
