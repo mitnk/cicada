@@ -104,4 +104,57 @@ impl<Term: Terminal> Completer<Term> for CicadaCompleter {
         let cpl = Arc::new(path::PathCompleter);
         cpl.complete(word, reader, start, _end)
     }
+
+    fn word_start(&self, line: &str, end: usize, _reader: &Prompter<Term>) -> usize {
+        escaped_word_start(&line[..end])
+    }
+}
+
+/// via: https://github.com/murarth/linefeed/blob/master/src/complete.rs
+/// Returns the start position of a word with non-word characters escaped by
+/// backslash (`\\`).
+pub fn escaped_word_start(s: &str) -> usize {
+    let mut chars = s.char_indices().rev();
+    let mut start = s.len();
+
+    while let Some((idx, ch)) = chars.next() {
+        if needs_escape(ch) {
+            let n = {
+                let mut n = 0;
+
+                loop {
+                    let mut clone = chars.clone();
+
+                    let ch = match clone.next() {
+                        Some((_, ch)) => ch,
+                        None => break
+                    };
+
+                    if ch == '\\' {
+                        chars = clone;
+                        n += 1;
+                    } else {
+                        break;
+                    }
+                }
+
+                n
+            };
+
+            if n % 2 == 0 {
+                break;
+            }
+        }
+
+        start = idx;
+    }
+
+    start
+}
+
+fn needs_escape(ch: char) -> bool {
+    match ch {
+        ' ' | '\t' | '\n' | '\\' => true,
+        _ => false
+    }
 }

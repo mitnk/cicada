@@ -1,5 +1,9 @@
 # Change Logs
 
+## v0.8.3
+
+- Fixed path completion issue when contains spaces.
+
 ## v0.8.2
 
 - Skip from saving into history for commands start with spaces.
