@@ -39,7 +39,10 @@ $ cat e.txt
 
 ```
 $ ls -l `which sh`
--r-xr-xr-x  1 root  wheel  630464 Mar 23 07:57 /bin/sh
+-r-xr-xr-x  1 root  wheel  618512 Oct 26  2017 /bin/sh
+
+$ echo "Time is $(date)."
+Time is Sun Sep  2 12:04:13 CST 2018.
 ```
 
 ### run multiple commands (with logical)
@@ -81,7 +84,7 @@ $ (1 + 2) * (3 - 4) / 8.0
 
 ## Cicada is also a library (BETA)
 
-Read APIs here: [https://docs.rs/cicada/0.8.0/cicada/](https://docs.rs/cicada/0.8.0/cicada/)
+Read APIs here: [docs/as-lib.md](https://github.com/mitnk/cicada/blob/master/docs/as-lib.md).
 
 ## Install Cicada
 
