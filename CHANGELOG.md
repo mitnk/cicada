@@ -5,6 +5,7 @@
 - Skip from saving into history for commands start with spaces.
 - Fixed parser issue on commands like: `mv a\ b xy`.
 - Fixed issue that when extending globs when file name contains spaces.
+- Fixed issue that rm will fail in `touch foo\ bar.txt && rm foo*`.
 
 ## v0.8.1
 

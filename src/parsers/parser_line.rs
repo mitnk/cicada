@@ -500,7 +500,10 @@ mod tests {
             ("echo '###'", vec![("", "echo"), ("'", "###")]),
             ("echo a\\ bc", vec![("", "echo"), ("", "a bc")]),
             ("echo a\\ b cd", vec![("", "echo"), ("", "a b"), ("", "cd")]),
-            ("mv a\\ b\\ c\\ d xy", vec![("", "mv"), ("", "a b c d"), ("", "xy")]),
+            (
+                "mv a\\ b\\ c\\ d xy",
+                vec![("", "mv"), ("", "a b c d"), ("", "xy")],
+            ),
             ("echo \\#", vec![("", "echo"), ("", "#")]),
             (
                 "echo 'hi $USER' |  wc  -l ",
@@ -647,14 +650,8 @@ mod tests {
                 "echo \'{\"q\": \"{\\\"size\\\": 12}\"}\'",
                 vec!["echo", "{\"q\": \"{\\\"size\\\": 12}\"}"],
             ),
-            (
-                "echo a\\ b c",
-                vec!["echo", "a b", "c"],
-            ),
-            (
-                "mv a\\ b\\ c\\ d\\ e xy",
-                vec!["mv", "a b c d e", "xy"],
-            ),
+            ("echo a\\ b c", vec!["echo", "a b", "c"]),
+            ("mv a\\ b\\ c\\ d\\ e xy", vec!["mv", "a b c d e", "xy"]),
         ];
 
         for (left, right) in v {

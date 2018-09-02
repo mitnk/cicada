@@ -223,9 +223,9 @@ pub fn extend_env(sh: &Shell, line: &mut String) {
 mod tests {
     use std::fs::{self, File};
 
-    use super::needs_globbing;
     use super::extend_env;
     use super::extend_glob;
+    use super::needs_globbing;
     use super::Shell;
 
     #[test]

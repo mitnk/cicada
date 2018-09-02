@@ -100,7 +100,6 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     }
 
     let mut cmd_line: String = line.to_string();
-    tools::pre_handle_cmd_line(&sh, &mut cmd_line);
     cmd_line = tools::extend_alias(&sh, &cmd_line);
     let mut status = 0;
     let mut sep = String::new();
@@ -115,7 +114,9 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         if sep == "||" && status == 0 {
             break;
         }
-        status = run_proc(sh, &token, tty);
+        let mut cmd = token.clone();
+        tools::pre_handle_cmd_line(&sh, &mut cmd);
+        status = run_proc(sh, &cmd, tty);
     }
     status
 }

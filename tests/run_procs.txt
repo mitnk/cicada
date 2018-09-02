@@ -91,9 +91,9 @@ echo foo`which ls`
 echo --author='Hugo Wang <w@mitnk.com>'
 --author=Hugo Wang <w@mitnk.com>
 
-touch a\ b\ c.txt  # case glob cmd1
+touch foo\ bar.txt  # glob case1 cmd1
 
 
-rm a*.txt  # case glob cmd2 - should rm file with not errors
+rm foo*.txt  # glob case1 cmd2 - should rm file without errors
 
 

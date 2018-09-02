@@ -346,7 +346,8 @@ fn do_command_substitution_for_dot(line: &mut String) {
                     _head = cap[1].to_string();
                     _tail = cap[3].to_string();
                     let _args = parsers::parser_line::cmd_to_tokens(&cap[2]);
-                    let (_, _, output) = execute::run_pipeline(_args, "", false, false, true, false, None);
+                    let (_, _, output) =
+                        execute::run_pipeline(_args, "", false, false, true, false, None);
                     if let Some(x) = output {
                         match String::from_utf8(x.stdout) {
                             Ok(stdout) => {
