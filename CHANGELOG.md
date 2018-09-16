@@ -3,6 +3,7 @@
 ## v0.8.3
 
 - Fixed path completion issue when contains spaces.
+- Fixed environment variable manipulating issues
 
 ## v0.8.2
 

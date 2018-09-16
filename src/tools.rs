@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::env;
 use std::fs::OpenOptions;
@@ -210,16 +209,25 @@ pub fn needs_extend_home(line: &str) -> bool {
 
 pub fn wrap_sep_string(sep: &str, s: &str) -> String {
     let mut _token = String::new();
-    let mut meet_subsep = false;
+    let mut met_subsep = false;
+    // let set previous_subsep to any char except '`' or '"'
+    let mut previous_subsep = 'N';
     for c in s.chars() {
         // handle cmds like: export DIR=`brew --prefix openssl`/include
-        if c == '`' {
-            meet_subsep = !meet_subsep;
+        // or like: export foo="hello world"
+        if sep.is_empty() && (c == '`' || c == '"') {
+            if !met_subsep {
+                met_subsep = true;
+                previous_subsep = c;
+            } else if c == previous_subsep {
+                met_subsep = false;
+                previous_subsep = 'N';
+            }
         }
         if c.to_string() == sep {
             _token.push('\\');
         }
-        if c == ' ' && sep.is_empty() && !meet_subsep {
+        if c == ' ' && sep.is_empty() && !met_subsep {
             _token.push('\\');
         }
         _token.push(c);
@@ -575,22 +583,6 @@ pub fn extend_alias(sh: &shell::Shell, line: &str) -> String {
     result
 }
 
-pub fn remove_envs_from_line(line: &str, envs: &mut HashMap<String, String>) -> String {
-    let mut result = line.to_string();
-
-    while let Some(x) = libs::re::find_first_group(r"^( *[a-zA-Z][a-zA-Z0-9_]+=[^ ]*)", &result) {
-        let v: Vec<&str> = x.split('=').collect();
-        if v.len() != 2 {
-            println_stderr!("remove envs error");
-            break;
-        }
-        envs.insert(v[0].to_string(), v[1].to_string());
-        result = result.trim().replace(&x, "").trim().to_owned();
-    }
-
-    result
-}
-
 pub fn create_fd_from_file(file_name: &str, append: bool) -> Result<Stdio, String> {
     let mut oos = OpenOptions::new();
     if append {
@@ -617,11 +609,9 @@ mod tests {
     use super::extend_bandband;
     use super::is_alias;
     use super::needs_extend_home;
-    use super::remove_envs_from_line;
     use super::should_do_dollar_command_extension;
     use super::should_do_dot_command_extension;
     use shell;
-    use std::collections::HashMap;
 
     #[test]
     fn dots_test() {
@@ -742,28 +732,6 @@ mod tests {
             "awk -F \"[ ,.\\\"]+\""
         );
         assert_eq!(extend_alias(&sh, "ls a\\.b"), "ls -G a.b");
-    }
-
-    #[test]
-    fn test_remove_envs_from_line() {
-        let line = "foo=1 echo hi";
-        let mut envs = HashMap::new();
-        assert_eq!(remove_envs_from_line(line, &mut envs), "echo hi");
-        assert_eq!(envs["foo"], "1");
-
-        let line = "foo=1 bar=2 echo hi";
-        let mut envs = HashMap::new();
-        assert_eq!(remove_envs_from_line(line, &mut envs), "echo hi");
-        assert_eq!(envs["foo"], "1");
-        assert_eq!(envs["bar"], "2");
-
-        let line = "foo=1 bar=2 baz=3 bbq=4 cicada -c 'abc'";
-        let mut envs = HashMap::new();
-        assert_eq!(remove_envs_from_line(line, &mut envs), "cicada -c 'abc'");
-        assert_eq!(envs["foo"], "1");
-        assert_eq!(envs["bar"], "2");
-        assert_eq!(envs["baz"], "3");
-        assert_eq!(envs["bbq"], "4");
     }
 
     #[test]

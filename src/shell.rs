@@ -13,6 +13,7 @@ use tools::{self, clog};
 #[derive(Debug, Clone)]
 pub struct Shell {
     pub alias: HashMap<String, String>,
+    pub envs: HashMap<String, String>,
     pub cmd: String,
     pub previous_dir: String,
     pub previous_cmd: String,
@@ -23,10 +24,30 @@ impl Shell {
     pub fn new() -> Shell {
         Shell {
             alias: HashMap::new(),
+            envs: HashMap::new(),
             cmd: String::new(),
             previous_dir: String::new(),
             previous_cmd: String::new(),
             previous_status: 0,
+        }
+    }
+
+    pub fn set_env(&mut self, name: &str, value: &str) {
+        if let Ok(_) = env::var(name) {
+            env::set_var(name, value);
+        } else {
+            self.envs.insert(name.to_string(), value.to_string());
+        }
+    }
+
+    pub fn get_env(&self, name: &str) -> Option<String> {
+        match self.envs.get(name) {
+            Some(x) => {
+                Some(x.to_string())
+            }
+            None => {
+                None
+            }
         }
     }
 
@@ -190,10 +211,14 @@ pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
                     let val = libc::getpid();
                     result.push_str(format!("{}{}", _head, val).as_str());
                 }
-            } else if let Ok(val) = env::var(_key) {
+            } else if let Ok(val) = env::var(&_key) {
                 result.push_str(format!("{}{}", _head, val).as_str());
             } else {
-                result.push_str(&_head);
+                if let Some(val) = sh.get_env(&_key) {
+                    result.push_str(format!("{}{}", _head, val).as_str());
+                } else {
+                    result.push_str(&_head);
+                }
             }
         }
         if _tail.is_empty() {
@@ -264,7 +289,7 @@ mod tests {
 
         let mut s = String::from("export FOO=\"`date` and `go version`\"");
         extend_env(&sh, &mut s);
-        assert_eq!(s, "export \"FOO=`date` and `go version`\"");
+        assert_eq!(s, "export FOO=\"`date` and `go version`\"");
 
         let mut s = String::from("foo is XX${CICADA_NOT_EXIST}XX");
         extend_env(&sh, &mut s);

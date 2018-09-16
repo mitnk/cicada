@@ -9,12 +9,21 @@ ls foo.txt | wc
 ^$
 ls foo.txt 2>&1 | wc  # cannot both do redirect and capture output
 ^1.*\d+.*\d+$
-^$
+
 echo hi
 hi
 
 echo foo bar
 foo bar
+
+touch foo1.txt fpp1.txt
+
+
+echo f{oo,pp}1.txt
+foo1.txt fpp1.txt
+
+rm foo1.txt fpp1.txt
+
 
 echo foo | wc
 1\s+1\s+4
@@ -95,5 +104,38 @@ touch foo\ bar.txt  # glob case1 cmd1
 
 
 rm foo*.txt  # glob case1 cmd2 - should rm file without errors
+
+
+FOO=123  # define a shell variable
+
+
+echo $FOO  # test the shell variable
+^123$
+
+echo 'echo $FOO' > foo.sh
+
+
+sh foo.sh  # child cannot see $FOO
+
+
+FOO=357 sh foo.sh  # but can see its prefixing envs
+^357$
+
+A=1 FOO="abc 123" sh foo.sh  # testing quotes
+^abc 123$
+
+FOO=a${HOME}c sh foo.sh
+^a/.*c$
+
+FOO="a${HOME}c" sh foo.sh
+^a/.*c$
+
+# FOO='a${HOME}c' sh foo.sh  # TODO: should not expend envs with strong quotes
+
+
+echo $FOO  # the above inline env settings won't change the shell variable
+^123$
+
+rm -f foo.sh  # clean up
 
 

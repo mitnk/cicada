@@ -7,6 +7,8 @@ use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::{Command, Output, Stdio};
 
+use regex::Regex;
+
 use libc;
 use nix::sys::signal;
 use nix::unistd::pipe;
@@ -121,12 +123,46 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     status
 }
 
-pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
-    let mut envs = HashMap::new();
-    let cmd_line = tools::remove_envs_from_line(line, &mut envs);
+fn drain_env_tokens(tokens: &mut Vec<(String, String)>) -> HashMap<String, String> {
+    let mut envs: HashMap<String, String> = HashMap::new();
+    let mut n = 0;
+    for (sep, text) in tokens.iter() {
+        if !sep.is_empty() || !tools::re_contains(text, r"^([a-zA-Z0-9_]+)=(.*)$") {
+            break;
+        }
 
-    let mut tokens = parsers::parser_line::cmd_to_tokens(&cmd_line);
+        let re;
+        match Regex::new(r"^([a-zA-Z0-9_]+)=(.*)$") {
+            Ok(x) => {
+                re = x;
+            }
+            Err(e) => {
+                println_stderr!("Regex new: {:?}", e);
+                return envs;
+            }
+        }
+        for cap in re.captures_iter(text) {
+            let name = cap[1].to_string();
+            let value = parsers::parser_line::unquote(&cap[2]);
+            envs.insert(name, value);
+        }
+
+        n += 1;
+    }
+    if n > 0 {
+        tokens.drain(0..n);
+    }
+    envs
+}
+
+pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
+    let mut tokens = parsers::parser_line::cmd_to_tokens(line);
+    let envs = drain_env_tokens(&mut tokens);
+
     if tokens.is_empty() {
+        for (name, value) in envs.iter() {
+            sh.set_env(name, value);
+        }
         return 0;
     }
     let cmd = tokens[0].1.clone();
@@ -136,7 +172,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         return builtins::cd::run(sh, &tokens);
     }
     if cmd == "export" {
-        return builtins::export::run(sh, &cmd_line);
+        return builtins::export::run(sh, line);
     }
     if cmd == "vox" {
         return builtins::vox::run(sh, &tokens);
@@ -501,14 +537,15 @@ pub fn run_pipeline(
     (status, term_given, output)
 }
 
-pub fn run(line: &str) -> Result<CommandResult, &str> {
-    let mut envs = HashMap::new();
-    let mut cmd_line = tools::remove_envs_from_line(line, &mut envs);
-    let sh = shell::Shell::new();
-    tools::pre_handle_cmd_line(&sh, &mut cmd_line);
-
-    let mut tokens = parsers::parser_line::cmd_to_tokens(&cmd_line);
+fn run_with_shell<'a, 'b>(sh: &'a mut shell::Shell, line: &'b str) -> Result<CommandResult, &'b str> {
+    let mut line2 = String::from(line);
+    tools::pre_handle_cmd_line(&sh, &mut line2);
+    let mut tokens = parsers::parser_line::cmd_to_tokens(&line2);
+    let envs = drain_env_tokens(&mut tokens);
     if tokens.is_empty() {
+        for (name, value) in envs.iter() {
+            sh.set_env(name, value);
+        }
         return Ok(CommandResult::new());
     }
 
@@ -555,12 +592,18 @@ pub fn run(line: &str) -> Result<CommandResult, &str> {
     }
 }
 
+pub fn run(line: &str) -> Result<CommandResult, &str> {
+    let mut sh = shell::Shell::new();
+    return run_with_shell(&mut sh, line);
+}
+
 #[cfg(test)]
 mod tests {
-    use super::run;
+    use super::run_with_shell;
     use super::run_calc_float;
     use super::run_calc_int;
     use super::tools;
+    use super::shell;
 
     #[test]
     fn test_run_calc_float() {
@@ -585,6 +628,7 @@ mod tests {
         let file = BufReader::new(&f);
         let mut input = String::new();
         let mut expected_stdout = String::new();
+        let mut sh = shell::Shell::new();
         for (num, l) in file.lines().enumerate() {
             let line = l.unwrap();
             match num % 3 {
@@ -594,7 +638,7 @@ mod tests {
                 1 => {
                     expected_stdout = line.clone();
                 }
-                2 => match run(&input) {
+                2 => match run_with_shell(&mut sh, &input) {
                     Ok(c) => {
                         let ptn = if expected_stdout.is_empty() {
                             r"^$"

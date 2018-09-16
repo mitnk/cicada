@@ -231,7 +231,8 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
             }
 
             if sep.is_empty() {
-                if c == '\'' || c == '"' {
+                let is_an_env = tools::re_contains(&token, r"^[a-zA-Z0-9_]+=.*$");
+                if !is_an_env && (c == '\'' || c == '"') {
                     sep = c.to_string();
                     continue;
                 }
@@ -460,6 +461,18 @@ pub fn is_valid_input(line: &str) -> bool {
     true
 }
 
+pub fn unquote(text: &str) -> String {
+    let mut new_str = String::from(text);
+    for &c in ['"', '\''].iter() {
+        if text.starts_with(c) && text.ends_with(c) {
+            new_str.remove(0);
+            new_str.pop();
+            break;
+        }
+    }
+    new_str
+}
+
 #[cfg(test)]
 mod tests {
     use super::cmd_to_tokens;
@@ -532,7 +545,7 @@ mod tests {
             ),
             (
                 "export FOO=\"`date` and `go version`\"",
-                vec![("", "export"), ("\"", "FOO=`date` and `go version`")],
+                vec![("", "export"), ("", "FOO=\"`date` and `go version`\"")],
             ),
             ("ps|wc", vec![("", "ps"), ("", "|"), ("", "wc")]),
             (
@@ -602,6 +615,18 @@ mod tests {
             (
                 "echo 123'foo bar'",
                 vec![("", "echo"), ("\'", "123foo bar")],
+            ),
+            (
+                "echo --author=\"Hugo Wang <w@mitnk.com>\"",
+                vec![("", "echo"), ("\"", "--author=Hugo Wang <w@mitnk.com>")],
+            ),
+            (
+                "Foo=\"abc\" sh foo.sh",
+                vec![("", "Foo=\"abc\""), ("", "sh"), ("", "foo.sh")],
+            ),
+            (
+                "Foo=\"a b c\" ./foo.sh",
+                vec![("", "Foo=\"a b c\""), ("", "./foo.sh")],
             ),
         ];
         for (left, right) in v {
