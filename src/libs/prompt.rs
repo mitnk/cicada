@@ -4,15 +4,7 @@ use std::error::Error;
 use tools::{self, clog};
 
 pub fn get_prompt(status: i32) -> String {
-    let home = tools::get_user_home();
-    let user;
-    match env::var("USER") {
-        Ok(x) => user = x,
-        Err(e) => {
-            log!("cicada: env USER error: {:?}", e);
-            return String::from("cicada >> ");
-        }
-    }
+    let user = tools::get_user_name();
     let hostname = tools::get_hostname();
     let _current_dir;
     match env::current_dir() {
@@ -40,6 +32,8 @@ pub fn get_prompt(status: i32) -> String {
             return String::from("cicada >> ");
         }
     }
+
+    let home = tools::get_user_home();
     let pwd: String;
     if last.is_empty() {
         pwd = String::from("/");

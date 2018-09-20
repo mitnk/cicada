@@ -8,6 +8,7 @@ use time;
 
 use regex::Regex;
 
+use execute;
 use libc;
 use parsers;
 use shell;
@@ -88,6 +89,26 @@ macro_rules! log {
     ($fmt:expr, $($arg:tt)*) => (
         clog(format!(concat!($fmt, "\n"), $($arg)*).as_str());
     );
+}
+
+pub fn get_user_name() -> String {
+    match env::var("USER1") {
+        Ok(x) => {
+            return x;
+        }
+        Err(e) => {
+            log!("cicada: env USER error: {:?}", e);
+        }
+    }
+    match execute::run("whoami") {
+        Ok(x) => {
+            return x.stdout.trim().to_string();
+        }
+        Err(e) => {
+            log!("cicada: run whoami error: {}", e);
+        }
+    }
+    String::from("NOUSER")
 }
 
 pub fn get_user_home() -> String {
