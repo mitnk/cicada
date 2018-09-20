@@ -92,7 +92,7 @@ macro_rules! log {
 }
 
 pub fn get_user_name() -> String {
-    match env::var("USER1") {
+    match env::var("USER") {
         Ok(x) => {
             return x;
         }
