@@ -2,11 +2,14 @@ use errno::errno;
 use libc;
 use std::collections::HashMap;
 use std::env;
+use std::io::Write;
 use std::mem;
 
 use glob;
 use regex::Regex;
 
+use execute;
+use libs;
 use parsers;
 use tools::{self, clog};
 
@@ -56,7 +59,7 @@ impl Shell {
     }
 
     pub fn get_alias_content(&self, name: &str) -> Option<String> {
-        let mut result;
+        let result;
         match self.alias.get(name) {
             Some(x) => {
                 result = x.to_string();
@@ -65,7 +68,6 @@ impl Shell {
                 result = String::new();
             }
         }
-        tools::pre_handle_cmd_line(self, &mut result);
         if result.is_empty() {
             None
         } else {
@@ -129,52 +131,69 @@ fn needs_globbing(line: &str) -> bool {
     false
 }
 
-pub fn extend_glob(line: &mut String) {
-    if !needs_globbing(&line) {
-        return;
-    }
-    let _line = line.clone();
-    // XXX: spliting needs to consider cases like `echo 'a * b'`
-    let _tokens: Vec<&str> = _line.split(' ').collect();
-    let mut result: Vec<String> = Vec::new();
-    for item in &_tokens {
-        if !item.contains('*') || item.trim().starts_with('\'') || item.trim().starts_with('"') {
-            result.push(item.to_string());
-        } else {
-            match glob::glob(item) {
-                Ok(paths) => {
-                    let mut is_empty = true;
-                    for entry in paths {
-                        match entry {
-                            Ok(path) => {
-                                let s = path.to_string_lossy();
-                                if !item.starts_with('.') && s.starts_with('.') && !s.contains('/')
-                                {
-                                    // skip hidden files, you may need to
-                                    // type `ls .*rc` instead of `ls *rc`
-                                    continue;
+pub fn expand_glob(tokens: &mut Vec<(String, String)>) {
+    let mut idx: usize = 0;
+
+    let mut buff: HashMap<usize, Vec<String>> = HashMap::new();
+    for (sep, text) in tokens.iter() {
+        if !sep.is_empty() || !needs_globbing(text) {
+            idx += 1;
+            continue;
+        }
+
+        let _line = text.to_string();
+        // XXX: spliting needs to consider cases like `echo 'a * b'`
+        let _tokens: Vec<&str> = _line.split(' ').collect();
+        let mut result: Vec<String> = Vec::new();
+        for item in &_tokens {
+            if !item.contains('*') || item.trim().starts_with('\'') || item.trim().starts_with('"') {
+                result.push(item.to_string());
+            } else {
+                match glob::glob(item) {
+                    Ok(paths) => {
+                        let mut is_empty = true;
+                        for entry in paths {
+                            match entry {
+                                Ok(path) => {
+                                    let s = path.to_string_lossy();
+                                    if !item.starts_with('.') && s.starts_with('.') && !s.contains('/')
+                                    {
+                                        // skip hidden files, you may need to
+                                        // type `ls .*rc` instead of `ls *rc`
+                                        continue;
+                                    }
+                                    result.push(s.to_string());
+                                    is_empty = false;
                                 }
-                                result.push(tools::wrap_sep_string("", &s));
-                                is_empty = false;
-                            }
-                            Err(e) => {
-                                log!("glob error: {:?}", e);
+                                Err(e) => {
+                                    log!("glob error: {:?}", e);
+                                }
                             }
                         }
+                        if is_empty {
+                            result.push(item.to_string());
+                        }
                     }
-                    if is_empty {
+                    Err(e) => {
+                        println!("glob error: {:?}", e);
                         result.push(item.to_string());
+                        return;
                     }
-                }
-                Err(e) => {
-                    println!("glob error: {:?}", e);
-                    result.push(item.to_string());
-                    return;
                 }
             }
         }
+
+        buff.insert(idx, result);
+        idx += 1;
     }
-    *line = result.join(" ");
+
+    for (i, result) in buff.iter() {
+        tokens.remove(*i as usize);
+        for (j, token) in result.iter().enumerate() {
+            let sep = if token.contains(" ") { "\"" } else { "" };
+            tokens.insert((*i + j) as usize, (sep.to_string(), token.clone()));
+        }
+    }
 }
 
 pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
@@ -229,32 +248,366 @@ pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
     result
 }
 
-pub fn extend_env(sh: &Shell, line: &mut String) {
-    let mut result: Vec<String> = Vec::new();
-    let _line = line.clone();
-    let args = parsers::parser_line::cmd_to_tokens(_line.as_str());
-    for (sep, token) in args {
-        if sep == "`" || sep == "'" {
-            result.push(tools::wrap_sep_string(&sep, &token));
-        } else {
-            let _token = extend_env_blindly(sh, &token);
-            result.push(tools::wrap_sep_string(&sep, &_token));
+fn expand_brace(tokens: &mut Vec<(String, String)>) {
+    let mut idx: usize = 0;
+    let mut buff: HashMap<usize, Vec<String>> = HashMap::new();
+    for (sep, line) in tokens.iter() {
+        if !sep.is_empty() || !tools::should_extend_brace(&line) {
+            idx += 1;
+            continue;
+        }
+
+        let _line = line.clone();
+        let args = parsers::parser_line::cmd_to_tokens(_line.as_str());
+        let mut result: Vec<String> = Vec::new();
+        for (sep, token) in args {
+            if sep.is_empty() && tools::should_extend_brace(token.as_str()) {
+                let mut _prefix = String::new();
+                let mut _token = String::new();
+                let mut _result = Vec::new();
+                let mut only_tail_left = false;
+                let mut start_sign_found = false;
+                for c in token.chars() {
+                    if c == '{' {
+                        start_sign_found = true;
+                        continue;
+                    }
+                    if !start_sign_found {
+                        _prefix.push(c);
+                        continue;
+                    }
+                    if only_tail_left {
+                        _token.push(c);
+                        continue;
+                    }
+                    if c == '}' {
+                        if !_token.is_empty() {
+                            _result.push(_token);
+                            _token = String::new();
+                        }
+                        only_tail_left = true;
+                        continue;
+                    }
+                    if c == ',' {
+                        if !_token.is_empty() {
+                            _result.push(_token);
+                            _token = String::new();
+                        }
+                    } else {
+                        _token.push(c);
+                    }
+                }
+                for item in &mut _result {
+                    *item = format!("{}{}{}", _prefix, item, _token);
+                }
+                for item in _result.iter() {
+                    result.push(item.clone());
+                }
+            } else {
+                result.push(tools::wrap_sep_string(&sep, &token));
+            }
+        }
+
+        buff.insert(idx, result);
+        idx += 1;
+    }
+
+    for (i, result) in buff.iter() {
+        tokens.remove(*i as usize);
+        for (j, token) in result.iter().enumerate() {
+            let sep = if token.contains(" ") { "\"" } else { "" };
+            tokens.insert((*i + j) as usize, (sep.to_string(), token.clone()));
         }
     }
-    *line = result.join(" ");
+}
+
+pub fn expand_home_string(text: &mut String) {
+    // let mut s: String = String::from(text);
+    let v = vec![
+        r"(?P<head> +)~(?P<tail> +)",
+        r"(?P<head> +)~(?P<tail>/)",
+        r"^(?P<head> *)~(?P<tail>/)",
+        r"(?P<head> +)~(?P<tail> *$)",
+    ];
+    for item in &v {
+        let re;
+        if let Ok(x) = Regex::new(item) {
+            re = x;
+        } else {
+            return;
+        }
+        let home = tools::get_user_home();
+        let ss = text.clone();
+        let to = format!("$head{}$tail", home);
+        let result = re.replace_all(ss.as_str(), to.as_str());
+        *text = result.to_string();
+    }
+}
+
+fn expand_home(tokens: &mut Vec<(String, String)>) {
+    let mut idx: usize = 0;
+
+    let mut buff: HashMap<usize, String> = HashMap::new();
+    for (sep, text) in tokens.iter() {
+        if !sep.is_empty() || !needs_expand_home(&text) {
+            idx += 1;
+            continue;
+        }
+
+        let mut s: String = text.clone();
+        let v = vec![
+            r"(?P<head> +)~(?P<tail> +)",
+            r"(?P<head> +)~(?P<tail>/)",
+            r"^(?P<head> *)~(?P<tail>/)",
+            r"(?P<head> +)~(?P<tail> *$)",
+        ];
+        for item in &v {
+            let re;
+            if let Ok(x) = Regex::new(item) {
+                re = x;
+            } else {
+                return;
+            }
+            let home = tools::get_user_home();
+            let ss = s.clone();
+            let to = format!("$head{}$tail", home);
+            let result = re.replace_all(ss.as_str(), to.as_str());
+            s = result.to_string();
+        }
+        buff.insert(idx, s.clone());
+        idx += 1;
+    }
+
+    for (i, text) in buff.iter() {
+        tokens[*i as usize].1 = text.to_string();
+    }
+}
+
+fn env_in_token(token: &str) -> bool {
+    tools::re_contains(token, r"\$\{?[a-zA-Z][a-zA-Z0-9_]+\}?")
+}
+
+pub fn expand_env(sh: &Shell, tokens: &mut Vec<(String, String)>) {
+    let mut idx: usize = 0;
+    let mut buff: HashMap<usize, String> = HashMap::new();
+
+    for (sep, token) in tokens.iter() {
+        if sep == "`" || sep == "'" || !env_in_token(token) {
+            idx += 1;
+            continue;
+        }
+
+        let _token = extend_env_blindly(sh, token);
+        buff.insert(idx, _token);
+        idx += 1;
+    }
+
+    for (i, text) in buff.iter() {
+        tokens[*i as usize].1 = text.to_string();
+    }
+}
+
+fn should_do_dollar_command_extension(line: &str) -> bool {
+    tools::re_contains(line, r"\$\([^\)]+\)")
+}
+
+fn do_command_substitution_for_dollar(tokens: &mut Vec<(String, String)>) {
+    let mut idx: usize = 0;
+    let mut buff: HashMap<usize, String> = HashMap::new();
+
+    for (sep, token) in tokens.iter() {
+        if sep == "'" || !should_do_dollar_command_extension(token) {
+            idx += 1;
+            continue;
+        }
+
+        let mut line = token.to_string();
+        loop {
+            if !should_do_dollar_command_extension(&line) {
+                break;
+            }
+            let ptn_cmd = r"\$\(([^\(]+)\)";
+            let cmd;
+            match libs::re::find_first_group(ptn_cmd, &line) {
+                Some(x) => {
+                    cmd = x;
+                }
+                None => {
+                    println_stderr!("cicada: no first group");
+                    return;
+                }
+            }
+
+            let _args = parsers::parser_line::cmd_to_tokens(&cmd);
+            let (_, _, output) = execute::run_pipeline(_args, "", false, false, true, false, None);
+            let _stdout;
+            let output_txt;
+            if let Some(x) = output {
+                match String::from_utf8(x.stdout) {
+                    Ok(stdout) => {
+                        _stdout = stdout.clone();
+                        output_txt = _stdout.trim();
+                    }
+                    Err(_) => {
+                        println_stderr!("cicada: from_utf8 error");
+                        return;
+                    }
+                }
+            } else {
+                println_stderr!("cicada: command error");
+                return;
+            }
+
+            let ptn = r"(?P<head>[^\$]*)\$\([^\(]+\)(?P<tail>.*)";
+            let re;
+            if let Ok(x) = Regex::new(ptn) {
+                re = x;
+            } else {
+                return;
+            }
+
+            let to = format!("${{head}}{}${{tail}}", output_txt);
+            let line_ = line.clone();
+            let result = re.replace(&line_, to.as_str());
+            line = result.to_string();
+        }
+
+        buff.insert(idx, line.clone());
+        idx += 1;
+    }
+
+
+    for (i, text) in buff.iter() {
+        tokens[*i as usize].1 = text.to_string();
+    }
+}
+
+fn do_command_substitution_for_dot(tokens: &mut Vec<(String, String)>) {
+    let mut idx: usize = 0;
+    let mut buff: HashMap<usize, String> = HashMap::new();
+    for (sep, token) in tokens.iter() {
+        let new_token: String;
+        if sep == "`" {
+            let _args = parsers::parser_line::cmd_to_tokens(token.as_str());
+            let (_, _, output) = execute::run_pipeline(_args, "", false, false, true, false, None);
+            if let Some(x) = output {
+                match String::from_utf8(x.stdout) {
+                    Ok(stdout) => {
+                        new_token = String::from(stdout.trim());
+                    }
+                    Err(_) => {
+                        println_stderr!("cicada: from_utf8 error");
+                        idx += 1; continue;
+                    }
+                }
+            } else {
+                println_stderr!("cicada: command error");
+                idx += 1; continue;
+            }
+        } else if sep == "\"" || sep.is_empty() {
+            let re;
+            if let Ok(x) = Regex::new(r"^([^`]*)`([^`]+)`(.*)$") {
+                re = x;
+            } else {
+                println_stderr!("cicada: re new error");
+                return;
+            }
+            if !re.is_match(&token) {
+                idx += 1; continue;
+            }
+            let mut _token = token.clone();
+            let mut _item = String::new();
+            let mut _head = String::new();
+            let mut _output = String::new();
+            let mut _tail = String::new();
+            loop {
+                if !re.is_match(&_token) {
+                    if !_token.is_empty() {
+                        _item = format!("{}{}", _item, _token);
+                    }
+                    break;
+                }
+                for cap in re.captures_iter(&_token) {
+                    _head = cap[1].to_string();
+                    _tail = cap[3].to_string();
+                    let _args = parsers::parser_line::cmd_to_tokens(&cap[2]);
+                    let (_, _, output) =
+                        execute::run_pipeline(_args, "", false, false, true, false, None);
+                    if let Some(x) = output {
+                        match String::from_utf8(x.stdout) {
+                            Ok(stdout) => {
+                                _output = stdout.trim().to_string();
+                            }
+                            Err(_) => {
+                                println_stderr!("cicada: from_utf8 error");
+                                return;
+                            }
+                        }
+                    } else {
+                        println_stderr!("cicada: command error: {}", token);
+                        return;
+                    }
+                }
+                _item = format!("{}{}{}", _item, _head, _output);
+                if _tail.is_empty() {
+                    break;
+                }
+                _token = _tail.clone();
+            }
+            new_token = String::from(_item);
+        } else {
+            idx += 1;
+            continue;
+        }
+
+        buff.insert(idx, new_token.clone());
+        idx += 1;
+    }
+
+    for (i, text) in buff.iter() {
+        tokens[*i as usize].1 = text.to_string();
+    }
+}
+
+fn do_command_substitution(tokens: &mut Vec<(String, String)>) {
+    do_command_substitution_for_dot(tokens);
+    do_command_substitution_for_dollar(tokens);
+}
+
+pub fn do_expansion(sh: &Shell, tokens: &mut Vec<(String, String)>) {
+    expand_home(tokens);
+    expand_brace(tokens);
+    expand_env(sh, tokens);
+    expand_glob(tokens);
+    do_command_substitution(tokens);
+}
+
+pub fn needs_expand_home(line: &str) -> bool {
+    tools::re_contains(line, r"( +~ +)|( +~/)|(^ *~/)|( +~ *$)")
 }
 
 #[cfg(test)]
 mod tests {
-    use std::fs::{self, File};
-
-    use super::extend_env;
-    use super::extend_glob;
+    use super::needs_expand_home;
     use super::needs_globbing;
-    use super::Shell;
+    use super::should_do_dollar_command_extension;
+
+    #[test]
+    fn test_need_expand_home() {
+        assert!(needs_expand_home("ls ~"));
+        assert!(needs_expand_home("ls  ~  "));
+        assert!(needs_expand_home("cat ~/a.py"));
+        assert!(needs_expand_home("echo ~"));
+        assert!(needs_expand_home("echo ~ ~~"));
+        assert!(needs_expand_home("~/bin/py"));
+        assert!(!needs_expand_home("echo '~'"));
+        assert!(!needs_expand_home("echo \"~\""));
+        assert!(!needs_expand_home("echo ~~"));
+    }
 
     #[test]
     fn test_needs_globbing() {
+        assert!(needs_globbing("*"));
         assert!(needs_globbing("ls *"));
         assert!(needs_globbing("ls  *.txt"));
         assert!(needs_globbing("grep -i 'desc' /etc/*release*"));
@@ -265,60 +618,13 @@ mod tests {
     }
 
     #[test]
-    fn test_extend_env() {
-        let sh = Shell::new();
-        let mut s = String::from("echo '$PATH'");
-        extend_env(&sh, &mut s);
-        assert_eq!(s, "echo '$PATH'");
-
-        let mut s = String::from("echo a\\ b xy");
-        extend_env(&sh, &mut s);
-        assert_eq!(s, "echo a\\ b xy");
-
-        let mut s = String::from("echo 'hi $PATH'");
-        extend_env(&sh, &mut s);
-        assert_eq!(s, "echo 'hi $PATH'");
-
-        let mut s = String::from("echo \'\\\'");
-        extend_env(&sh, &mut s);
-        assert_eq!(s, "echo \'\\\'");
-
-        let mut s = String::from("export DIR=`brew --prefix openssl`/include");
-        extend_env(&sh, &mut s);
-        assert_eq!(s, "export DIR=`brew --prefix openssl`/include");
-
-        let mut s = String::from("export FOO=\"`date` and `go version`\"");
-        extend_env(&sh, &mut s);
-        assert_eq!(s, "export FOO=\"`date` and `go version`\"");
-
-        let mut s = String::from("foo is XX${CICADA_NOT_EXIST}XX");
-        extend_env(&sh, &mut s);
-        assert_eq!(s, "foo is XXXX");
-
-        let mut s = String::from("foo is $CICADA_NOT_EXIST_1 and bar is $CICADA_NOT_EXIST_2.");
-        extend_env(&sh, &mut s);
-        assert_eq!(s, "foo is  and bar is .");
-    }
-
-    #[test]
-    fn test_extend_glob() {
-        let fname = "foo bar baz.txt";
-        File::create(fname).expect("error when create file");
-        let mut line = String::from("echo f*z.txt");
-        extend_glob(&mut line);
-        fs::remove_file(fname).expect("error when rm file");
-        assert_eq!(line, "echo foo\\ bar\\ baz.txt");
-
-        line = String::from("echo bar*.txt");
-        extend_glob(&mut line);
-        assert_eq!(line, "echo bar*.txt");
-
-        line = String::from("echo \"*\"");
-        extend_glob(&mut line);
-        assert_eq!(line, "echo \"*\"");
-
-        line = String::from("echo \'*\'");
-        extend_glob(&mut line);
-        assert_eq!(line, "echo \'*\'");
+    fn test_should_do_dollar_command_extension() {
+        assert!(!should_do_dollar_command_extension("ls $HOME"));
+        assert!(!should_do_dollar_command_extension("echo $[pwd]"));
+        assert!(should_do_dollar_command_extension("echo $(pwd)"));
+        assert!(should_do_dollar_command_extension("echo $(pwd) foo"));
+        assert!(should_do_dollar_command_extension("echo $(foo bar)"));
+        assert!(should_do_dollar_command_extension("echo $(echo foo)"));
+        assert!(should_do_dollar_command_extension("$(pwd) foo"));
     }
 }

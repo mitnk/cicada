@@ -10,19 +10,34 @@ fn main() {
             let git_hash = String::from_utf8_lossy(&x.stdout);
             println!("cargo:rustc-env=GIT_HASH={}", git_hash);
         }
-        Err(e) => {
-            println!("cargo:rustc-env=GIT_HASH={:?}", e);
+        Err(_) => {
+            println!("cargo:rustc-env=GIT_HASH=");
         }
     }
+
+    match Command::new("git")
+        .args(&["rev-parse", "--abbrev-ref", "HEAD"])
+        .output()
+    {
+        Ok(x) => {
+            let git_branch = String::from_utf8_lossy(&x.stdout);
+            println!("cargo:rustc-env=GIT_BRANCH={}", git_branch);
+        }
+        Err(_) => {
+            println!("cargo:rustc-env=GIT_BRANCH=");
+        }
+    }
+
     match Command::new("rustc").args(&["-V"]).output() {
         Ok(x) => {
             let output = String::from_utf8_lossy(&x.stdout);
             println!("cargo:rustc-env=BUILD_RUSTC_VERSION={}", output);
         }
-        Err(e) => {
-            println!("cargo:rustc-env=BUILD_RUSTC_VERSION={:?}", e);
+        Err(_) => {
+            println!("cargo:rustc-env=BUILD_RUSTC_VERSION=");
         }
     }
+
     let tm = time::now();
     println!("cargo:rustc-env=BUILD_DATE={}", tm.rfc822());
 }

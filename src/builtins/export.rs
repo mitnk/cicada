@@ -6,46 +6,36 @@ use parsers;
 use shell;
 use tools;
 
-pub fn run(sh: &shell::Shell, line: &str) -> i32 {
-    if !tools::is_env(line) {
-        println!("export: invalid command");
-        println!("usage: export XXX=YYY");
-        return 1;
-    }
-
-    let _line;
-    if let Ok(re) = Regex::new(r"^ *export +") {
-        if !re.is_match(line) {
-            println_stderr!("export: invalid command?");
+pub fn run(_sh: &shell::Shell, tokens: &Vec<(String, String)>) -> i32 {
+    let mut i = 0;
+    for (_, text) in tokens.iter() {
+        if i == 0 {
+            i += 1;
+            continue
+        }
+        if !tools::is_env(text) {
+            println!("export: invalid command");
+            println!("usage: export XXX=YYY");
             return 1;
         }
-        _line = re.replace_all(line, "");
-    } else {
-        println_stderr!("cicada: re new error");
-        return 2;
-    }
 
-    let args = parsers::parser_line::cmd_to_tokens(&_line);
-    for (sep, token) in args {
-        if sep == "`" {
-            continue;
-        }
-        if let Ok(re) = Regex::new(r" *([a-zA-Z0-9_]+)=(.*) *") {
-            if !re.is_match(&token) {
-                continue;
+        if let Ok(re) = Regex::new(r"^([a-zA-Z0-9_]+)=(.*)$") {
+            if !re.is_match(text) {
+                println!("export: invalid command");
+                println!("usage: export XXX=YYY ZZ=123");
+                return 1;
             }
-            for cap in re.captures_iter(&token) {
-                let mut _value = tools::unquote(&cap[2]);
-                if tools::needs_extend_home(&_value) {
-                    tools::extend_home(&mut _value);
-                }
-                let value = shell::extend_env_blindly(sh, &_value);
-                env::set_var(&cap[1], &value);
+
+            for cap in re.captures_iter(text) {
+                let name = cap[1].to_string();
+                let value = parsers::parser_line::unquote(&cap[2]);
+                env::set_var(name, value);
             }
         } else {
             println_stderr!("cicada: re new error");
             return 2;
         }
+        i += 1;
     }
     0
 }

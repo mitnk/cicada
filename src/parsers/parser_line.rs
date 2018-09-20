@@ -136,6 +136,7 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
     let mut sep_second = String::new();
     let mut token = String::new();
     let mut has_backslash = false;
+    let mut met_parenthesis = false;
     let mut new_round = true;
     let mut skip_next = false;
     let count_chars = line.chars().count();
@@ -143,6 +144,14 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
         if skip_next {
             skip_next = false;
             continue;
+        }
+
+        // for cases like: echo $(foo bar)
+        if c == '(' && sep.is_empty() {
+            met_parenthesis = true;
+        }
+        if c == ')' && sep.is_empty() {
+            met_parenthesis = false;
         }
 
         if c == '\\' && sep != "\'" {
@@ -190,7 +199,7 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
             continue;
         }
 
-        if c == '|' && !has_backslash && sep.is_empty() {
+        if c == '|' && !has_backslash && !met_parenthesis && sep_second.is_empty() && sep.is_empty() {
             result.push((String::from(""), token));
             result.push((String::from(""), "|".to_string()));
             sep = String::new();
@@ -203,6 +212,11 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
         if c == ' ' {
             if has_backslash {
                 has_backslash = false;
+                token.push(c);
+                continue;
+            }
+
+            if met_parenthesis {
                 token.push(c);
                 continue;
             }
@@ -226,6 +240,15 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
         if c == '\'' || c == '"' || c == '`' {
             if has_backslash {
                 has_backslash = false;
+                token.push(c);
+                continue;
+            }
+
+            if sep != c.to_string() && met_parenthesis {
+                token.push(c);
+                continue;
+            }
+            if sep.is_empty() && !sep_second.is_empty() && sep_second != c.to_string() {
                 token.push(c);
                 continue;
             }
@@ -627,6 +650,34 @@ mod tests {
             (
                 "Foo=\"a b c\" ./foo.sh",
                 vec![("", "Foo=\"a b c\""), ("", "./foo.sh")],
+            ),
+            (
+                "echo $(foo bar baz)",
+                vec![("", "echo"), ("", "$(foo bar baz)")],
+            ),
+            (
+                "echo A$(foo bar)B",
+                vec![("", "echo"), ("", "A$(foo bar)B")],
+            ),
+            (
+                "echo A$(foo bar | cat)B",
+                vec![("", "echo"), ("", "A$(foo bar | cat)B")],
+            ),
+            (
+                "echo A$(echo bar | awk '{print $1}')B",
+                vec![("", "echo"), ("", "A$(echo bar | awk '{print $1}')B")],
+            ),
+            (
+                "echo A`echo foo`B",
+                vec![("", "echo"), ("", "A`echo foo`B")],
+            ),
+            (
+                "echo A`echo foo | cat`B",
+                vec![("", "echo"), ("", "A`echo foo | cat`B")],
+            ),
+            (
+                "echo A`echo foo bar | awk '{print $2, $1}'`B",
+                vec![("", "echo"), ("", "A`echo foo bar | awk '{print $2, $1}'`B")],
             ),
         ];
         for (left, right) in v {

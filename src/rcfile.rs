@@ -6,6 +6,7 @@ use std::path::Path;
 use regex::Regex;
 
 use builtins;
+use parsers;
 use shell;
 use tools;
 
@@ -44,8 +45,10 @@ pub fn load_rcfile(sh: &mut shell::Shell) {
 }
 
 fn handle_line(sh: &mut shell::Shell, line: &str) {
-    if tools::is_env(line) {
-        handle_env(sh, line);
+    let mut tokens = parsers::parser_line::cmd_to_tokens(line);
+    shell::do_expansion(sh, &mut tokens);
+    if tools::is_export_env(line) {
+        handle_env(sh, &tokens);
         return;
     }
     if tools::is_alias(line) {
@@ -54,8 +57,8 @@ fn handle_line(sh: &mut shell::Shell, line: &str) {
     }
 }
 
-fn handle_env(sh: &shell::Shell, line: &str) {
-    builtins::export::run(sh, line);
+fn handle_env(sh: &shell::Shell, tokens: &Vec<(String, String)>) {
+    builtins::export::run(sh, tokens);
 }
 
 fn handle_alias(sh: &mut shell::Shell, line: &str) {

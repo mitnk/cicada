@@ -16,15 +16,6 @@ hi
 echo foo bar
 foo bar
 
-touch foo1.txt fpp1.txt
-
-
-echo f{oo,pp}1.txt
-foo1.txt fpp1.txt
-
-rm foo1.txt fpp1.txt
-
-
 echo foo | wc
 1\s+1\s+4
 
@@ -100,16 +91,13 @@ echo foo`which ls`
 echo --author='Hugo Wang <w@mitnk.com>'
 --author=Hugo Wang <w@mitnk.com>
 
-touch foo\ bar.txt  # glob case1 cmd1
-
-
-rm foo*.txt  # glob case1 cmd2 - should rm file without errors
-
-
 FOO=123  # define a shell variable
 
 
 echo $FOO  # test the shell variable
+^123$
+
+echo ${FOO}  # test the shell variable
 ^123$
 
 echo 'echo $FOO' > foo.sh
@@ -137,5 +125,62 @@ echo $FOO  # the above inline env settings won't change the shell variable
 ^123$
 
 rm -f foo.sh  # clean up
+
+
+echo f{oo,pp}1.txt
+^foo1.txt fpp1.txt$
+
+echo sp{el,il,al}l
+^spell spill spall$
+
+echo `echo foo bar | awk '{print $2, $1}'`
+^bar foo$
+
+echo `echo yoo`
+yoo
+
+echo `echo yoo` foo `echo hoo`
+^yoo foo hoo$
+
+echo $(echo yoo)
+^yoo$
+
+echo "$(echo yoo)"
+^yoo$
+
+echo '$(echo yoo)'
+^..echo yoo.$
+
+echo $(echo yoo) foo $(echo hoo)
+^yoo foo hoo$
+
+echo A$(echo foo)B
+^AfooB$
+
+echo A$(echo foo | cat)B
+^AfooB$
+
+echo A$(echo foo | awk '{print $1}')B
+^AfooB$
+
+echo A`echo foo`B
+^AfooB$
+
+echo A`echo foo bar | awk '{print $2, $1}'`B
+^Abar fooB$
+
+touch ftest{1,3,5}.txt bbbb.txt
+
+
+ls -1 | grep 'ftest.*txt' | wc -l  # make sure created 3 ftest files
+^3$
+
+rm ftest*.txt bbbb.txt  # test filename expand
+
+
+touch foo\ bar.txt baz.txt
+
+
+rm foo*.txt baz.txt  # should rm files without errors
 
 

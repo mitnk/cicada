@@ -117,7 +117,6 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
             break;
         }
         let mut cmd = token.clone();
-        tools::pre_handle_cmd_line(&sh, &mut cmd);
         status = run_proc(sh, &cmd, tty);
     }
     status
@@ -155,24 +154,33 @@ fn drain_env_tokens(tokens: &mut Vec<(String, String)>) -> HashMap<String, Strin
     envs
 }
 
-pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
+fn line_to_tokens(sh: &mut shell::Shell, line: &str) -> (Vec<(String, String)>, HashMap<String, String>) {
     let mut tokens = parsers::parser_line::cmd_to_tokens(line);
+    shell::do_expansion(sh, &mut tokens);
     let envs = drain_env_tokens(&mut tokens);
 
     if tokens.is_empty() {
         for (name, value) in envs.iter() {
             sh.set_env(name, value);
         }
+        return (Vec::new(), HashMap::new());
+    }
+    return (tokens, envs);
+}
+
+pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
+    let (mut tokens, envs) = line_to_tokens(sh, line);
+    if tokens.is_empty() {
         return 0;
     }
-    let cmd = tokens[0].1.clone();
 
+    let cmd = tokens[0].1.clone();
     // for built-ins
     if cmd == "cd" {
         return builtins::cd::run(sh, &tokens);
     }
     if cmd == "export" {
-        return builtins::export::run(sh, line);
+        return builtins::export::run(sh, &tokens);
     }
     if cmd == "vox" {
         return builtins::vox::run(sh, &tokens);
@@ -539,13 +547,9 @@ pub fn run_pipeline(
 
 fn run_with_shell<'a, 'b>(sh: &'a mut shell::Shell, line: &'b str) -> Result<CommandResult, &'b str> {
     let mut line2 = String::from(line);
-    tools::pre_handle_cmd_line(&sh, &mut line2);
-    let mut tokens = parsers::parser_line::cmd_to_tokens(&line2);
-    let envs = drain_env_tokens(&mut tokens);
+    line2 = tools::extend_alias(&sh, &line2);
+    let (mut tokens, envs) = line_to_tokens(sh, &line2);
     if tokens.is_empty() {
-        for (name, value) in envs.iter() {
-            sh.set_env(name, value);
-        }
         return Ok(CommandResult::new());
     }
 

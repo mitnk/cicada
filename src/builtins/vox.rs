@@ -72,9 +72,11 @@ fn enter_env(sh: &shell::Shell, path: &str) -> i32 {
     }
     let path_env = format!("{}/{}", home_envs, path);
     env::set_var("VIRTUAL_ENV", &path_env);
-    let mut path_new = String::from("${VIRTUAL_ENV}/bin:$PATH");
-    shell::extend_env(sh, &mut path_new);
-    env::set_var("PATH", &path_new);
+    let path_new = String::from("${VIRTUAL_ENV}/bin:$PATH");
+    let mut tokens: Vec<(String, String)> = Vec::new();
+    tokens.push((String::new(), path_new));
+    shell::expand_env(sh, &mut tokens);
+    env::set_var("PATH", &tokens[0].1);
     0
 }
 
@@ -93,7 +95,11 @@ fn exit_env(sh: &shell::Shell) -> i32 {
     }
     let mut _tokens: Vec<&str> = env_path.split(':').collect();
     let mut path_virtual_env = String::from("${VIRTUAL_ENV}/bin");
-    shell::extend_env(sh, &mut path_virtual_env);
+    // shell::extend_env(sh, &mut path_virtual_env);
+    let mut tokens: Vec<(String, String)> = Vec::new();
+    tokens.push((String::new(), path_virtual_env));
+    shell::expand_env(sh, &mut tokens);
+    path_virtual_env = tokens[0].1.clone();
     _tokens
         .iter()
         .position(|&n| n == path_virtual_env)

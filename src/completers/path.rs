@@ -13,7 +13,6 @@ use linefeed::Prompter;
 
 use parsers;
 use shell;
-use tools;
 
 pub struct BinCompleter {
     pub sh: Arc<shell::Shell>,
@@ -83,8 +82,8 @@ pub fn complete_path(buffer: &str, for_dir: bool) -> Vec<Completion> {
     let dir_orig = if let Some(_dir) = _dir_orig { _dir } else { "" };
     // let mut path_extended = String::from(path);
     let mut path_extended = path.clone();
-    if tools::needs_extend_home(path_extended.as_str()) {
-        tools::extend_home(&mut path_extended)
+    if shell::needs_expand_home(path_extended.as_str()) {
+        shell::expand_home_string(&mut path_extended)
     }
     let (_dir_lookup, file_name) = split_path(path_extended.as_str());
     let dir_lookup = _dir_lookup.unwrap_or(".");
