@@ -1,7 +1,7 @@
 use libs;
 use std::env;
 use std::error::Error;
-use tools;
+use tools::{self, clog};
 
 pub fn get_prompt(status: i32) -> String {
     let home = tools::get_user_home();
@@ -9,7 +9,7 @@ pub fn get_prompt(status: i32) -> String {
     match env::var("USER") {
         Ok(x) => user = x,
         Err(e) => {
-            println!("cicada: env USER error: {:?}", e);
+            log!("cicada: env USER error: {:?}", e);
             return String::from("cicada >> ");
         }
     }
@@ -18,7 +18,7 @@ pub fn get_prompt(status: i32) -> String {
     match env::current_dir() {
         Ok(x) => _current_dir = x,
         Err(e) => {
-            println!("cicada: env current_dir error: {}", e.description());
+            log!("cicada: env current_dir error: {}", e.description());
             return format!("({})$ ", libs::colored::red("no current dir"));
         }
     }
@@ -26,7 +26,7 @@ pub fn get_prompt(status: i32) -> String {
     match _current_dir.to_str() {
         Some(x) => current_dir = x,
         None => {
-            println!("cicada: to_str error");
+            log!("cicada: to_str error");
             return String::from("cicada >> ");
         }
     }
@@ -36,7 +36,7 @@ pub fn get_prompt(status: i32) -> String {
     match _tokens.last() {
         Some(x) => last = x,
         None => {
-            println!("cicada: prompt token last error");
+            log!("cicada: prompt token last error");
             return String::from("cicada >> ");
         }
     }
@@ -71,7 +71,7 @@ pub fn get_prompt(status: i32) -> String {
             match _tokens.last() {
                 Some(x) => env_name = x,
                 None => {
-                    println!("prompt token last error");
+                    log!("prompt token last error");
                     return String::from("cicada >> ");
                 }
             }
