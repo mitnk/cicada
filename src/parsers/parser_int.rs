@@ -41,14 +41,13 @@ named!(
             >> res: fold_many0!(
                 pair!(alt!(tag!("*") | tag!("/")), factor),
                 init,
-                |acc, (op, val): (&[u8], i64)| {
-                    if (op[0] as char) == '*' {
-                        (acc * val) as i64
-                    } else {
-                        (acc / val) as i64
-                    }
+                |acc, (op, val): (&[u8], i64)| if (op[0] as char) == '*' {
+                    (acc * val) as i64
+                } else {
+                    (acc / val) as i64
                 }
-            ) >> (res)
+            )
+            >> (res)
     )
 );
 

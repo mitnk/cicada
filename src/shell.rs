@@ -45,12 +45,8 @@ impl Shell {
 
     pub fn get_env(&self, name: &str) -> Option<String> {
         match self.envs.get(name) {
-            Some(x) => {
-                Some(x.to_string())
-            }
-            None => {
-                None
-            }
+            Some(x) => Some(x.to_string()),
+            None => None,
         }
     }
 
@@ -146,7 +142,8 @@ pub fn expand_glob(tokens: &mut Vec<(String, String)>) {
         let _tokens: Vec<&str> = _line.split(' ').collect();
         let mut result: Vec<String> = Vec::new();
         for item in &_tokens {
-            if !item.contains('*') || item.trim().starts_with('\'') || item.trim().starts_with('"') {
+            if !item.contains('*') || item.trim().starts_with('\'') || item.trim().starts_with('"')
+            {
                 result.push(item.to_string());
             } else {
                 match glob::glob(item) {
@@ -156,7 +153,9 @@ pub fn expand_glob(tokens: &mut Vec<(String, String)>) {
                             match entry {
                                 Ok(path) => {
                                     let s = path.to_string_lossy();
-                                    if !item.starts_with('.') && s.starts_with('.') && !s.contains('/')
+                                    if !item.starts_with('.')
+                                        && s.starts_with('.')
+                                        && !s.contains('/')
                                     {
                                         // skip hidden files, you may need to
                                         // type `ls .*rc` instead of `ls *rc`
@@ -476,7 +475,6 @@ fn do_command_substitution_for_dollar(tokens: &mut Vec<(String, String)>) {
         idx += 1;
     }
 
-
     for (i, text) in buff.iter() {
         tokens[*i as usize].1 = text.to_string();
     }
@@ -497,12 +495,14 @@ fn do_command_substitution_for_dot(tokens: &mut Vec<(String, String)>) {
                     }
                     Err(_) => {
                         println_stderr!("cicada: from_utf8 error");
-                        idx += 1; continue;
+                        idx += 1;
+                        continue;
                     }
                 }
             } else {
                 println_stderr!("cicada: command error");
-                idx += 1; continue;
+                idx += 1;
+                continue;
             }
         } else if sep == "\"" || sep.is_empty() {
             let re;
@@ -513,7 +513,8 @@ fn do_command_substitution_for_dot(tokens: &mut Vec<(String, String)>) {
                 return;
             }
             if !re.is_match(&token) {
-                idx += 1; continue;
+                idx += 1;
+                continue;
             }
             let mut _token = token.clone();
             let mut _item = String::new();

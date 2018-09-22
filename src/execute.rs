@@ -154,7 +154,10 @@ fn drain_env_tokens(tokens: &mut Vec<(String, String)>) -> HashMap<String, Strin
     envs
 }
 
-fn line_to_tokens(sh: &mut shell::Shell, line: &str) -> (Vec<(String, String)>, HashMap<String, String>) {
+fn line_to_tokens(
+    sh: &mut shell::Shell,
+    line: &str,
+) -> (Vec<(String, String)>, HashMap<String, String>) {
     let mut tokens = parsers::parser_line::cmd_to_tokens(line);
     shell::do_expansion(sh, &mut tokens);
     let envs = drain_env_tokens(&mut tokens);
@@ -545,7 +548,10 @@ pub fn run_pipeline(
     (status, term_given, output)
 }
 
-fn run_with_shell<'a, 'b>(sh: &'a mut shell::Shell, line: &'b str) -> Result<CommandResult, &'b str> {
+fn run_with_shell<'a, 'b>(
+    sh: &'a mut shell::Shell,
+    line: &'b str,
+) -> Result<CommandResult, &'b str> {
     let mut line2 = String::from(line);
     line2 = tools::extend_alias(&sh, &line2);
     let (mut tokens, envs) = line_to_tokens(sh, &line2);
@@ -603,11 +609,11 @@ pub fn run(line: &str) -> Result<CommandResult, &str> {
 
 #[cfg(test)]
 mod tests {
-    use super::run_with_shell;
     use super::run_calc_float;
     use super::run_calc_int;
-    use super::tools;
+    use super::run_with_shell;
     use super::shell;
+    use super::tools;
 
     #[test]
     fn test_run_calc_float() {

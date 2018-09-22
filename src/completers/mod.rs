@@ -127,7 +127,7 @@ pub fn escaped_word_start(s: &str) -> usize {
 
                     let ch = match clone.next() {
                         Some((_, ch)) => ch,
-                        None => break
+                        None => break,
                     };
 
                     if ch == '\\' {
@@ -155,6 +155,6 @@ pub fn escaped_word_start(s: &str) -> usize {
 fn needs_escape(ch: char) -> bool {
     match ch {
         ' ' | '\t' | '\n' | '\\' => true,
-        _ => false
+        _ => false,
     }
 }

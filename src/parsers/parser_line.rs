@@ -199,7 +199,8 @@ pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
             continue;
         }
 
-        if c == '|' && !has_backslash && !met_parenthesis && sep_second.is_empty() && sep.is_empty() {
+        if c == '|' && !has_backslash && !met_parenthesis && sep_second.is_empty() && sep.is_empty()
+        {
             result.push((String::from(""), token));
             result.push((String::from(""), "|".to_string()));
             sep = String::new();
@@ -677,7 +678,10 @@ mod tests {
             ),
             (
                 "echo A`echo foo bar | awk '{print $2, $1}'`B",
-                vec![("", "echo"), ("", "A`echo foo bar | awk '{print $2, $1}'`B")],
+                vec![
+                    ("", "echo"),
+                    ("", "A`echo foo bar | awk '{print $2, $1}'`B"),
+                ],
             ),
         ];
         for (left, right) in v {

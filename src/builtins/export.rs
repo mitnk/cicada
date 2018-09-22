@@ -11,7 +11,7 @@ pub fn run(_sh: &shell::Shell, tokens: &Vec<(String, String)>) -> i32 {
     for (_, text) in tokens.iter() {
         if i == 0 {
             i += 1;
-            continue
+            continue;
         }
         if !tools::is_env(text) {
             println!("export: invalid command");

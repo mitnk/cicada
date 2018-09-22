@@ -44,8 +44,11 @@ pub fn run(sh: &mut shell::Shell, tokens: &Vec<(String, String)>) -> i32 {
     }
 
     if !Path::new(&dir_to).exists() {
-        println_stderr!("cicada: cd: {}: No such file or directory", args[1..].join(""));
-        return 1
+        println_stderr!(
+            "cicada: cd: {}: No such file or directory",
+            args[1..].join("")
+        );
+        return 1;
     }
 
     match env::set_current_dir(&dir_to) {
@@ -54,7 +57,7 @@ pub fn run(sh: &mut shell::Shell, tokens: &Vec<(String, String)>) -> i32 {
                 sh.previous_dir = str_current_dir.to_string();
             };
             0
-        },
+        }
         Err(e) => {
             println_stderr!("cicada: cd: {}", e.description());
             1
