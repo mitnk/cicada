@@ -159,7 +159,7 @@ pub fn add(
     tsb: f64,
     tse: f64,
 ) {
-    if sh.cmd.starts_with(" ") {
+    if sh.cmd.starts_with(' ') {
         return;
     }
 

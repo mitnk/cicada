@@ -36,7 +36,7 @@ impl Shell {
     }
 
     pub fn set_env(&mut self, name: &str, value: &str) {
-        if let Ok(_) = env::var(name) {
+        if env::var(name).is_ok() {
             env::set_var(name, value);
         } else {
             self.envs.insert(name.to_string(), value.to_string());
@@ -189,7 +189,7 @@ pub fn expand_glob(tokens: &mut Vec<(String, String)>) {
     for (i, result) in buff.iter() {
         tokens.remove(*i as usize);
         for (j, token) in result.iter().enumerate() {
-            let sep = if token.contains(" ") { "\"" } else { "" };
+            let sep = if token.contains(' ') { "\"" } else { "" };
             tokens.insert((*i + j) as usize, (sep.to_string(), token.clone()));
         }
     }
@@ -231,14 +231,13 @@ pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
                 }
             } else if let Ok(val) = env::var(&_key) {
                 result.push_str(format!("{}{}", _head, val).as_str());
+            } else if let Some(val) = sh.get_env(&_key) {
+                result.push_str(format!("{}{}", _head, val).as_str());
             } else {
-                if let Some(val) = sh.get_env(&_key) {
-                    result.push_str(format!("{}{}", _head, val).as_str());
-                } else {
-                    result.push_str(&_head);
-                }
+                result.push_str(&_head);
             }
         }
+
         if _tail.is_empty() {
             break;
         }
@@ -314,7 +313,7 @@ fn expand_brace(tokens: &mut Vec<(String, String)>) {
     for (i, result) in buff.iter() {
         tokens.remove(*i as usize);
         for (j, token) in result.iter().enumerate() {
-            let sep = if token.contains(" ") { "\"" } else { "" };
+            let sep = if token.contains(' ') { "\"" } else { "" };
             tokens.insert((*i + j) as usize, (sep.to_string(), token.clone()));
         }
     }
@@ -438,7 +437,7 @@ fn do_command_substitution_for_dollar(tokens: &mut Vec<(String, String)>) {
             }
 
             let _args = parsers::parser_line::cmd_to_tokens(&cmd);
-            let (_, _, output) = execute::run_pipeline(_args, "", false, false, true, false, None);
+            let (_, _, output) = execute::run_pipeline(&_args, "", false, false, true, false, None);
             let _stdout;
             let output_txt;
             if let Some(x) = output {
@@ -487,7 +486,7 @@ fn do_command_substitution_for_dot(tokens: &mut Vec<(String, String)>) {
         let new_token: String;
         if sep == "`" {
             let _args = parsers::parser_line::cmd_to_tokens(token.as_str());
-            let (_, _, output) = execute::run_pipeline(_args, "", false, false, true, false, None);
+            let (_, _, output) = execute::run_pipeline(&_args, "", false, false, true, false, None);
             if let Some(x) = output {
                 match String::from_utf8(x.stdout) {
                     Ok(stdout) => {
@@ -533,7 +532,7 @@ fn do_command_substitution_for_dot(tokens: &mut Vec<(String, String)>) {
                     _tail = cap[3].to_string();
                     let _args = parsers::parser_line::cmd_to_tokens(&cap[2]);
                     let (_, _, output) =
-                        execute::run_pipeline(_args, "", false, false, true, false, None);
+                        execute::run_pipeline(&_args, "", false, false, true, false, None);
                     if let Some(x) = output {
                         match String::from_utf8(x.stdout) {
                             Ok(stdout) => {
@@ -555,7 +554,7 @@ fn do_command_substitution_for_dot(tokens: &mut Vec<(String, String)>) {
                 }
                 _token = _tail.clone();
             }
-            new_token = String::from(_item);
+            new_token = _item;
         } else {
             idx += 1;
             continue;

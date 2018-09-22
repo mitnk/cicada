@@ -151,7 +151,7 @@ pub fn should_extend_brace(line: &str) -> bool {
     re_contains(line, r#"\{[^ "']+,[^ "']+,?[^ "']*\}"#)
 }
 
-#[allow(trivial_regex)]
+#[allow(clippy::trivial_regex)]
 pub fn extend_bandband(sh: &shell::Shell, line: &mut String) {
     if !re_contains(line, r"!!") {
         return;

@@ -17,7 +17,7 @@ test:
 	cargo test
 
 clippy:
-	cargo clippy -- -A needless_return -A ptr_arg
+	cargo clippy -- -A clippy::needless_return -A clippy::ptr_arg
 
 clean:
 	cargo clean

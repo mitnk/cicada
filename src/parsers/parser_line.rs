@@ -126,7 +126,7 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
 ///     ("", "grep"),
 ///     ("\"", "hi"),
 /// ]
-#[allow(cyclomatic_complexity)]
+#[allow(clippy::cyclomatic_complexity)]
 pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
     let mut result = Vec::new();
     let mut sep = String::new();

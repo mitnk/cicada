@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 #![allow(unknown_lints)]
+#![feature(tool_lints)]
 extern crate errno;
 extern crate exec;
 extern crate glob;

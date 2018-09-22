@@ -228,9 +228,9 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         return 0;
     }
 
-    let log_cmd = !sh.cmd.starts_with(" ");
+    let log_cmd = !sh.cmd.starts_with(' ');
     let (result, term_given, _) = run_pipeline(
-        tokens.clone(),
+        &tokens,
         redirect_from.as_str(),
         background,
         tty,
@@ -264,9 +264,9 @@ fn run_calc_int(line: &str) -> Result<i64, String> {
     }
 }
 
-#[allow(cyclomatic_complexity)]
+#[allow(clippy::cyclomatic_complexity)]
 pub fn run_pipeline(
-    tokens: types::Tokens,
+    tokens: &types::Tokens,
     redirect_from: &str,
     background: bool,
     tty: bool,
@@ -583,7 +583,7 @@ fn run_with_shell<'a, 'b>(
     }
 
     let (status, _, output) = run_pipeline(
-        tokens.clone(),
+        &tokens,
         redirect_from.as_str(),
         false,
         false,
