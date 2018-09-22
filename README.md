@@ -13,6 +13,13 @@ Cicada is a simple Unix shell written in Rust. It's ready for daily use.
 - [RC File](https://github.com/mitnk/cicada/tree/master/docs/rc-file.md)
 - [History](https://github.com/mitnk/cicada/tree/master/docs/history.md)
 
+## Try out cicada with Docker
+
+```
+$ docker pull mitnk/cicada
+$ docker run --rm -it mitnk/cicada
+```
+
 ## Features
 
 ### run programs and pipelines
