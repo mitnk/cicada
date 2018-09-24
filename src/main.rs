@@ -1,5 +1,5 @@
 #![allow(unknown_lints)]
-#![feature(tool_lints)]
+// #![feature(tool_lints)]
 extern crate errno;
 extern crate exec;
 extern crate glob;
@@ -34,7 +34,7 @@ use tools::clog;
 
 pub use tools::CommandResult;
 
-#[allow(clippy::cast_lossless)]
+// #[allow(clippy::cast_lossless)]
 fn main() {
     let mut sh = shell::Shell::new();
     rcfile::load_rcfile(&mut sh);
