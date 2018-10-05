@@ -206,6 +206,7 @@ pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
     if !re.is_match(token) {
         return token.to_string();
     }
+
     let mut result = String::new();
     let mut _token = token.to_string();
     let mut _head = String::new();
@@ -382,6 +383,9 @@ fn expand_home(tokens: &mut Vec<(String, String)>) {
 }
 
 fn env_in_token(token: &str) -> bool {
+    if token == "$$" || token == "$?" {
+        return true;
+    }
     tools::re_contains(token, r"\$\{?[a-zA-Z][a-zA-Z0-9_]+\}?")
 }
 

@@ -1,5 +1,9 @@
 # Change Logs
 
+## v0.8.4
+
+- Fixed `$$` and `$?` extension.
+
 ## v0.8.3
 
 - Fixed path completion issue when contains spaces.

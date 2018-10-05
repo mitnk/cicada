@@ -184,3 +184,9 @@ touch foo\ bar.txt baz.txt
 rm foo*.txt baz.txt  # should rm files without errors
 
 
+echo $$
+^[0-9]+$
+
+echo $?
+^0$
+
