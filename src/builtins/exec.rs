@@ -1,7 +1,8 @@
 use exec;
 use parsers;
+use types::Tokens;
 
-pub fn run(tokens: &Vec<(String, String)>) -> i32 {
+pub fn run(tokens: &Tokens) -> i32 {
     let args = parsers::parser_line::tokens_to_args(&tokens);
     let len = args.len();
     if len == 1 {

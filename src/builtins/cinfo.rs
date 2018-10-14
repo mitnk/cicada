@@ -1,6 +1,6 @@
 use libs;
 
-pub fn run(_tokens: &Vec<(String, String)>) -> i32 {
+pub fn run() -> i32 {
     const VERSION: &str = env!("CARGO_PKG_VERSION");
     println!("Cicada Version: {}", VERSION);
 

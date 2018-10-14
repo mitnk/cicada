@@ -26,7 +26,8 @@ mod libs;
 mod parsers;
 mod shell;
 
-use tools::CommandResult;
+use types::CommandResult;
+use types::Tokens;
 
 /// Parse command line to multiple commands.
 ///
@@ -55,7 +56,7 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
 ///     ("`", "which wc"),
 /// ]
 /// ```
-pub fn cmd_to_tokens(cmd: &str) -> Vec<(String, String)> {
+pub fn cmd_to_tokens(cmd: &str) -> Tokens {
     return parsers::parser_line::cmd_to_tokens(cmd);
 }
 
@@ -112,6 +113,6 @@ pub fn is_valid_input(line: &str) -> bool {
 /// out3: ""
 /// out4: "Fri Oct  6 14:53:25 CST 2017\n"
 /// ```
-pub fn run(line: &str) -> Result<CommandResult, &str> {
+pub fn run(line: &str) -> CommandResult {
     execute::run(line)
 }

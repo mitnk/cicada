@@ -13,7 +13,7 @@ pub fn line_to_plain_tokens(line: &str) -> Vec<String> {
     result
 }
 
-pub fn tokens_to_args(tokens: &Vec<(String, String)>) -> Vec<String> {
+pub fn tokens_to_args(tokens: &Tokens) -> Vec<String> {
     let mut result = Vec::new();
     for s in tokens {
         result.push(s.1.clone());
@@ -127,7 +127,7 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
 ///     ("\"", "hi"),
 /// ]
 // #[allow(clippy::cyclomatic_complexity)]
-pub fn cmd_to_tokens(line: &str) -> Vec<(String, String)> {
+pub fn cmd_to_tokens(line: &str) -> Tokens {
     let mut result = Vec::new();
     let mut sep = String::new();
     // `sep_second` is for commands like this:
@@ -503,8 +503,9 @@ mod tests {
     use super::is_valid_input;
     use super::line_to_cmds;
     use super::line_to_plain_tokens;
+    use super::Tokens;
 
-    fn _assert_vec_tuple_eq(a: Vec<(String, String)>, b: Vec<(&str, &str)>) {
+    fn _assert_vec_tuple_eq(a: Tokens, b: Vec<(&str, &str)>) {
         assert_eq!(a.len(), b.len());
         for (i, item) in a.iter().enumerate() {
             let (ref l, ref r) = *item;

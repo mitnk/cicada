@@ -18,9 +18,9 @@ use std::sync::Arc;
 
 use linefeed::{Interface, ReadResult};
 
-mod types;
 #[macro_use]
 mod tools;
+
 mod builtins;
 mod completers;
 mod execute;
@@ -29,10 +29,9 @@ mod libs;
 mod parsers;
 mod rcfile;
 mod shell;
+mod types;
 
 use tools::clog;
-
-pub use tools::CommandResult;
 
 // #[allow(clippy::cast_lossless)]
 fn main() {

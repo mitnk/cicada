@@ -12,6 +12,7 @@ use execute;
 use libs;
 use parsers;
 use tools::{self, clog};
+use types::Tokens;
 
 #[derive(Debug, Clone)]
 pub struct Shell {
@@ -54,6 +55,13 @@ impl Shell {
         self.alias.insert(name.to_string(), value.to_string());
     }
 
+    pub fn is_builtin(&self, name: &str) -> bool {
+        if name == "history" || name == "cinfo" || name == "vox" {
+            return true;
+        }
+        return false;
+    }
+
     pub fn get_alias_content(&self, name: &str) -> Option<String> {
         let result;
         match self.alias.get(name) {
@@ -92,7 +100,7 @@ pub unsafe fn give_terminal_to(gid: i32) -> bool {
         given = false;
         let e = errno();
         let code = e.0;
-        log!("Error {}: {}", code, e);
+        log!("error in give_terminal_to() {}: {}", code, e);
     } else {
         given = true;
     }
@@ -127,7 +135,7 @@ fn needs_globbing(line: &str) -> bool {
     false
 }
 
-pub fn expand_glob(tokens: &mut Vec<(String, String)>) {
+pub fn expand_glob(tokens: &mut Tokens) {
     let mut idx: usize = 0;
 
     let mut buff: HashMap<usize, Vec<String>> = HashMap::new();
@@ -247,7 +255,7 @@ pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
     result
 }
 
-fn expand_brace(tokens: &mut Vec<(String, String)>) {
+fn expand_brace(tokens: &mut Tokens) {
     let mut idx: usize = 0;
     let mut buff: HashMap<usize, Vec<String>> = HashMap::new();
     for (sep, line) in tokens.iter() {
@@ -343,7 +351,7 @@ pub fn expand_home_string(text: &mut String) {
     }
 }
 
-fn expand_home(tokens: &mut Vec<(String, String)>) {
+fn expand_home(tokens: &mut Tokens) {
     let mut idx: usize = 0;
 
     let mut buff: HashMap<usize, String> = HashMap::new();
@@ -389,7 +397,7 @@ fn env_in_token(token: &str) -> bool {
     tools::re_contains(token, r"\$\{?[a-zA-Z][a-zA-Z0-9_]+\}?")
 }
 
-pub fn expand_env(sh: &Shell, tokens: &mut Vec<(String, String)>) {
+pub fn expand_env(sh: &Shell, tokens: &mut Tokens) {
     let mut idx: usize = 0;
     let mut buff: HashMap<usize, String> = HashMap::new();
 
@@ -413,7 +421,7 @@ fn should_do_dollar_command_extension(line: &str) -> bool {
     tools::re_contains(line, r"\$\([^\)]+\)")
 }
 
-fn do_command_substitution_for_dollar(tokens: &mut Vec<(String, String)>) {
+fn do_command_substitution_for_dollar(sh: &Shell, tokens: &mut Tokens) {
     let mut idx: usize = 0;
     let mut buff: HashMap<usize, String> = HashMap::new();
 
@@ -441,24 +449,9 @@ fn do_command_substitution_for_dollar(tokens: &mut Vec<(String, String)>) {
             }
 
             let _args = parsers::parser_line::cmd_to_tokens(&cmd);
-            let (_, _, output) = execute::run_pipeline(&_args, "", false, false, true, false, None);
-            let _stdout;
-            let output_txt;
-            if let Some(x) = output {
-                match String::from_utf8(x.stdout) {
-                    Ok(stdout) => {
-                        _stdout = stdout.clone();
-                        output_txt = _stdout.trim();
-                    }
-                    Err(_) => {
-                        println_stderr!("cicada: from_utf8 error");
-                        return;
-                    }
-                }
-            } else {
-                println_stderr!("cicada: command error");
-                return;
-            }
+            let (_, cmd_result) =
+                execute::run_pipeline(sh, &_args, "", false, false, true, false, None);
+            let output_txt = cmd_result.stdout.trim();
 
             let ptn = r"(?P<head>[^\$]*)\$\([^\(]+\)(?P<tail>.*)";
             let re;
@@ -483,30 +476,16 @@ fn do_command_substitution_for_dollar(tokens: &mut Vec<(String, String)>) {
     }
 }
 
-fn do_command_substitution_for_dot(tokens: &mut Vec<(String, String)>) {
+fn do_command_substitution_for_dot(sh: &Shell, tokens: &mut Tokens) {
     let mut idx: usize = 0;
     let mut buff: HashMap<usize, String> = HashMap::new();
     for (sep, token) in tokens.iter() {
         let new_token: String;
         if sep == "`" {
             let _args = parsers::parser_line::cmd_to_tokens(token.as_str());
-            let (_, _, output) = execute::run_pipeline(&_args, "", false, false, true, false, None);
-            if let Some(x) = output {
-                match String::from_utf8(x.stdout) {
-                    Ok(stdout) => {
-                        new_token = String::from(stdout.trim());
-                    }
-                    Err(_) => {
-                        println_stderr!("cicada: from_utf8 error");
-                        idx += 1;
-                        continue;
-                    }
-                }
-            } else {
-                println_stderr!("cicada: command error");
-                idx += 1;
-                continue;
-            }
+            let (_, cr) =
+                execute::run_pipeline(sh, &_args, "", false, false, true, false, None);
+            new_token = cr.stdout.trim().to_string();
         } else if sep == "\"" || sep.is_empty() {
             let re;
             if let Ok(x) = Regex::new(r"^([^`]*)`([^`]+)`(.*)$") {
@@ -535,22 +514,9 @@ fn do_command_substitution_for_dot(tokens: &mut Vec<(String, String)>) {
                     _head = cap[1].to_string();
                     _tail = cap[3].to_string();
                     let _args = parsers::parser_line::cmd_to_tokens(&cap[2]);
-                    let (_, _, output) =
-                        execute::run_pipeline(&_args, "", false, false, true, false, None);
-                    if let Some(x) = output {
-                        match String::from_utf8(x.stdout) {
-                            Ok(stdout) => {
-                                _output = stdout.trim().to_string();
-                            }
-                            Err(_) => {
-                                println_stderr!("cicada: from_utf8 error");
-                                return;
-                            }
-                        }
-                    } else {
-                        println_stderr!("cicada: command error: {}", token);
-                        return;
-                    }
+                    let (_, cr) =
+                        execute::run_pipeline(sh, &_args, "", false, false, true, false, None);
+                    _output = cr.stdout.trim().to_string();
                 }
                 _item = format!("{}{}{}", _item, _head, _output);
                 if _tail.is_empty() {
@@ -573,17 +539,17 @@ fn do_command_substitution_for_dot(tokens: &mut Vec<(String, String)>) {
     }
 }
 
-fn do_command_substitution(tokens: &mut Vec<(String, String)>) {
-    do_command_substitution_for_dot(tokens);
-    do_command_substitution_for_dollar(tokens);
+fn do_command_substitution(sh: &Shell, tokens: &mut Tokens) {
+    do_command_substitution_for_dot(sh, tokens);
+    do_command_substitution_for_dollar(sh, tokens);
 }
 
-pub fn do_expansion(sh: &Shell, tokens: &mut Vec<(String, String)>) {
+pub fn do_expansion(sh: &Shell, tokens: &mut Tokens) {
     expand_home(tokens);
     expand_brace(tokens);
     expand_env(sh, tokens);
     expand_glob(tokens);
-    do_command_substitution(tokens);
+    do_command_substitution(sh, tokens);
 }
 
 pub fn needs_expand_home(line: &str) -> bool {

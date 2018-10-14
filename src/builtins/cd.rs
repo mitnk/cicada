@@ -1,12 +1,15 @@
-use parsers;
-use shell;
 use std::env;
 use std::error::Error;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+
+use parsers;
+use shell;
 use tools;
 
-pub fn run(sh: &mut shell::Shell, tokens: &Vec<(String, String)>) -> i32 {
+use types::Tokens;
+
+pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
     let args = parsers::parser_line::tokens_to_args(&tokens);
     if args.len() > 2 {
         println_stderr!("invalid cd command");

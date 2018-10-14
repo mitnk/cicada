@@ -1,12 +1,13 @@
 use regex::Regex;
 use std::env;
 use std::io::Write;
+use types::Tokens;
 
 use parsers;
 use shell;
 use tools;
 
-pub fn run(_sh: &shell::Shell, tokens: &Vec<(String, String)>) -> i32 {
+pub fn run(_sh: &shell::Shell, tokens: &Tokens) -> i32 {
     let mut i = 0;
     for (_, text) in tokens.iter() {
         if i == 0 {

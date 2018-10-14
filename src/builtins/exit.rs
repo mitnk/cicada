@@ -2,7 +2,9 @@
 use std::io::Write;
 use std::process;
 
-pub fn run(tokens: &Vec<(String, String)>) -> i32 {
+use types::Tokens;
+
+pub fn run(tokens: &Tokens) -> i32 {
     if tokens.len() > 2 {
         println_stderr!("cicada: exit: too many arguments");
         return 1;

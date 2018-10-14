@@ -9,6 +9,7 @@ use builtins;
 use parsers;
 use shell;
 use tools;
+use types::Tokens;
 
 pub fn load_rcfile(sh: &mut shell::Shell) {
     // make "/usr/local/bin" as the first item in PATH
@@ -57,7 +58,7 @@ fn handle_line(sh: &mut shell::Shell, line: &str) {
     }
 }
 
-fn handle_env(sh: &shell::Shell, tokens: &Vec<(String, String)>) {
+fn handle_env(sh: &shell::Shell, tokens: &Tokens) {
     builtins::export::run(sh, tokens);
 }
 

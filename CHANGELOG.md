@@ -1,5 +1,11 @@
 # Change Logs
 
+## v0.8.5
+
+- Updated history item display.
+- Added history delete.
+- Added completion sub-command feature.
+
 ## v0.8.4
 
 - Fixed `$$` and `$?` extension.
@@ -7,7 +13,7 @@
 ## v0.8.3
 
 - Fixed path completion issue when contains spaces.
-- Fixed environment variable manipulating issues
+- Fixed environment variable manipulating issues.
 
 ## v0.8.2
 

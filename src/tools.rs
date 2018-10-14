@@ -4,31 +4,14 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use std::process::Stdio;
-use time;
 
 use regex::Regex;
+use time;
 
 use execute;
 use libc;
 use parsers;
 use shell;
-
-#[derive(Clone, Debug, Default)]
-pub struct CommandResult {
-    pub status: i32,
-    pub stdout: String,
-    pub stderr: String,
-}
-
-impl CommandResult {
-    pub fn new() -> CommandResult {
-        CommandResult {
-            status: 0,
-            stdout: String::new(),
-            stderr: String::new(),
-        }
-    }
-}
 
 macro_rules! println_stderr {
     ($fmt:expr) => (
@@ -73,6 +56,11 @@ pub fn clog(s: &str) {
         pid,
         s,
     );
+    let s = if s.ends_with('\n') {
+        s
+    } else {
+        format!("{}\n", s)
+    };
     match cfile.write_all(s.as_bytes()) {
         Ok(_) => {}
         Err(e) => {
@@ -84,10 +72,10 @@ pub fn clog(s: &str) {
 
 macro_rules! log {
     ($fmt:expr) => (
-        clog(concat!($fmt, "\n"));
+        clog($fmt);
     );
     ($fmt:expr, $($arg:tt)*) => (
-        clog(format!(concat!($fmt, "\n"), $($arg)*).as_str());
+        clog(&format!($fmt, $($arg)*));
     );
 }
 
@@ -100,15 +88,8 @@ pub fn get_user_name() -> String {
             log!("cicada: env USER error: {:?}", e);
         }
     }
-    match execute::run("whoami") {
-        Ok(x) => {
-            return x.stdout.trim().to_string();
-        }
-        Err(e) => {
-            log!("cicada: run whoami error: {}", e);
-        }
-    }
-    String::from("NOUSER")
+    let cmd_result = execute::run("whoami");
+    return cmd_result.stdout.trim().to_string();
 }
 
 pub fn get_user_home() -> String {
@@ -377,6 +358,23 @@ pub fn create_fd_from_file(file_name: &str, append: bool) -> Result<Stdio, Strin
             let fd = x.into_raw_fd();
             let file_out = unsafe { Stdio::from_raw_fd(fd) };
             Ok(file_out)
+        }
+        Err(e) => Err(format!("failed to create fd from file: {:?}", e)),
+    }
+}
+
+pub fn create_raw_fd_from_file(file_name: &str, append: bool) -> Result<i32, String> {
+    let mut oos = OpenOptions::new();
+    if append {
+        oos.append(true);
+    } else {
+        oos.write(true);
+        oos.truncate(true);
+    }
+    match oos.create(true).open(file_name) {
+        Ok(x) => {
+            let fd = x.into_raw_fd();
+            Ok(fd)
         }
         Err(e) => Err(format!("failed to create fd from file: {:?}", e)),
     }
