@@ -190,6 +190,3 @@ echo $$
 echo $?
 ^0$
 
-history  # TODO: why builtins cannot be captured?
-
-
