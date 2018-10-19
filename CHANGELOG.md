@@ -1,5 +1,9 @@
 # Change Logs
 
+## v0.8.6
+
+- Fix some minor issues of processes exiting status.
+
 ## v0.8.5
 
 - Updated history item display.

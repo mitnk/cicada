@@ -391,6 +391,9 @@ fn run_std_command(
         }
         Err(e) => {
             println!("{}: {}", program, e.description());
+            if !options.background {
+                *cmd_result = CommandResult::from_status(127);
+            }
             return 0;
         }
     }
@@ -793,6 +796,10 @@ pub fn run_pipeline(
                 // log!("waitpid error: {:?}", _e);
             }
         }
+    }
+
+    if cmd_result.is_empty() && background {
+        cmd_result = CommandResult::from_status(0);
     }
 
     (term_given, cmd_result)
