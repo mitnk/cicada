@@ -416,6 +416,8 @@ fn run_command(
                 process::exit(status);
             }
 
+            // We are certain that our string doesn't have 0 bytes in the
+            // middle, so we can use CString::new().expect()
             let mut c_envs: Vec<_> = env::vars().map(|(k, v)| CString::new(format!("{}={}", k, v).as_str()).expect("CString error")).collect();
             for (key, value) in options.envs.iter() {
                 c_envs.push(
@@ -426,11 +428,8 @@ fn run_command(
             }
 
             let path = libs::path::find_first_exec(&program);
-            // We are certain that our string doesn't have 0 bytes in the middle,
-            // so we can .expect()
             let c_program = CString::new(path.as_str()).expect("CString::new failed");
             let c_args: Vec<_> = cmd.tokens.iter().map(|x| CString::new(x.1.as_str()).expect("CString error")).collect();
-            // let c_envs: Vec<_> = options.envs.iter().map(|(k, v)| CString::new(format!("{}={}", k, v).as_str()).expect("CString error")).collect();
 
             match execve(&c_program, &c_args, &c_envs) {
                 Ok(_) => {}
@@ -439,12 +438,6 @@ fn run_command(
                 }
             }
 
-            /*
-            let args: Vec<_> = cmd.tokens.iter().map(|x| x.1.clone()).collect();
-            let error = exec::execvp(program, args);
-            let info = format!("{}", error).replace("couldn't exec process: ", "");
-            println_stderr!("cicada: {}: {}", program, info);
-            */
             process::exit(1);
         }
         Ok(ForkResult::Parent { child, .. }) => {
@@ -610,6 +603,7 @@ pub fn run_pipeline(
     for pid in &children {
         match waitpid(Pid::from_raw(*pid), None) {
             Ok(info) => {
+                log!("zombies waitpid ok: {:?}", info);
                 match info {
                     WaitStatus::Exited(_pid, status) => {
                         if cmd_result.is_empty() {
@@ -624,7 +618,7 @@ pub fn run_pipeline(
                 }
             }
             Err(_e) => {
-                // log!("waitpid error: {:?}", _e);
+                log!("zombies waitpid error: {:?}", _e);
             }
         }
     }

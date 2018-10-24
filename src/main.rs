@@ -30,11 +30,14 @@ mod parsers;
 mod rcfile;
 mod shell;
 mod types;
+mod signals;
 
 use tools::clog;
 
 // #[allow(clippy::cast_lossless)]
 fn main() {
+    signals::set_sigchld_handler();
+
     let mut sh = shell::Shell::new();
     rcfile::load_rcfile(&mut sh);
 

@@ -25,6 +25,7 @@ mod history;
 mod libs;
 mod parsers;
 mod shell;
+mod signals;
 
 use types::CommandResult;
 use types::Tokens;
