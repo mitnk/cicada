@@ -1,24 +1,25 @@
 use std::collections::HashMap;
-use std::error::Error as STDError;
+use std::env;
+use std::ffi::CString;
 use std::fs::File;
-use std::io::{self, Error, Read, Write};
+use std::io::{self, Read, Write};
 use std::os::unix::io::RawFd;
-use std::os::unix::io::{FromRawFd, IntoRawFd};
-use std::os::unix::process::CommandExt;
-use std::path::Path;
-use std::process::{self, Command, Stdio};
+use std::os::unix::io::FromRawFd;
+use std::process;
 
 use regex::Regex;
 use libc;
 
 use nix::sys::wait::waitpid;
 use nix::sys::wait::WaitStatus;
+use nix::unistd::execve;
 use nix::unistd::pipe;
 use nix::unistd::Pid;
 use nix::unistd::{fork, ForkResult};
 use nom::IResult;
 
 use builtins;
+use libs;
 use parsers;
 use shell;
 use tools::{self, clog};
@@ -269,200 +270,7 @@ fn log_cmd_info(cmds: &Vec<Tokens>) {
     log!("run: {}", info.trim());
 }
 
-fn run_std_command(
-    cmd: &types::Command,
-    idx_cmd: usize,
-    options: &CommandOptions,
-    pgid: &mut i32,
-    term_given: &mut bool,
-    cmd_result: &mut CommandResult,
-    pipes: &Vec<(RawFd, RawFd)>,
-) -> i32 {
-    let pipes_count = pipes.len();
-
-    let _program = &cmd.tokens[0].1;
-    // treat `(ls)` as `ls`
-    let program = _program.trim_matches(|c| c == '(' || c == ')');
-
-    let mut p = Command::new(program);
-    let args: Vec<String> = cmd.tokens[1..].iter().map(|x| x.1.clone()).collect();
-    p.args(args);
-    p.envs(&options.envs);
-
-    let the_pgid = *pgid;
-    if options.isatty {
-        p.before_exec(move || {
-            unsafe {
-                if idx_cmd == 0 {
-                    // set the first process as progress group leader
-                    let pid = libc::getpid();
-                    libc::setpgid(0, pid);
-                } else {
-                    libc::setpgid(0, the_pgid as i32);
-                }
-            }
-            Ok(())
-        });
-    }
-
-    if idx_cmd > 0 {
-        let fds_prev = pipes[idx_cmd - 1];
-        let pipe_in = unsafe { Stdio::from_raw_fd(fds_prev.0) };
-        p.stdin(pipe_in);
-    }
-
-    // all processes except the last one need to get stdout piped
-    if idx_cmd < pipes_count {
-        let fds = pipes[idx_cmd];
-        let pipe_out = unsafe { Stdio::from_raw_fd(fds.1) };
-        p.stdout(pipe_out);
-    }
-
-    // capture output of last process if needed.
-    if idx_cmd == pipes_count && options.capture_output {
-        p.stdout(Stdio::piped());
-        p.stderr(Stdio::piped());
-    }
-
-    for item in &cmd.redirects {
-        let from_ = &item.0;
-        let op_ = &item.1;
-        let to_ = &item.2;
-        if to_ == "&1" && from_ == "2" {
-            unsafe {
-                if idx_cmd < pipes_count {
-                    let fds = pipes[idx_cmd];
-                    let pipe_out = Stdio::from_raw_fd(fds.1);
-                    p.stderr(pipe_out);
-                } else if !options.capture_output {
-                    let fd = libc::dup(1);
-                    p.stderr(Stdio::from_raw_fd(fd));
-                } else {
-                    // note: capture output with redirections does not
-                    // make much sense
-                }
-            }
-        } else if to_ == "&2" && from_ == "1" {
-            unsafe {
-                if idx_cmd < pipes_count || !options.capture_output {
-                    let fd = libc::dup(2);
-                    p.stdout(Stdio::from_raw_fd(fd));
-                } else {
-                    // note: capture output with redirections does not
-                    // make much sense
-                }
-            }
-        } else {
-            let append = op_ == ">>";
-            match tools::create_fd_from_file(to_, append) {
-                Ok(fd) => {
-                    if from_ == "1" {
-                        p.stdout(fd);
-                    } else {
-                        p.stderr(fd);
-                    }
-                }
-                Err(e) => {
-                    println_stderr!("cicada: {}", e);
-                    *term_given = false;
-                    *cmd_result = CommandResult::error();
-                    return 0;
-                }
-            }
-        }
-    }
-
-    if idx_cmd == 0 && !options.redirect_from.is_empty() {
-        let path = Path::new(&options.redirect_from);
-        let display = path.display();
-        let file = match File::open(&path) {
-            Err(why) => panic!("couldn't open {}: {}", display, why.description()),
-            Ok(file) => file,
-        };
-        let fd = file.into_raw_fd();
-        let file_in = unsafe { Stdio::from_raw_fd(fd) };
-        p.stdin(file_in);
-    }
-
-    let mut child;
-    match p.spawn() {
-        Ok(x) => {
-            child = x;
-        }
-        Err(e) => {
-            println!("{}: {}", program, e.description());
-            if !options.background {
-                *cmd_result = CommandResult::from_status(127);
-            }
-            return 0;
-        }
-    }
-
-    let child_id = child.id();
-    if options.isatty && !options.background && idx_cmd == 0 {
-        *pgid = child_id as i32;
-        unsafe {
-            *term_given = shell::give_terminal_to(child_id as i32);
-        }
-    }
-
-    if !options.background && idx_cmd == pipes_count {
-        if options.capture_output {
-            match child.wait_with_output() {
-                Ok(x) => {
-                    let _status = if let Some(x) = x.status.code() {
-                        x
-                    } else {
-                        1
-                    };
-                    *cmd_result = CommandResult {
-                        status: _status,
-                        stdout: String::from_utf8_lossy(&x.stdout).to_string(),
-                        stderr: String::from_utf8_lossy(&x.stderr).to_string(),
-                    };
-                }
-                Err(e) => {
-                    println_stderr!("cicada: {:?}", e);
-                    *cmd_result = CommandResult::error();
-                }
-            }
-        } else {
-            match child.wait() {
-                Ok(ecode) => {
-                    if ecode.success() {
-                        *cmd_result = CommandResult::from_status(0);
-                    } else {
-                        match ecode.code() {
-                            Some(x) => {
-                                *cmd_result = CommandResult::from_status(x);
-                            }
-                            None => {
-                                *cmd_result = CommandResult::error();
-                            }
-                        }
-                    }
-                }
-                Err(_) => {
-                    match Error::last_os_error().raw_os_error() {
-                        Some(10) => {
-                            // no such process; it's already done
-                            *cmd_result = CommandResult::from_status(0);
-                        }
-                        Some(e) => {
-                            *cmd_result = CommandResult::from_status(e);
-                        }
-                        None => {
-                            *cmd_result = CommandResult::from_status(1);
-                        }
-                    }
-                }
-            }
-        }
-    }
-    child_id as i32
-}
-
-fn run_builtin(
+fn run_command(
     sh: &shell::Shell,
     cmd: &types::Command,
     idx_cmd: usize,
@@ -524,10 +332,12 @@ fn run_builtin(
                 let fds = pipes[idx_cmd];
                 unsafe {
                     libc::dup2(fds.1, 1);
-                    libc::close(fds.1);
+                    // libc::close(fds.1);
                 }
             }
 
+            let mut stdout_redirected = false;
+            let mut stderr_redirected = false;
             for item in &cmd.redirects {
                 let from_ = &item.0;
                 let op_ = &item.1;
@@ -537,7 +347,7 @@ fn run_builtin(
                         if idx_cmd < pipes_count {
                             let fds = pipes[idx_cmd];
                             libc::dup2(fds.1, 2);
-                            libc::close(fds.1);
+                            // libc::close(fds.1);
                         } else if !options.capture_output {
                             let fd = libc::dup(1);
                             libc::dup2(fd, 2);
@@ -562,8 +372,10 @@ fn run_builtin(
                         Ok(fd) => {
                             if from_ == "1" {
                                 unsafe { libc::dup2(fd, 1); }
+                                stdout_redirected = true;
                             } else {
                                 unsafe { libc::dup2(fd, 2); }
+                                stderr_redirected = true;
                             }
                         }
                         Err(e) => {
@@ -578,27 +390,62 @@ fn run_builtin(
             // capture output of last process if needed.
             if idx_cmd == pipes_count && options.capture_output {
                 unsafe {
-                    libc::close(fds_capture_stdout.0);
-                    libc::dup2(fds_capture_stdout.1, 1);
-                    libc::close(fds_capture_stdout.1);
+                    if !stdout_redirected {
+                        libc::close(fds_capture_stdout.0);
+                        libc::dup2(fds_capture_stdout.1, 1);
+                        libc::close(fds_capture_stdout.1);
+                    }
 
-                    libc::close(fds_capture_stderr.0);
-                    libc::dup2(fds_capture_stderr.1, 2);
-                    libc::close(fds_capture_stderr.1);
+                    if !stderr_redirected {
+                        libc::close(fds_capture_stderr.0);
+                        libc::dup2(fds_capture_stderr.1, 2);
+                        libc::close(fds_capture_stderr.1);
+                    }
                 }
             }
 
-
             let program = &cmd.tokens[0].1;
-            let mut status = 0;
             if program == "history" {
-                status = builtins::history::run(&cmd);
+                let status = builtins::history::run(&cmd);
+                process::exit(status);
             } else if program == "vox" {
-                status = builtins::vox::run(sh, &cmd.tokens);
+                let status = builtins::vox::run(sh, &cmd.tokens);
+                process::exit(status);
             } else if program == "cinfo" {
-                status = builtins::cinfo::run();
+                let status = builtins::cinfo::run();
+                process::exit(status);
             }
-            process::exit(status);
+
+            let mut c_envs: Vec<_> = env::vars().map(|(k, v)| CString::new(format!("{}={}", k, v).as_str()).expect("CString error")).collect();
+            for (key, value) in options.envs.iter() {
+                c_envs.push(
+                    CString::new(
+                        format!("{}={}", key, value).as_str()
+                    ).expect("CString error")
+                );
+            }
+
+            let path = libs::path::find_first_exec(&program);
+            // We are certain that our string doesn't have 0 bytes in the middle,
+            // so we can .expect()
+            let c_program = CString::new(path.as_str()).expect("CString::new failed");
+            let c_args: Vec<_> = cmd.tokens.iter().map(|x| CString::new(x.1.as_str()).expect("CString error")).collect();
+            // let c_envs: Vec<_> = options.envs.iter().map(|(k, v)| CString::new(format!("{}={}", k, v).as_str()).expect("CString error")).collect();
+
+            match execve(&c_program, &c_args, &c_envs) {
+                Ok(_) => {}
+                Err(e) => {
+                    println_stderr!("cicada: {}: {:?}", program, e);
+                }
+            }
+
+            /*
+            let args: Vec<_> = cmd.tokens.iter().map(|x| x.1.clone()).collect();
+            let error = exec::execvp(program, args);
+            let info = format!("{}", error).replace("couldn't exec process: ", "");
+            println_stderr!("cicada: {}: {}", program, info);
+            */
+            process::exit(1);
         }
         Ok(ForkResult::Parent { child, .. }) => {
             let pid: i32 = child.into();
@@ -741,34 +588,18 @@ pub fn run_pipeline(
             envs: _envs.clone(),
         };
 
-        let mut only_builtins = true;
-        let child_id: i32 = if sh.is_builtin(&cmd_[0]) {
-            run_builtin(
-                sh,
-                &cmd_new,
-                i,
-                &options,
-                &mut pgid,
-                &mut term_given,
-                &mut cmd_result,
-                &pipes,
-            )
-        } else {
-            only_builtins = false;
-            run_std_command(
-                &cmd_new,
-                i,
-                &options,
-                &mut pgid,
-                &mut term_given,
-                &mut cmd_result,
-                &pipes,
-            )
-        };
+        let child_id: i32 = run_command(
+            sh,
+            &cmd_new,
+            i,
+            &options,
+            &mut pgid,
+            &mut term_given,
+            &mut cmd_result,
+            &pipes,
+        );
 
-        if child_id > 0 && !background && (i != length - 1 || only_builtins) {
-            // we didn't need to wait bg children, and the last one
-            // already wait() itself.
+        if child_id > 0 && !background {
             children.push(child_id);
         }
 

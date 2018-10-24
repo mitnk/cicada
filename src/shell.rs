@@ -55,13 +55,6 @@ impl Shell {
         self.alias.insert(name.to_string(), value.to_string());
     }
 
-    pub fn is_builtin(&self, name: &str) -> bool {
-        if name == "history" || name == "cinfo" || name == "vox" {
-            return true;
-        }
-        return false;
-    }
-
     pub fn get_alias_content(&self, name: &str) -> Option<String> {
         let result;
         match self.alias.get(name) {

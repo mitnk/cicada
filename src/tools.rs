@@ -2,8 +2,7 @@ use std::collections::HashSet;
 use std::env;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::os::unix::io::{FromRawFd, IntoRawFd};
-use std::process::Stdio;
+use std::os::unix::io::IntoRawFd;
 
 use regex::Regex;
 use time;
@@ -343,24 +342,6 @@ pub fn extend_alias(sh: &shell::Shell, line: &str) -> String {
         }
     }
     result
-}
-
-pub fn create_fd_from_file(file_name: &str, append: bool) -> Result<Stdio, String> {
-    let mut oos = OpenOptions::new();
-    if append {
-        oos.append(true);
-    } else {
-        oos.write(true);
-        oos.truncate(true);
-    }
-    match oos.create(true).open(file_name) {
-        Ok(x) => {
-            let fd = x.into_raw_fd();
-            let file_out = unsafe { Stdio::from_raw_fd(fd) };
-            Ok(file_out)
-        }
-        Err(e) => Err(format!("failed to create fd from file: {:?}", e)),
-    }
 }
 
 pub fn create_raw_fd_from_file(file_name: &str, append: bool) -> Result<i32, String> {

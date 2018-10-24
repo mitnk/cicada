@@ -1,5 +1,9 @@
 # Change Logs
 
+## v0.8.7
+
+- Drop use of `std::process::Command`.
+
 ## v0.8.6
 
 - Fix some minor issues of processes exiting status.
