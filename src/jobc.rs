@@ -1,5 +1,7 @@
 use std::io::Write;
 
+use nix::Error;
+use nix::errno::Errno;
 use nix::sys::signal;
 use nix::sys::wait::{WaitStatus, WaitPidFlag, waitpid};
 use nix::unistd::Pid;
@@ -7,10 +9,7 @@ use nix::unistd::Pid;
 use shell;
 use tools::clog;
 
-pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32,
-    stop: bool
-) -> i32 {
-    log!("\nenter wait_process(): pid: {}", pid);
+pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i32 {
     let mut status = 0;
     let flags = if stop {
         Some(WaitPidFlag::WUNTRACED)
@@ -30,22 +29,28 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32,
             status = 130;
         }
         Ok(_info) => {
-            log!("waitpid ok: {:?}", _info);
+            // log!("waitpid ok: {:?}", _info);
         }
-        Err(_e) => {
-            log!("waitpid error: {:?}", _e);
-            status = 1;
+        Err(e) => {
+            match e {
+                Error::Sys(errno) => {
+                    if errno == Errno::ECHILD {
+                        cleanup_process_groups(sh, gid, pid, false);
+                    } else {
+                        log!("waitpid error: errno: {:?}", errno);
+                    }
+                }
+                _ => {
+                    log!("waitpid error: {:?}", e);
+                    status = 1;
+                }
+            }
         }
     }
-    log!("enter wait_process(): pid: {}\n", pid);
     status
 }
 
-pub fn cleanup_process_groups(sh: &mut shell::Shell, gid: i32, pid: i32,
-    report: bool
-) {
-    log!("clean up jobs gid: {} pid: {}", gid, pid);
-
+pub fn cleanup_process_groups(sh: &mut shell::Shell, gid: i32, pid: i32, report: bool) {
     let mut empty_pids = false;
     if let Some(x) = sh.jobs.get_mut(&gid) {
         if let Ok(i) = x.binary_search(&pid) {

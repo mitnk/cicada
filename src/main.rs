@@ -95,7 +95,6 @@ fn main() {
                 let mut line = line.clone();
                 tools::extend_bandband(&sh, &mut line);
                 status = execute::run_procs(&mut sh, &line, true);
-                log!("pgs after run_procs(): {:?}", sh.jobs);
 
                 let tse_spec = time::get_time();
                 let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1_000_000_000.0;

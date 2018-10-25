@@ -5,6 +5,8 @@ use std::process;
 use types::Tokens;
 
 pub fn run(tokens: &Tokens) -> i32 {
+    // TODO - block if there's stopped jobs
+
     if tokens.len() > 2 {
         println_stderr!("cicada: exit: too many arguments");
         return 1;

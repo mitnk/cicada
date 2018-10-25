@@ -415,6 +415,9 @@ fn run_command(
             } else if program == "cinfo" {
                 let status = builtins::cinfo::run();
                 process::exit(status);
+            } else if program == "jobs" {
+                let status = builtins::jobs::run(sh);
+                process::exit(status);
             }
 
             // We are certain that our string doesn't have 0 bytes in the
@@ -610,10 +613,10 @@ pub fn run_pipeline(
     }
 
     for pid in &children {
-        log!("wait_process: {}", *pid);
         let status = jobc::wait_process(sh, pgid, *pid, true);
-        log!("after wait_process: {} status: {}", *pid, status);
-        cmd_result = CommandResult::from_status(status);
+        if !capture_output {
+            cmd_result = CommandResult::from_status(status);
+        }
     }
 
     (term_given, cmd_result)

@@ -6,3 +6,4 @@ pub mod export;
 pub mod history;
 pub mod vox;
 pub mod fg;
+pub mod jobs;
