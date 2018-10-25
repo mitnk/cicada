@@ -10,11 +10,8 @@ use std::process;
 use regex::Regex;
 use libc;
 
-use nix::sys::wait::waitpid;
-use nix::sys::wait::WaitStatus;
 use nix::unistd::execve;
 use nix::unistd::pipe;
-use nix::unistd::Pid;
 use nix::unistd::{fork, ForkResult};
 use nom::IResult;
 
@@ -446,7 +443,7 @@ fn run_command(
         }
         Ok(ForkResult::Parent { child, .. }) => {
             let pid: i32 = child.into();
-            if options.isatty && !options.capture_output && !options.background && idx_cmd == 0 {
+            if options.isatty && !options.capture_output && idx_cmd == 0 {
                 *pgid = pid;
                 unsafe {
                     // we need to wait pgid of child set to itself,
@@ -457,13 +454,15 @@ fn run_command(
                             break;
                         }
                     }
-                    *term_given = shell::give_terminal_to(pid);
-                    sh.pgs.insert(pid, vec![pid]);
+                    if !options.background {
+                        *term_given = shell::give_terminal_to(pid);
+                    }
+                    sh.jobs.insert(pid, vec![pid]);
                 }
             }
 
             if idx_cmd > 0 {
-                if let Some(x) = sh.pgs.get_mut(&*pgid) {
+                if let Some(x) = sh.jobs.get_mut(&*pgid) {
                     x.push(pid);
                 }
             }
@@ -523,7 +522,7 @@ pub fn run_pipeline(
 
     // the defaults to return
     let mut term_given = false;
-    let mut cmd_result = CommandResult::empty();
+    let mut cmd_result = CommandResult::ok();
 
     let cmds = tokens_to_cmd_tokens(&tokens);
     if log_cmd {
@@ -602,7 +601,6 @@ pub fn run_pipeline(
             &mut cmd_result,
             &pipes,
         );
-        log!("shell after run_command(): {:?}", sh.pgs);
 
         if child_id > 0 && !background {
             children.push(child_id);
@@ -612,34 +610,10 @@ pub fn run_pipeline(
     }
 
     for pid in &children {
-        match waitpid(Pid::from_raw(*pid), Some(nix::sys::wait::WaitPidFlag::WUNTRACED)) {
-            Ok(info) => {
-                log!("waitpid ok: {:?}", info);
-                match info {
-                    WaitStatus::Exited(npid, status) => {
-                        if cmd_result.is_empty() {
-                            cmd_result = CommandResult::from_status(status);
-                        }
-                        jobc::cleanup_process_groups(sh, pgid, npid.into())
-                    }
-                    WaitStatus::Stopped(_pid, _) => {
-                        cmd_result = CommandResult::from_status(148);
-                    }
-                    _x => {
-                        if cmd_result.is_empty() {
-                            cmd_result = CommandResult::from_status(1);
-                        }
-                    }
-                }
-            }
-            Err(_e) => {
-                log!("waitpid error: {:?}", _e);
-            }
-        }
-    }
-
-    if cmd_result.is_empty() && background {
-        cmd_result = CommandResult::from_status(0);
+        log!("wait_process: {}", *pid);
+        let status = jobc::wait_process(sh, pgid, *pid, true);
+        log!("after wait_process: {} status: {}", *pid, status);
+        cmd_result = CommandResult::from_status(status);
     }
 
     (term_given, cmd_result)

@@ -27,18 +27,6 @@ pub struct CommandResult {
 }
 
 impl CommandResult {
-    pub fn empty() -> CommandResult {
-        CommandResult {
-            status: 107,
-            stdout: String::new(),
-            stderr: String::new(),
-        }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.status == 107
-    }
-
     pub fn ok() -> CommandResult {
         CommandResult {
             status: 0,

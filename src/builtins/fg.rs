@@ -1,10 +1,5 @@
 use std::io::Write;
 
-use nix::sys::signal;
-use nix::sys::wait::WaitStatus;
-use nix::sys::wait::waitpid;
-use nix::unistd::Pid;
-
 use libc;
 use shell;
 use types;
@@ -22,7 +17,7 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
             }
         }
 
-        if let None = sh.pgs.get(&pgid) {
+        if let None = sh.jobs.get(&pgid) {
             println_stderr!("cicada: fg: no such process group");
             return 1;
         }
@@ -36,28 +31,17 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
             libc::killpg(pgid, libc::SIGCONT);
 
             let mut pid_list = Vec::new();
-            if let Some(v) = sh.pgs.get(&pgid) {
+            if let Some(v) = sh.jobs.get(&pgid) {
                 pid_list = v.clone();
             }
 
             for pid in pid_list.iter() {
                 log!("waitpid: {}", *pid);
-                match waitpid(Pid::from_raw(*pid), Some(nix::sys::wait::WaitPidFlag::WUNTRACED)) {
-                    Ok(WaitStatus::Stopped(_pid, _)) => {
+                match jobc::wait_process(sh, pgid, *pid, true) {
+                    148 => {
                         return 148;
                     }
-                    Ok(WaitStatus::Exited(npid, _status)) => {
-                        jobc::cleanup_process_groups(sh, pgid, npid.into());
-                    }
-                    Ok(WaitStatus::Signaled(npid, signal::SIGINT, _)) => {
-                        jobc::cleanup_process_groups(sh, pgid, npid.into());
-                    }
-                    Ok(_info) => {
-                        log!("fg waitpid ok: {:?}", _info);
-                    }
-                    Err(_e) => {
-                        log!("fg waitpid error: {:?}", _e);
-                    }
+                    _ => {}
                 }
             }
 

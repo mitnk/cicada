@@ -82,6 +82,8 @@ fn main() {
         }
         match rl.read_line() {
             Ok(ReadResult::Input(line)) => {
+                jobc::try_wait_bg_jobs(&mut sh);
+
                 if line.trim() == "" {
                     continue;
                 }
@@ -93,7 +95,7 @@ fn main() {
                 let mut line = line.clone();
                 tools::extend_bandband(&sh, &mut line);
                 status = execute::run_procs(&mut sh, &line, true);
-                log!("pgs after run_procs(): {:?}", sh.pgs);
+                log!("pgs after run_procs(): {:?}", sh.jobs);
 
                 let tse_spec = time::get_time();
                 let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1_000_000_000.0;

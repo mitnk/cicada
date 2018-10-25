@@ -16,7 +16,7 @@ use types::Tokens;
 
 #[derive(Debug, Clone)]
 pub struct Shell {
-    pub pgs: HashMap<i32, Vec<i32>>,
+    pub jobs: HashMap<i32, Vec<i32>>,
     pub alias: HashMap<String, String>,
     pub envs: HashMap<String, String>,
     pub cmd: String,
@@ -28,7 +28,7 @@ pub struct Shell {
 impl Shell {
     pub fn new() -> Shell {
         Shell {
-            pgs: HashMap::new(),
+            jobs: HashMap::new(),
             alias: HashMap::new(),
             envs: HashMap::new(),
             cmd: String::new(),
