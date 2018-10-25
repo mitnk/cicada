@@ -30,13 +30,12 @@ mod parsers;
 mod rcfile;
 mod shell;
 mod types;
-mod signals;
+mod jobc;
 
 use tools::clog;
 
 // #[allow(clippy::cast_lossless)]
 fn main() {
-    signals::set_sigchld_handler();
 
     let mut sh = shell::Shell::new();
     rcfile::load_rcfile(&mut sh);
@@ -94,6 +93,7 @@ fn main() {
                 let mut line = line.clone();
                 tools::extend_bandband(&sh, &mut line);
                 status = execute::run_procs(&mut sh, &line, true);
+                log!("pgs after run_procs(): {:?}", sh.pgs);
 
                 let tse_spec = time::get_time();
                 let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1_000_000_000.0;

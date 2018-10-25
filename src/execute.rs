@@ -24,6 +24,7 @@ use parsers;
 use shell;
 use tools::{self, clog};
 use types;
+use jobc;
 
 use types::CommandOptions;
 use types::CommandResult;
@@ -183,6 +184,9 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     if cmd == "exit" {
         return builtins::exit::run(&tokens);
     }
+    if cmd == "fg" {
+        return builtins::fg::run(sh, &tokens);
+    }
     if cmd == "vox" && tokens.len() > 1 && (tokens[1].1 == "enter" || tokens[1].1 == "exit") {
         return builtins::vox::run(sh, &tokens);
     }
@@ -271,7 +275,7 @@ fn log_cmd_info(cmds: &Vec<Tokens>) {
 }
 
 fn run_command(
-    sh: &shell::Shell,
+    sh: &mut shell::Shell,
     cmd: &types::Command,
     idx_cmd: usize,
     options: &CommandOptions,
@@ -454,6 +458,13 @@ fn run_command(
                         }
                     }
                     *term_given = shell::give_terminal_to(pid);
+                    sh.pgs.insert(pid, vec![pid]);
+                }
+            }
+
+            if idx_cmd > 0 {
+                if let Some(x) = sh.pgs.get_mut(&*pgid) {
+                    x.push(pid);
                 }
             }
 
@@ -496,7 +507,7 @@ fn run_command(
 
 // #[allow(clippy::cyclomatic_complexity)]
 pub fn run_pipeline(
-    sh: &shell::Shell,
+    sh: &mut shell::Shell,
     tokens: &Tokens,
     redirect_from: &str,
     background: bool,
@@ -591,6 +602,7 @@ pub fn run_pipeline(
             &mut cmd_result,
             &pipes,
         );
+        log!("shell after run_command(): {:?}", sh.pgs);
 
         if child_id > 0 && !background {
             children.push(child_id);
@@ -599,16 +611,19 @@ pub fn run_pipeline(
         i += 1;
     }
 
-    // ack for zombies
     for pid in &children {
-        match waitpid(Pid::from_raw(*pid), None) {
+        match waitpid(Pid::from_raw(*pid), Some(nix::sys::wait::WaitPidFlag::WUNTRACED)) {
             Ok(info) => {
-                log!("zombies waitpid ok: {:?}", info);
+                log!("waitpid ok: {:?}", info);
                 match info {
-                    WaitStatus::Exited(_pid, status) => {
+                    WaitStatus::Exited(npid, status) => {
                         if cmd_result.is_empty() {
                             cmd_result = CommandResult::from_status(status);
                         }
+                        jobc::cleanup_process_groups(sh, pgid, npid.into())
+                    }
+                    WaitStatus::Stopped(_pid, _) => {
+                        cmd_result = CommandResult::from_status(148);
                     }
                     _x => {
                         if cmd_result.is_empty() {
@@ -618,7 +633,7 @@ pub fn run_pipeline(
                 }
             }
             Err(_e) => {
-                log!("zombies waitpid error: {:?}", _e);
+                log!("waitpid error: {:?}", _e);
             }
         }
     }

@@ -16,6 +16,7 @@ use types::Tokens;
 
 #[derive(Debug, Clone)]
 pub struct Shell {
+    pub pgs: HashMap<i32, Vec<i32>>,
     pub alias: HashMap<String, String>,
     pub envs: HashMap<String, String>,
     pub cmd: String,
@@ -27,6 +28,7 @@ pub struct Shell {
 impl Shell {
     pub fn new() -> Shell {
         Shell {
+            pgs: HashMap::new(),
             alias: HashMap::new(),
             envs: HashMap::new(),
             cmd: String::new(),
@@ -414,7 +416,7 @@ fn should_do_dollar_command_extension(line: &str) -> bool {
     tools::re_contains(line, r"\$\([^\)]+\)")
 }
 
-fn do_command_substitution_for_dollar(sh: &Shell, tokens: &mut Tokens) {
+fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut Tokens) {
     let mut idx: usize = 0;
     let mut buff: HashMap<usize, String> = HashMap::new();
 
@@ -469,7 +471,7 @@ fn do_command_substitution_for_dollar(sh: &Shell, tokens: &mut Tokens) {
     }
 }
 
-fn do_command_substitution_for_dot(sh: &Shell, tokens: &mut Tokens) {
+fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut Tokens) {
     let mut idx: usize = 0;
     let mut buff: HashMap<usize, String> = HashMap::new();
     for (sep, token) in tokens.iter() {
@@ -532,12 +534,12 @@ fn do_command_substitution_for_dot(sh: &Shell, tokens: &mut Tokens) {
     }
 }
 
-fn do_command_substitution(sh: &Shell, tokens: &mut Tokens) {
+fn do_command_substitution(sh: &mut Shell, tokens: &mut Tokens) {
     do_command_substitution_for_dot(sh, tokens);
     do_command_substitution_for_dollar(sh, tokens);
 }
 
-pub fn do_expansion(sh: &Shell, tokens: &mut Tokens) {
+pub fn do_expansion(sh: &mut Shell, tokens: &mut Tokens) {
     expand_home(tokens);
     expand_brace(tokens);
     expand_env(sh, tokens);
