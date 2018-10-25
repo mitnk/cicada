@@ -3,6 +3,7 @@
 ## v0.8.7
 
 - Drop use of `std::process::Command`.
+- Added job control.
 
 ## v0.8.6
 
