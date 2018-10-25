@@ -32,7 +32,7 @@ As far as I can see, cicada will not introduce such complex things, and will not
 
 ### Will cicada be POSIX-compatible?
 
-As the above anwsers hints, while cicada is trying to be POSIX, but it will not be a fully POSIX shell. However, If any command pattern is common and cicada is missing, we can add it.
+As the above answers hints, while cicada is trying to be POSIX, but it will not be a fully POSIX shell. However, If any command pattern is common and cicada is missing, we can add it.
 
 ### Will my bash/zsh scripts continue work in cicada?
 
