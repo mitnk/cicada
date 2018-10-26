@@ -1,10 +1,10 @@
 use std::io::Write;
 
-use nix::Error;
 use nix::errno::Errno;
 use nix::sys::signal;
-use nix::sys::wait::{WaitStatus, WaitPidFlag, waitpid};
+use nix::sys::wait::{waitpid, WaitPidFlag, WaitStatus};
 use nix::unistd::Pid;
+use nix::Error;
 
 use shell;
 use tools::clog;
@@ -31,21 +31,19 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i3
         Ok(_info) => {
             // log!("waitpid ok: {:?}", _info);
         }
-        Err(e) => {
-            match e {
-                Error::Sys(errno) => {
-                    if errno == Errno::ECHILD {
-                        cleanup_process_groups(sh, gid, pid, false);
-                    } else {
-                        log!("waitpid error: errno: {:?}", errno);
-                    }
-                }
-                _ => {
-                    log!("waitpid error: {:?}", e);
-                    status = 1;
+        Err(e) => match e {
+            Error::Sys(errno) => {
+                if errno == Errno::ECHILD {
+                    cleanup_process_groups(sh, gid, pid, false);
+                } else {
+                    log!("waitpid error: errno: {:?}", errno);
                 }
             }
-        }
+            _ => {
+                log!("waitpid error: {:?}", e);
+                status = 1;
+            }
+        },
     }
     status
 }

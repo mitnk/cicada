@@ -25,18 +25,17 @@ mod builtins;
 mod completers;
 mod execute;
 mod history;
+mod jobc;
 mod libs;
 mod parsers;
 mod rcfile;
 mod shell;
 mod types;
-mod jobc;
 
 use tools::clog;
 
 // #[allow(clippy::cast_lossless)]
 fn main() {
-
     let mut sh = shell::Shell::new();
     rcfile::load_rcfile(&mut sh);
 

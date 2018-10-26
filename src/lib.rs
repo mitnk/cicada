@@ -22,10 +22,10 @@ mod tools;
 mod builtins;
 mod execute;
 mod history;
+mod jobc;
 mod libs;
 mod parsers;
 mod shell;
-mod jobc;
 
 use types::CommandResult;
 use types::Tokens;

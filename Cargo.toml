@@ -1,7 +1,7 @@
 [package]
 build = "src/build.rs"
 name = "cicada"
-version = "0.8.7"
+version = "0.8.8"
 authors = ["Hugo Wang <w@mitnk.com>"]
 
 description = "A simple Unix shell."

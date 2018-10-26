@@ -478,8 +478,7 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut Tokens) {
         let new_token: String;
         if sep == "`" {
             let _args = parsers::parser_line::cmd_to_tokens(token.as_str());
-            let (_, cr) =
-                execute::run_pipeline(sh, &_args, "", false, false, true, false, None);
+            let (_, cr) = execute::run_pipeline(sh, &_args, "", false, false, true, false, None);
             new_token = cr.stdout.trim().to_string();
         } else if sep == "\"" || sep.is_empty() {
             let re;

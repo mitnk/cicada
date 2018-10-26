@@ -3,12 +3,12 @@ use std::env;
 use std::ffi::CString;
 use std::fs::File;
 use std::io::{self, Read, Write};
-use std::os::unix::io::RawFd;
 use std::os::unix::io::FromRawFd;
+use std::os::unix::io::RawFd;
 use std::process;
 
-use regex::Regex;
 use libc;
+use regex::Regex;
 
 use nix::unistd::execve;
 use nix::unistd::pipe;
@@ -16,12 +16,12 @@ use nix::unistd::{fork, ForkResult};
 use nom::IResult;
 
 use builtins;
+use jobc;
 use libs;
 use parsers;
 use shell;
 use tools::{self, clog};
 use types;
-use jobc;
 
 use types::CommandOptions;
 use types::CommandResult;
@@ -281,7 +281,6 @@ fn run_command(
     cmd_result: &mut CommandResult,
     pipes: &Vec<(RawFd, RawFd)>,
 ) -> i32 {
-
     let fds_capture_stdout: (RawFd, RawFd);
     let fds_capture_stderr: (RawFd, RawFd);
     match pipe() {
@@ -348,7 +347,7 @@ fn run_command(
                         if idx_cmd < pipes_count {
                             let fds = pipes[idx_cmd];
                             libc::dup2(fds.1, 2);
-                            // libc::close(fds.1);
+                        // libc::close(fds.1);
                         } else if !options.capture_output {
                             let fd = libc::dup(1);
                             libc::dup2(fd, 2);
@@ -372,10 +371,14 @@ fn run_command(
                     match tools::create_raw_fd_from_file(to_, append) {
                         Ok(fd) => {
                             if from_ == "1" {
-                                unsafe { libc::dup2(fd, 1); }
+                                unsafe {
+                                    libc::dup2(fd, 1);
+                                }
                                 stdout_redirected = true;
                             } else {
-                                unsafe { libc::dup2(fd, 2); }
+                                unsafe {
+                                    libc::dup2(fd, 2);
+                                }
                                 stderr_redirected = true;
                             }
                         }
@@ -422,18 +425,31 @@ fn run_command(
 
             // We are certain that our string doesn't have 0 bytes in the
             // middle, so we can use CString::new().expect()
-            let mut c_envs: Vec<_> = env::vars().map(|(k, v)| CString::new(format!("{}={}", k, v).as_str()).expect("CString error")).collect();
+            let mut c_envs: Vec<_> = env::vars()
+                .map(|(k, v)| CString::new(format!("{}={}", k, v).as_str()).expect("CString error"))
+                .collect();
             for (key, value) in options.envs.iter() {
                 c_envs.push(
-                    CString::new(
-                        format!("{}={}", key, value).as_str()
-                    ).expect("CString error")
+                    CString::new(format!("{}={}", key, value).as_str()).expect("CString error"),
                 );
             }
 
-            let path = libs::path::find_first_exec(&program);
+            let path = if program.contains('/') {
+                program.clone()
+            } else {
+                libs::path::find_first_exec(&program)
+            };
+            if path.is_empty() {
+                println_stderr!("cicada: {}: command not found", program);
+                process::exit(127);
+            }
+
             let c_program = CString::new(path.as_str()).expect("CString::new failed");
-            let c_args: Vec<_> = cmd.tokens.iter().map(|x| CString::new(x.1.as_str()).expect("CString error")).collect();
+            let c_args: Vec<_> = cmd
+                .tokens
+                .iter()
+                .map(|x| CString::new(x.1.as_str()).expect("CString error"))
+                .collect();
 
             match execve(&c_program, &c_args, &c_envs) {
                 Ok(_) => {}
@@ -490,7 +506,7 @@ fn run_command(
                 let mut f_err = unsafe { File::from_raw_fd(fds_capture_stderr.0) };
                 let mut s_err = String::new();
                 f_err.read_to_string(&mut s_err).expect("fds stderr");
-                *cmd_result = CommandResult{
+                *cmd_result = CommandResult {
                     status: 0,
                     stdout: s_out.clone(),
                     stderr: s_err.clone(),
@@ -622,10 +638,7 @@ pub fn run_pipeline(
     (term_given, cmd_result)
 }
 
-fn run_with_shell<'a, 'b>(
-    sh: &'a mut shell::Shell,
-    line: &'b str,
-) -> CommandResult {
+fn run_with_shell<'a, 'b>(sh: &'a mut shell::Shell, line: &'b str) -> CommandResult {
     let mut line2 = String::from(line);
     line2 = tools::extend_alias(&sh, &line2);
     let (mut tokens, envs) = line_to_tokens(sh, &line2);

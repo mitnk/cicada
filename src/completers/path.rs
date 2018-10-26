@@ -161,8 +161,9 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
             suffix: Suffix::Default,
         });
     }
-    let builtins = vec!["cd", "cinfo", "exec", "exit", "export", "fg",
-                        "history", "jobs", "fg", "vox"];
+    let builtins = vec![
+        "cd", "cinfo", "exec", "exit", "export", "fg", "history", "jobs", "fg", "vox",
+    ];
     for item in &builtins {
         if !item.starts_with(fname) {
             continue;
