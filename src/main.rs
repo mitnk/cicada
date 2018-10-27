@@ -36,6 +36,11 @@ use tools::clog;
 
 // #[allow(clippy::cast_lossless)]
 fn main() {
+    unsafe {
+        // to make cicada a job-control shell
+        libc::signal(libc::SIGTSTP, libc::SIG_DFL);
+    }
+
     let mut sh = shell::Shell::new();
     rcfile::load_rcfile(&mut sh);
 

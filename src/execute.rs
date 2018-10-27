@@ -239,10 +239,6 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         }
     }
 
-    if cr.status == 148 {
-        jobc::mark_job_as_stopped(sh, cr.gid);
-    }
-
     cr.status
 }
 

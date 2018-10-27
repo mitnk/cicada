@@ -25,9 +25,9 @@ pub fn print_job(job: &types::Job) {
     println_stderr!("[{}] {}  {}    {}", job.id, job.gid, job.status, _cmd);
 }
 
-fn cleanup_process_groups(sh: &mut shell::Shell, gid: i32, pid: i32) {
+fn cleanup_process_groups(sh: &mut shell::Shell, gid: i32, pid: i32, reason: &str) {
     if let Some(mut job) = sh.remove_pid_from_job(gid, pid) {
-        job.status = "Done".to_string();
+        job.status = reason.to_string();
         if job.report {
             print_job(&job);
         }
@@ -54,15 +54,31 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i3
     };
     match waitpid(Pid::from_raw(pid), flags) {
         Ok(WaitStatus::Stopped(_pid, _)) => {
+            mark_job_as_stopped(sh, gid);
             status = 148;
         }
         Ok(WaitStatus::Exited(npid, status_new)) => {
-            cleanup_process_groups(sh, gid, npid.into());
+            cleanup_process_groups(sh, gid, npid.into(), "Done");
             status = status_new;
         }
-        Ok(WaitStatus::Signaled(npid, signal::SIGINT, _)) => {
-            cleanup_process_groups(sh, gid, npid.into());
-            status = 130;
+        Ok(WaitStatus::Signaled(npid, sig, _)) => {
+            let reason = if sig == signal::SIGKILL {
+                "Killed: 9".to_string()
+            } else if sig == signal::SIGTERM {
+                "Terminated: 15".to_string()
+            } else if sig == signal::SIGQUIT {
+                "Quit: 3".to_string()
+            } else if sig == signal::SIGINT {
+                "Interrupt: 2".to_string()
+            } else if sig == signal::SIGHUP {
+                "Hangup: 1".to_string()
+            } else if sig == signal::SIGABRT {
+                "Abort trap: 6".to_string()
+            } else {
+                format!("Signaled: {:?}", sig)
+            };
+            cleanup_process_groups(sh, gid, npid.into(), &reason);
+            status = sig as i32;
         }
         Ok(_info) => {
             // log!("waitpid ok: {:?}", _info);
@@ -70,7 +86,7 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i3
         Err(e) => match e {
             Error::Sys(errno) => {
                 if errno == Errno::ECHILD {
-                    cleanup_process_groups(sh, gid, pid);
+                    cleanup_process_groups(sh, gid, pid, "Done");
                 } else {
                     log!("waitpid error: errno: {:?}", errno);
                 }
@@ -79,7 +95,7 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i3
                 log!("waitpid error: {:?}", e);
                 status = 1;
             }
-        },
+        }
     }
     status
 }
