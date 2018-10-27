@@ -10,6 +10,8 @@ use std::process;
 use libc;
 use regex::Regex;
 
+use nix::Error;
+use nix::errno::Errno;
 use nix::unistd::execve;
 use nix::unistd::pipe;
 use nix::unistd::{fork, ForkResult};
@@ -233,6 +235,11 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
             shell::give_terminal_to(gid);
         }
     }
+
+    if cr.status == 148 {
+        jobc::mark_job_as_stopped(sh, cr.gid);
+    }
+
     cr.status
 }
 
@@ -454,7 +461,14 @@ fn run_command(
             match execve(&c_program, &c_args, &c_envs) {
                 Ok(_) => {}
                 Err(e) => {
-                    println_stderr!("cicada: {}: {:?}", program, e);
+                    match e {
+                        Error::Sys(Errno::ENOEXEC) => {
+                            println_stderr!("cicada: {}: exec format error (ENOEXEC)", program);
+                        }
+                        _ => {
+                            println_stderr!("cicada: {}: {:?}", program, e);
+                        }
+                    }
                 }
             }
 
@@ -476,14 +490,12 @@ fn run_command(
                     if !options.background {
                         *term_given = shell::give_terminal_to(pid);
                     }
-                    sh.jobs.insert(pid, vec![pid]);
                 }
             }
 
-            if idx_cmd > 0 {
-                if let Some(x) = sh.jobs.get_mut(&*pgid) {
-                    x.push(pid);
-                }
+            if options.isatty && !options.capture_output {
+                let cmd = sh.cmd.clone();
+                sh.insert_job(*pgid, pid, &cmd, "Running", options.background);
             }
 
             if idx_cmd < pipes_count {
@@ -507,6 +519,7 @@ fn run_command(
                 let mut s_err = String::new();
                 f_err.read_to_string(&mut s_err).expect("fds stderr");
                 *cmd_result = CommandResult {
+                    gid: *pgid,
                     status: 0,
                     stdout: s_out.clone(),
                     stderr: s_err.clone(),
@@ -541,7 +554,7 @@ pub fn run_pipeline(
 
     // the defaults to return
     let mut term_given = false;
-    let mut cmd_result = CommandResult::ok();
+    let mut cmd_result = CommandResult::new();
 
     let cmds = tokens_to_cmd_tokens(&tokens);
     if log_cmd {
@@ -628,10 +641,16 @@ pub fn run_pipeline(
         i += 1;
     }
 
+    if background {
+        if let Some(job) = sh.get_job_by_gid(pgid) {
+            println_stderr!("[{}] {}", job.jid, job.gid);
+        }
+    }
+
     for pid in &children {
         let status = jobc::wait_process(sh, pgid, *pid, true);
         if !capture_output {
-            cmd_result = CommandResult::from_status(status);
+            cmd_result = CommandResult::from_status(pgid, status);
         }
     }
 
@@ -643,7 +662,7 @@ fn run_with_shell<'a, 'b>(sh: &'a mut shell::Shell, line: &'b str) -> CommandRes
     line2 = tools::extend_alias(&sh, &line2);
     let (mut tokens, envs) = line_to_tokens(sh, &line2);
     if tokens.is_empty() {
-        return CommandResult::ok();
+        return CommandResult::new();
     }
 
     let mut len = tokens.len();
@@ -667,7 +686,7 @@ fn run_with_shell<'a, 'b>(sh: &'a mut shell::Shell, line: &'b str) -> CommandRes
         }
     }
     if len == 0 {
-        return CommandResult::ok();
+        return CommandResult::new();
     }
 
     let (_, cmd_result) = run_pipeline(

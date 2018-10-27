@@ -6,3 +6,4 @@ target/
 *.bk
 *.txt
 *.sh
+*.out

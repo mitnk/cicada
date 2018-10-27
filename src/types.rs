@@ -19,24 +19,37 @@ pub struct Command {
     pub redirects: Vec<Redirection>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct Job {
+    pub cmd: String,
+    pub jid: i32,
+    pub gid: i32,
+    pub pids: Vec<i32>,
+    pub status: String,
+    pub report: bool,
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct CommandResult {
+    pub gid: i32,
     pub status: i32,
     pub stdout: String,
     pub stderr: String,
 }
 
 impl CommandResult {
-    pub fn ok() -> CommandResult {
+    pub fn new() -> CommandResult {
         CommandResult {
+            gid: 0,
             status: 0,
             stdout: String::new(),
             stderr: String::new(),
         }
     }
 
-    pub fn from_status(status: i32) -> CommandResult {
+    pub fn from_status(gid: i32, status: i32) -> CommandResult {
         CommandResult {
+            gid: gid,
             status: status,
             stdout: String::new(),
             stderr: String::new(),
@@ -45,6 +58,7 @@ impl CommandResult {
 
     pub fn error() -> CommandResult {
         CommandResult {
+            gid: 0,
             status: 1,
             stdout: String::new(),
             stderr: String::new(),

@@ -12,11 +12,11 @@ use execute;
 use libs;
 use parsers;
 use tools::{self, clog};
-use types::Tokens;
+use types;
 
 #[derive(Debug, Clone)]
 pub struct Shell {
-    pub jobs: HashMap<i32, Vec<i32>>,
+    pub jobs: HashMap<i32, types::Job>,
     pub alias: HashMap<String, String>,
     pub envs: HashMap<String, String>,
     pub cmd: String,
@@ -36,6 +36,95 @@ impl Shell {
             previous_cmd: String::new(),
             previous_status: 0,
         }
+    }
+
+    pub fn insert_job(&mut self, gid: i32, pid: i32, cmd: &str, status: &str, report: bool) {
+        let mut i = 1;
+        loop {
+            let mut indexed_job_missing = false;
+            if let Some(x) = self.jobs.get_mut(&i) {
+                if x.gid == gid {
+                    x.pids.push(pid);
+                    return;
+                }
+            } else {
+                indexed_job_missing = true;
+            }
+
+            if indexed_job_missing {
+                self.jobs.insert(
+                    i,
+                    types::Job{
+                        cmd: cmd.to_string(),
+                        jid: i,
+                        gid: gid,
+                        pids: vec![pid],
+                        status: status.to_string(),
+                        report: report,
+                    }
+                );
+                return;
+            }
+            i += 1;
+        }
+    }
+
+    pub fn get_job_by_id(&self, job_id: i32) -> Option<&types::Job> {
+            self.jobs.get(&job_id)
+    }
+
+    pub fn get_job_by_gid(&self, gid: i32) -> Option<&types::Job> {
+        let mut i = 1;
+        loop {
+            if let Some(x) = self.jobs.get(&i) {
+                if x.gid == gid {
+                    return Some(&x);
+                }
+            } else {
+                break;
+            }
+            i += 1;
+        }
+        None
+    }
+
+    pub fn mark_job_as_stopped(&mut self, gid: i32) {
+        let mut i = 1;
+        loop {
+            if let Some(x) = self.jobs.get_mut(&i) {
+                if x.gid == gid {
+                    x.status = "Stopped".to_string();
+                    return;
+                }
+            } else {
+                break;
+            }
+            i += 1;
+        }
+    }
+
+    pub fn remove_pid_from_job(&mut self, gid: i32, pid: i32) -> Option<types::Job> {
+        let mut empty_pids = false;
+        let mut i = 1;
+        loop {
+            if let Some(x) = self.jobs.get_mut(&i) {
+                if x.gid == gid {
+                    if let Ok(i_pid) = x.pids.binary_search(&pid) {
+                        x.pids.remove(i_pid);
+                    }
+                    empty_pids = x.pids.is_empty();
+                    break;
+                }
+            } else {
+                break;
+            }
+            i += 1;
+        }
+
+        if empty_pids {
+            return self.jobs.remove(&i);
+        }
+        None
     }
 
     pub fn set_env(&mut self, name: &str, value: &str) {
@@ -130,7 +219,7 @@ fn needs_globbing(line: &str) -> bool {
     false
 }
 
-pub fn expand_glob(tokens: &mut Tokens) {
+pub fn expand_glob(tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
 
     let mut buff: HashMap<usize, Vec<String>> = HashMap::new();
@@ -250,7 +339,7 @@ pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
     result
 }
 
-fn expand_brace(tokens: &mut Tokens) {
+fn expand_brace(tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
     let mut buff: HashMap<usize, Vec<String>> = HashMap::new();
     for (sep, line) in tokens.iter() {
@@ -346,7 +435,7 @@ pub fn expand_home_string(text: &mut String) {
     }
 }
 
-fn expand_home(tokens: &mut Tokens) {
+fn expand_home(tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
 
     let mut buff: HashMap<usize, String> = HashMap::new();
@@ -392,7 +481,7 @@ fn env_in_token(token: &str) -> bool {
     tools::re_contains(token, r"\$\{?[a-zA-Z][a-zA-Z0-9_]+\}?")
 }
 
-pub fn expand_env(sh: &Shell, tokens: &mut Tokens) {
+pub fn expand_env(sh: &Shell, tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
     let mut buff: HashMap<usize, String> = HashMap::new();
 
@@ -416,7 +505,7 @@ fn should_do_dollar_command_extension(line: &str) -> bool {
     tools::re_contains(line, r"\$\([^\)]+\)")
 }
 
-fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut Tokens) {
+fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
     let mut buff: HashMap<usize, String> = HashMap::new();
 
@@ -471,7 +560,7 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut Tokens) {
     }
 }
 
-fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut Tokens) {
+fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
     let mut buff: HashMap<usize, String> = HashMap::new();
     for (sep, token) in tokens.iter() {
@@ -533,12 +622,12 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut Tokens) {
     }
 }
 
-fn do_command_substitution(sh: &mut Shell, tokens: &mut Tokens) {
+fn do_command_substitution(sh: &mut Shell, tokens: &mut types::Tokens) {
     do_command_substitution_for_dot(sh, tokens);
     do_command_substitution_for_dollar(sh, tokens);
 }
 
-pub fn do_expansion(sh: &mut Shell, tokens: &mut Tokens) {
+pub fn do_expansion(sh: &mut Shell, tokens: &mut types::Tokens) {
     expand_home(tokens);
     expand_brace(tokens);
     expand_env(sh, tokens);
