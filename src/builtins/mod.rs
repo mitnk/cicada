@@ -3,6 +3,7 @@ pub mod cinfo;
 pub mod exec;
 pub mod exit;
 pub mod export;
+pub mod bg;
 pub mod fg;
 pub mod history;
 pub mod jobs;

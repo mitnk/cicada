@@ -3,12 +3,11 @@ use std::io::Write;
 use jobc;
 use libc;
 use shell;
-use tools::clog;
 use types;
 
 pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
     if sh.jobs.is_empty() {
-        println_stderr!("cicada: fg: no job found");
+        println_stderr!("cicada: bg: no job found");
         return 0;
     }
 
@@ -23,7 +22,7 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
         match tokens[1].1.parse::<i32>() {
             Ok(n) => job_id = n,
             Err(_) => {
-                println_stderr!("cicada: fg: invalid job id");
+                println_stderr!("cicada: bg: invalid job id");
                 return 1;
             }
         }
@@ -33,7 +32,6 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
     }
 
     let gid: i32;
-    let pid_list: Vec<i32>;
 
     {
         let mut result = sh.get_job_by_id(job_id);
@@ -45,37 +43,22 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
         match result {
             Some(job) => {
                 unsafe {
-                    if !shell::give_terminal_to(job.gid) {
-                        return 1;
+                    libc::killpg(job.gid, libc::SIGCONT);
+                    gid = job.gid;
+                    if job.status == "Running" {
+                        println_stderr!("cicada: bg: job {} already in background", job.id);
+                        return 0;
                     }
 
-                    libc::killpg(job.gid, libc::SIGCONT);
-                    pid_list = job.pids.clone();
-                    gid = job.gid;
                 }
             }
             None => {
-                println_stderr!("cicada: fg: no such job");
+                println_stderr!("cicada: bg: no such job");
                 return 1;
             }
         }
     }
 
-    unsafe {
-        jobc::mark_job_as_running(sh, gid);
-
-        let mut status = 0;
-        for pid in pid_list.iter() {
-            status = jobc::wait_process(sh, gid, *pid, true);
-        }
-        if status == 148 {
-            jobc::mark_job_as_stopped(sh, gid);
-        }
-
-        let gid_shell = libc::getpgid(0);
-        if !shell::give_terminal_to(gid_shell) {
-            log!("failed to give term to back to shell : {}", gid_shell);
-        }
-        return status;
-    }
+    jobc::mark_job_as_running(sh, gid);
+    return 0;
 }

@@ -3,9 +3,16 @@ use std::io::Write;
 use std::process;
 
 use types::Tokens;
+use shell;
+use tools::clog;
 
-pub fn run(tokens: &Tokens) -> i32 {
-    // TODO - block if there's stopped jobs
+pub fn run(sh: &shell::Shell, tokens: &Tokens) -> i32 {
+    for (_i, job) in sh.jobs.iter() {
+        if !job.cmd.starts_with("nohup ") {
+            println_stderr!("There are background jobs. Use command `jobs` to see details");
+            return 0;
+        }
+    }
 
     if tokens.len() > 2 {
         println_stderr!("cicada: exit: too many arguments");

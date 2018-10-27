@@ -171,6 +171,9 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
 
     let cmd = tokens[0].1.clone();
     // for built-ins
+    if cmd == "bg" {
+        return builtins::bg::run(sh, &tokens);
+    }
     if cmd == "cd" {
         return builtins::cd::run(sh, &tokens);
     }
@@ -181,7 +184,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         return builtins::exec::run(&tokens);
     }
     if cmd == "exit" {
-        return builtins::exit::run(&tokens);
+        return builtins::exit::run(sh, &tokens);
     }
     if cmd == "fg" {
         return builtins::fg::run(sh, &tokens);
@@ -643,7 +646,7 @@ pub fn run_pipeline(
 
     if background {
         if let Some(job) = sh.get_job_by_gid(pgid) {
-            println_stderr!("[{}] {}", job.jid, job.gid);
+            println_stderr!("[{}] {}", job.id, job.gid);
         }
     }
 

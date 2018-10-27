@@ -22,7 +22,7 @@ pub struct Command {
 #[derive(Debug, Clone, Default)]
 pub struct Job {
     pub cmd: String,
-    pub jid: i32,
+    pub id: i32,
     pub gid: i32,
     pub pids: Vec<i32>,
     pub status: String,

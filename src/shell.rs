@@ -56,7 +56,7 @@ impl Shell {
                     i,
                     types::Job{
                         cmd: cmd.to_string(),
-                        jid: i,
+                        id: i,
                         gid: gid,
                         pids: vec![pid],
                         status: status.to_string(),
@@ -86,6 +86,22 @@ impl Shell {
             i += 1;
         }
         None
+    }
+
+    pub fn mark_job_as_running(&mut self, gid: i32) {
+        let mut i = 1;
+        loop {
+            if let Some(x) = self.jobs.get_mut(&i) {
+                if x.gid == gid {
+                    x.status = "Running".to_string();
+                    x.report = false;
+                    return;
+                }
+            } else {
+                break;
+            }
+            i += 1;
+        }
     }
 
     pub fn mark_job_as_stopped(&mut self, gid: i32) {

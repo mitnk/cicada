@@ -1,9 +1,15 @@
 # Change Logs
 
+## v0.8.8
+
+- Some enhancement on job control.
+- Added builtins `bg`.
+
 ## v0.8.7
 
 - Drop use of `std::process::Command`.
 - Added job control.
+- Added builtins: `fg`, `jobs`.
 
 ## v0.8.6
 

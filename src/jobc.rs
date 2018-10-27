@@ -22,7 +22,7 @@ pub fn print_job(job: &types::Job) {
     } else {
         _cmd = cmd.as_str();
     }
-    println_stderr!("[{}] {}  {}    {}", job.jid, job.gid, job.status, _cmd);
+    println_stderr!("[{}] {}  {}    {}", job.id, job.gid, job.status, _cmd);
 }
 
 fn cleanup_process_groups(sh: &mut shell::Shell, gid: i32, pid: i32) {
@@ -39,6 +39,10 @@ pub fn mark_job_as_stopped(sh: &mut shell::Shell, gid: i32) {
     if let Some(job) = sh.get_job_by_gid(gid) {
         print_job(job);
     }
+}
+
+pub fn mark_job_as_running(sh: &mut shell::Shell, gid: i32) {
+    sh.mark_job_as_running(gid);
 }
 
 pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i32 {
