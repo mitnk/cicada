@@ -44,6 +44,9 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
 
         match result {
             Some(job) => {
+                let cmd = job.cmd.trim_matches('&').trim();
+                println_stderr!("{}", cmd);
+
                 unsafe {
                     if !shell::give_terminal_to(job.gid) {
                         return 1;
@@ -62,7 +65,7 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
     }
 
     unsafe {
-        jobc::mark_job_as_running(sh, gid);
+        jobc::mark_job_as_running(sh, gid, false);
 
         let mut status = 0;
         for pid in pid_list.iter() {

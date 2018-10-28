@@ -88,13 +88,16 @@ impl Shell {
         None
     }
 
-    pub fn mark_job_as_running(&mut self, gid: i32) {
+    pub fn mark_job_as_running(&mut self, gid: i32, bg: bool) {
         let mut i = 1;
         loop {
             if let Some(x) = self.jobs.get_mut(&i) {
                 if x.gid == gid {
                     x.status = "Running".to_string();
                     x.report = false;
+                    if bg && !x.cmd.ends_with(" &") {
+                        x.cmd = format!("{} &", x.cmd);
+                    }
                     return;
                 }
             } else {

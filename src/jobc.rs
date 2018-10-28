@@ -41,8 +41,8 @@ pub fn mark_job_as_stopped(sh: &mut shell::Shell, gid: i32) {
     }
 }
 
-pub fn mark_job_as_running(sh: &mut shell::Shell, gid: i32) {
-    sh.mark_job_as_running(gid);
+pub fn mark_job_as_running(sh: &mut shell::Shell, gid: i32, bg: bool) {
+    sh.mark_job_as_running(gid, bg);
 }
 
 pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i32 {

@@ -42,6 +42,13 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
 
         match result {
             Some(job) => {
+                let cmd = if job.cmd.ends_with(" &") {
+                    job.cmd.clone()
+                } else {
+                    format!("{} &", job.cmd)
+                };
+                println_stderr!("{}", &cmd);
+
                 unsafe {
                     libc::killpg(job.gid, libc::SIGCONT);
                     gid = job.gid;
@@ -59,6 +66,6 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
         }
     }
 
-    jobc::mark_job_as_running(sh, gid);
+    jobc::mark_job_as_running(sh, gid, true);
     return 0;
 }
