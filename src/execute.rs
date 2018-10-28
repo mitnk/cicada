@@ -653,6 +653,10 @@ pub fn run_pipeline(
         }
     }
 
+    if cmd_result.status == types::STOPPED {
+        jobc::mark_job_as_stopped(sh, pgid);
+    }
+
     (term_given, cmd_result)
 }
 

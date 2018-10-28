@@ -69,6 +69,10 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
             status = jobc::wait_process(sh, gid, *pid, true);
         }
 
+        if status == types::STOPPED {
+            jobc::mark_job_as_stopped(sh, gid);
+        }
+
         let gid_shell = libc::getpgid(0);
         if !shell::give_terminal_to(gid_shell) {
             log!("failed to give term to back to shell : {}", gid_shell);

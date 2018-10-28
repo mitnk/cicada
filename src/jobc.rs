@@ -54,8 +54,7 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i3
     };
     match waitpid(Pid::from_raw(pid), flags) {
         Ok(WaitStatus::Stopped(_pid, _)) => {
-            mark_job_as_stopped(sh, gid);
-            status = 148;
+            status = types::STOPPED;
         }
         Ok(WaitStatus::Exited(npid, status_new)) => {
             cleanup_process_groups(sh, gid, npid.into(), "Done");

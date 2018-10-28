@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+pub const STOPPED: i32 = 148;
+
 pub type Tokens = Vec<(String, String)>;
 pub type Redirection = (String, String, String);
 
