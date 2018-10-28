@@ -74,21 +74,31 @@ impl Shell {
     }
 
     pub fn get_job_by_gid(&self, gid: i32) -> Option<&types::Job> {
+        if self.jobs.is_empty() {
+            return None;
+        }
+
         let mut i = 1;
         loop {
             if let Some(x) = self.jobs.get(&i) {
                 if x.gid == gid {
                     return Some(&x);
                 }
-            } else {
+            }
+
+            i += 1;
+            if i >= 65535 {
                 break;
             }
-            i += 1;
         }
         None
     }
 
     pub fn mark_job_as_running(&mut self, gid: i32, bg: bool) {
+        if self.jobs.is_empty() {
+            return;
+        }
+
         let mut i = 1;
         loop {
             if let Some(x) = self.jobs.get_mut(&i) {
@@ -100,14 +110,20 @@ impl Shell {
                     }
                     return;
                 }
-            } else {
+            }
+
+            i += 1;
+            if i >= 65535 {
                 break;
             }
-            i += 1;
         }
     }
 
     pub fn mark_job_as_stopped(&mut self, gid: i32) {
+        if self.jobs.is_empty() {
+            return;
+        }
+
         let mut i = 1;
         loop {
             if let Some(x) = self.jobs.get_mut(&i) {
@@ -115,14 +131,20 @@ impl Shell {
                     x.status = "Stopped".to_string();
                     return;
                 }
-            } else {
+            }
+
+            i += 1;
+            if i >= 65535 {
                 break;
             }
-            i += 1;
         }
     }
 
     pub fn remove_pid_from_job(&mut self, gid: i32, pid: i32) -> Option<types::Job> {
+        if self.jobs.is_empty() {
+            return None;
+        }
+
         let mut empty_pids = false;
         let mut i = 1;
         loop {
@@ -134,10 +156,12 @@ impl Shell {
                     empty_pids = x.pids.is_empty();
                     break;
                 }
-            } else {
+            }
+
+            i += 1;
+            if i >= 65535 {
                 break;
             }
-            i += 1;
         }
 
         if empty_pids {

@@ -32,6 +32,10 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
         println_stderr!("cicada: not job id found");
     }
 
+    if tokens.len() == 1 {
+        println_stderr!("fg {}", job_id);
+    }
+
     let gid: i32;
     let pid_list: Vec<i32>;
 

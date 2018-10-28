@@ -27,8 +27,7 @@ pub fn run(sh: &shell::Shell, tokens: &Tokens) -> i32 {
     for (_i, job) in sh.jobs.iter() {
         if !job.cmd.starts_with("nohup ") {
             println_stderr!("There are background jobs.");
-            println_stderr!("Use command `jobs` to see more details.");
-            println_stderr!("Use `exit 1` to force quit.");
+            println_stderr!("Run `jobs` to see details; `exit 1` to force quit.");
             return 0;
         }
     }
