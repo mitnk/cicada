@@ -21,6 +21,18 @@ pub fn tokens_to_args(tokens: &Tokens) -> Vec<String> {
     result
 }
 
+pub fn tokens_to_line(tokens: &Tokens) -> String {
+    let mut result = String::new();
+    for t in tokens {
+        result.push_str(format!("{}{}{} ", t.0, t.1, t.0).as_str());
+    }
+    if result.ends_with(' ') {
+        let len = result.len();
+        result.truncate(len - 1);
+    }
+    result
+}
+
 /// Parse command line for multiple commands. Examples:
 /// >>> line_to_cmds("echo foo && echo bar; echo end");
 /// vec!["echo foo", "&&", "echo bar", ";", "echo end"]

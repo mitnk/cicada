@@ -493,8 +493,8 @@ fn run_command(
             }
 
             if options.isatty && !options.capture_output {
-                let cmd = sh.cmd.clone();
-                sh.insert_job(*pgid, pid, &cmd, "Running", options.background);
+                let _cmd = parsers::parser_line::tokens_to_line(&cmd.tokens);
+                sh.insert_job(*pgid, pid, &_cmd, "Running", options.background);
             }
 
             if idx_cmd < pipes_count {

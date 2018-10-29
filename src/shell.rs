@@ -38,7 +38,7 @@ impl Shell {
         }
     }
 
-    pub fn insert_job(&mut self, gid: i32, pid: i32, cmd: &str, status: &str, report: bool) {
+    pub fn insert_job(&mut self, gid: i32, pid: i32, cmd: &str, status: &str, bg: bool) {
         let mut i = 1;
         loop {
             let mut indexed_job_missing = false;
@@ -51,16 +51,20 @@ impl Shell {
                 indexed_job_missing = true;
             }
 
+            let mut _cmd = cmd.to_string();
+            if bg && !_cmd.ends_with('&') {
+                _cmd.push_str(" &");
+            }
             if indexed_job_missing {
                 self.jobs.insert(
                     i,
                     types::Job{
-                        cmd: cmd.to_string(),
+                        cmd: _cmd.to_string(),
                         id: i,
                         gid: gid,
                         pids: vec![pid],
                         status: status.to_string(),
-                        report: report,
+                        report: bg,
                     }
                 );
                 return;
