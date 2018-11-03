@@ -1,4 +1,4 @@
-# Use cicada as a Library
+# Use cicada as a Library (BETA)
 
 See latest API Docs here: [https://docs.rs/cicada/](https://docs.rs/cicada/)
 

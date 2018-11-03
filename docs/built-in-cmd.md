@@ -1,5 +1,9 @@
 # Cicada Built-in Commands
 
+## bg
+
+Make stopped job runing in background. See also `fg`, `jobs`.
+
 ## cd
 
 Change your current work directory.
@@ -30,6 +34,10 @@ $ export RUST_BACKTRACE=full
 $ export PYTHONPATH=.
 ```
 
+## fg
+
+Bring background job into foreground. See also `bg`, `jobs`.
+
 ## history
 
 List your recent history:
@@ -50,6 +58,11 @@ $ history curl
 $ history 'curl%hugo'
 0: curl -x http://127.0.0.1:1080 https://hugo.wang/http/ip/
 ```
+
+## jobs
+
+Listing all jobs in [job control](https://github.com/mitnk/cicada/blob/master/docs/jobc.md).
+See also `bg`, `fg`.
 
 ## vox
 

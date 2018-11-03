@@ -12,6 +12,7 @@ Cicada is a simple Unix shell written in Rust. It's ready for daily use.
 - [Completion](https://github.com/mitnk/cicada/tree/master/docs/completion.md)
 - [RC File](https://github.com/mitnk/cicada/tree/master/docs/rc-file.md)
 - [History](https://github.com/mitnk/cicada/tree/master/docs/history.md)
+- [Job Control](https://github.com/mitnk/cicada/tree/master/docs/jobc.md)
 
 ## Try out cicada with Docker
 
@@ -87,6 +88,30 @@ $ 1 + 2 * 3 - 4
 3
 $ (1 + 2) * (3 - 4) / 8.0
 -0.375
+```
+
+### job control
+
+```
+# run sleep in backgroup
+$ sleep 200 &
+[1] 89
+# listing jobs
+$ jobs
+[1] 89  Running    sleep 200 &
+# bring it as foreground
+$ fg 1
+sleep 200
+# now you can use `Ctrl-Z` to suspend it
+^Z
+[1] 89  Stopped    sleep 200
+
+$ jobs
+[1] 89  Stopped    sleep 200
+# run it again (in background) with bg
+$ bg
+$ jobs
+[1] 89  Running    sleep 200 &
 ```
 
 ## Cicada is also a library (BETA)
