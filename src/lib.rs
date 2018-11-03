@@ -1,3 +1,49 @@
+//! Cicada is a bash-like Unix shell written in Rust.
+//!
+//! If you would like to use cicada as a regular shell,
+//! please see details in [its repository](https://github.com/mitnk/cicada)
+//!
+//! Here is how to use cicada as a library:
+//!
+//! **Add cicada into Cargo.toml**
+//!
+//! ```
+//! [dependencies]
+//! cicada = "0.8.0"
+//! ```
+//!
+//! **Use cicada functions**
+//!
+//! ```no-run
+//! extern crate cicada;
+//!
+//! fn main() {
+//!     let tokens = cicada::cmd_to_tokens("echo 'hi yoo' | `which wc`");
+//!     assert_eq!(tokens.len(), 4);
+//!
+//!     assert_eq!(tokens[0].0, "");
+//!     assert_eq!(tokens[0].1, "echo");
+//!
+//!     assert_eq!(tokens[1].0, "'");
+//!     assert_eq!(tokens[1].1, "hi yoo");
+//!
+//!     assert_eq!(tokens[2].0, "");
+//!     assert_eq!(tokens[2].1, "|");
+//!
+//!     assert_eq!(tokens[3].0, "`");
+//!     assert_eq!(tokens[3].1, "which wc");
+//!
+//!     let out1 = cicada::run("ls Cargo.toml foo");
+//!     assert_eq!(out1.status, 1);
+//!     assert_eq!(out1.stdout, "Cargo.toml\n");
+//!     assert_eq!(out1.stderr, "ls: foo: No such file or directory\n");
+//!
+//!     let out2 = cicada::run("ls | wc");
+//!     assert_eq!(out2.status, 0);
+//!     assert_eq!(out2.stdout, "       4       4      33\n");
+//! }
+//! ```
+//!
 #![allow(dead_code)]
 #![allow(unknown_lints)]
 // #![feature(tool_lints)]
@@ -27,93 +73,16 @@ mod libs;
 mod parsers;
 mod shell;
 
-use types::CommandResult;
-use types::Tokens;
+/// Represents an error calling `exec`.
+pub use types::CommandResult;
 
-/// Parse command line to multiple commands.
-///
-/// # Examples
-///
-/// ```no-run
-/// >>> line_to_cmds("echo foo && echo bar; echo end");
-/// vec!["echo foo", "&&", "echo bar", ";", "echo end"]
-/// >>> line_to_cmds("man awk | grep version");
-/// vec!["man awk | grep version"]
-/// ```
-pub fn line_to_cmds(line: &str) -> Vec<String> {
-    return parsers::parser_line::line_to_cmds(line);
-}
 
 /// Parse a command to tokens.
-///
-/// # Examples
-///
-/// ```no-run
-/// >>> cmd_to_tokens("echo 'hi yoo' | `which wc`");
-/// vec![
-///     ("", "echo"),
-///     ("'", "hi yoo"),
-///     ("", "|"),
-///     ("`", "which wc"),
-/// ]
-/// ```
-pub fn cmd_to_tokens(cmd: &str) -> Tokens {
+pub fn cmd_to_tokens(cmd: &str) -> Vec<(String, String)> {
     return parsers::parser_line::cmd_to_tokens(cmd);
 }
 
-/// Determine whether line a valid input.
-///
-/// # Examples
-///
-/// ```no-run
-/// is_valid_input("foo");  // true
-/// is_valid_input("foo bar");  // true
-/// is_valid_input("foo ;");  // true
-/// is_valid_input("ls | wc -l");  // true
-/// is_valid_input("foo; bar");  // true
-/// is_valid_input("foo || bar");  // true
-///
-/// is_valid_input("foo |");  // false
-/// is_valid_input("foo ||");  // false
-/// is_valid_input("foo &&");  // false
-/// is_valid_input("foo || && bar ");  // false
-/// ```
-pub fn is_valid_input(line: &str) -> bool {
-    return parsers::parser_line::is_valid_input(line);
-}
-
 /// Run a command or a pipeline.
-///
-/// # Example
-///
-/// File content of src/main.rs:
-///
-/// ```no-run
-/// extern crate cicada;
-///
-/// fn main() {
-///     let out1 = cicada::run("ls").unwrap();
-///     println!("out1: {:?}", out1.stdout);
-///
-///     let out2 = cicada::run("ls | wc").unwrap();
-///     println!("out2: {:?}", out2.stdout);
-///
-///     let out3 = cicada::run("date >> out.txt").unwrap();
-///     println!("out3: {:?}", out3.stdout);
-///
-///     let out4 = cicada::run("cat out.txt").unwrap();
-///     println!("out4: {:?}", out4.stdout);
-/// }
-/// ```
-///
-/// Output:
-///
-/// ```no-run
-/// out1: "Cargo.lock\nCargo.toml\nsrc\ntarget\n"
-/// out2: "       4       4      33\n"
-/// out3: ""
-/// out4: "Fri Oct  6 14:53:25 CST 2017\n"
-/// ```
 pub fn run(line: &str) -> CommandResult {
     execute::run(line)
 }

@@ -648,7 +648,9 @@ pub fn run_pipeline(
 
     for pid in &children {
         let status = jobc::wait_process(sh, pgid, *pid, true);
-        if !capture_output {
+        if capture_output {
+            cmd_result.status = status;
+        } else {
             cmd_result = CommandResult::from_status(pgid, status);
         }
     }
