@@ -7,7 +7,7 @@
 //!
 //! **Add cicada into Cargo.toml**
 //!
-//! ```
+//! ```no-run
 //! [dependencies]
 //! cicada = "0.8.0"
 //! ```
