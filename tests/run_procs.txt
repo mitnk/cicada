@@ -1,6 +1,9 @@
 ls
 Cargo\.toml
 
+(ls)
+Cargo\.toml
+
 ls foo.txt
 
 ls.*foo\.txt.*such file

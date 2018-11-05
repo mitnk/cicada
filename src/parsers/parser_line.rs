@@ -151,6 +151,7 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
     let mut met_parenthesis = false;
     let mut new_round = true;
     let mut skip_next = false;
+    let mut has_dollar = false;
     let count_chars = line.chars().count();
     for (i, c) in line.chars().enumerate() {
         if skip_next {
@@ -158,11 +159,23 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
             continue;
         }
 
+        if c == '$' {
+            has_dollar = true;
+        }
+
         // for cases like: echo $(foo bar)
         if c == '(' && sep.is_empty() {
+            if !has_dollar {
+                // temp solution for cmd like `(ls)`, `(ls -lh)`
+                continue;
+            }
             met_parenthesis = true;
         }
         if c == ')' && sep.is_empty() {
+            if !has_dollar {
+                // temp solution for cmd like `(ls)`, `(ls -lh)`
+                continue;
+            }
             met_parenthesis = false;
         }
 
@@ -537,6 +550,8 @@ mod tests {
     fn test_line_to_tokens() {
         let v = vec![
             ("ls", vec![("", "ls")]),
+            ("(ls)", vec![("", "ls")]),
+            ("(ls -lh)", vec![("", "ls"), ("", "-lh")]),
             ("  ls   ", vec![("", "ls")]),
             ("ls ' a '", vec![("", "ls"), ("'", " a ")]),
             ("ls -lh", vec![("", "ls"), ("", "-lh")]),
