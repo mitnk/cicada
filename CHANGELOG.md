@@ -1,5 +1,10 @@
 # Change Logs
 
+## v0.8.9
+
+- Fixed issue of finding command in `$PATH`.
+- Fixed issue of cmds like `(ls)`.
+
 ## v0.8.8
 
 - Some enhancement on job control.

@@ -1,8 +1,6 @@
-use std::collections::HashSet;
 use std::env;
 use std::fs::read_dir;
 use std::io::Write;
-use std::iter::FromIterator;
 use std::os::unix::fs::PermissionsExt;
 
 pub fn find_first_exec(filename: &str) -> String {
@@ -15,9 +13,7 @@ pub fn find_first_exec(filename: &str) -> String {
         }
     }
     let vec_path: Vec<&str> = env_path.split(':').collect();
-    let path_list: HashSet<&str> = HashSet::from_iter(vec_path.iter().cloned());
-
-    for p in &path_list {
+    for p in &vec_path {
         if let Ok(list) = read_dir(p) {
             for entry in list {
                 if let Ok(entry) = entry {
