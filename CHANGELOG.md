@@ -4,6 +4,7 @@
 
 - Fixed issue of finding command in `$PATH`.
 - Fixed issue of cmds like `(ls)`.
+- Fixed stuck issue of: `sort < foo.txt`.
 
 ## v0.8.8
 

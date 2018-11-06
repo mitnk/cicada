@@ -61,6 +61,9 @@ echo foo> bar
 cat bar
 ^foo$
 
+sort < bar
+^foo$
+
 echo foo >bar
 
 

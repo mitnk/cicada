@@ -224,7 +224,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     let (term_given, cr) = run_pipeline(
         sh,
         &tokens,
-        redirect_from.as_str(),
+        &redirect_from,
         background,
         tty,
         false,
@@ -339,6 +339,14 @@ fn run_command(
                 unsafe {
                     libc::dup2(fds.1, 1);
                     // libc::close(fds.1);
+                }
+            }
+
+            if idx_cmd == 0 && !options.redirect_from.is_empty() {
+                let fd = tools::get_fd_from_file(&options.redirect_from);
+                unsafe {
+                    libc::dup2(fd, 0);
+                    libc::close(fd);
                 }
             }
 

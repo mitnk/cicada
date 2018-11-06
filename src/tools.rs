@@ -1,8 +1,11 @@
 use std::collections::HashSet;
 use std::env;
+use std::error::Error;
+use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::os::unix::io::IntoRawFd;
+use std::path::Path;
 
 use regex::Regex;
 use time;
@@ -359,6 +362,19 @@ pub fn create_raw_fd_from_file(file_name: &str, append: bool) -> Result<i32, Str
         }
         Err(e) => Err(format!("failed to create fd from file: {:?}", e)),
     }
+}
+
+pub fn get_fd_from_file(file_name: &str) -> i32 {
+    let path = Path::new(file_name);
+    let display = path.display();
+    let file = match File::open(&path) {
+        Err(why) => {
+            println_stderr!("cicada: could not open {}: {}", display, why.description());
+            return 0;
+        }
+        Ok(file) => file,
+    };
+    file.into_raw_fd()
 }
 
 #[cfg(test)]

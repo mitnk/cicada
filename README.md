@@ -96,9 +96,11 @@ $ (1 + 2) * (3 - 4) / 8.0
 # run sleep in backgroup
 $ sleep 200 &
 [1] 89
+
 # listing jobs
 $ jobs
 [1] 89  Running    sleep 200 &
+
 # bring it as foreground
 $ fg 1
 sleep 200
@@ -108,6 +110,7 @@ sleep 200
 
 $ jobs
 [1] 89  Stopped    sleep 200
+
 # run it again (in background) with bg
 $ bg
 $ jobs
