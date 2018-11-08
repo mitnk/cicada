@@ -11,18 +11,8 @@ use sqlite;
 use shell;
 use tools;
 
-pub fn init(rl: &mut Interface<DefaultTerminal>) {
-    let mut hist_size: usize = 100000;
-    if let Ok(x) = env::var("HISTORY_SIZE") {
-        if let Ok(y) = x.parse::<usize>() {
-            hist_size = y;
-        }
-    }
-    rl.set_history_size(hist_size);
-
-    let history_table = get_history_table();
-    let hfile = get_history_file();
-    let path = Path::new(hfile.as_str());
+fn init_db(hfile: &str, htable: &str) {
+    let path = Path::new(hfile);
     if !path.exists() {
         let _parent;
         match path.parent() {
@@ -47,15 +37,16 @@ pub fn init(rl: &mut Interface<DefaultTerminal>) {
                 return;
             }
         }
-        match fs::File::create(hfile.as_str()) {
-            Ok(_) => {}
+        match fs::File::create(hfile) {
+            Ok(_) => {
+                println!("cicada: created history file: {}", hfile);
+            }
             Err(e) => {
                 println!("file create failed: {:?}", e);
             }
         }
     }
 
-    let mut histories: HashMap<String, bool> = HashMap::new();
     match sqlite::open(hfile.clone()) {
         Ok(conn) => {
             let sql_create = format!(
@@ -70,20 +61,45 @@ pub fn init(rl: &mut Interface<DefaultTerminal>) {
                      info TEXT
                     );
             ",
-                history_table
+                htable
             );
             match conn.execute(sql_create) {
                 Ok(_) => {}
                 Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e),
             }
 
-            if let Ok(x) = env::var("HISTORY_DELETE_DUPS") {
-                if x == "1" {
-                    delete_duplicated_histories();
-                }
-            }
+        }
+        Err(e) => {
+            println_stderr!("cicada: sqlite conn error - {:?}", e);
+        }
+    }
+}
 
-            let sql_select = format!("SELECT inp FROM {} ORDER BY tsb;", history_table,);
+pub fn init(rl: &mut Interface<DefaultTerminal>) {
+    let mut hist_size: usize = 100000;
+    if let Ok(x) = env::var("HISTORY_SIZE") {
+        if let Ok(y) = x.parse::<usize>() {
+            hist_size = y;
+        }
+    }
+    rl.set_history_size(hist_size);
+
+    let history_table = get_history_table();
+    let hfile = get_history_file();
+
+    if !Path::new(&hfile).exists() {
+        init_db(&hfile, &history_table);
+    }
+    if let Ok(x) = env::var("HISTORY_DELETE_DUPS") {
+        if x == "1" {
+            delete_duplicated_histories();
+        }
+    }
+
+    let mut histories: HashMap<String, bool> = HashMap::new();
+    match sqlite::open(&hfile) {
+        Ok(conn) => {
+            let sql_select = format!("SELECT inp FROM {} ORDER BY tsb;", history_table);
             match conn.iterate(sql_select, |pairs| {
                 for &(_, value) in pairs.iter() {
                     let inp;
@@ -172,6 +188,10 @@ pub fn add(
     sh.previous_cmd = line.to_string();
     let hfile = get_history_file();
     let history_table = get_history_table();
+    if !Path::new(&hfile).exists() {
+        init_db(&hfile, &history_table);
+    }
+
     let conn;
     match sqlite::open(hfile) {
         Ok(x) => conn = x,

@@ -5,6 +5,7 @@
 - Fixed issue of finding command in `$PATH`.
 - Fixed issue of cmds like `(ls)`.
 - Fixed stuck issue of: `sort < foo.txt`.
+- Some improvements on history file init.
 
 ## v0.8.8
 

@@ -1,3 +1,4 @@
+use history;
 use libs;
 
 pub fn run() -> i32 {
@@ -12,6 +13,9 @@ pub fn run() -> i32 {
     if !git_branch.is_empty() {
         println!("Git Branch: {}", env!("GIT_BRANCH"));
     }
+
+    let hfile = history::get_history_file();
+    println!("History File: {}", &hfile);
 
     let os_name = libs::os_type::get_os_name();
     println!("OS: {}", os_name);
