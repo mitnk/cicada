@@ -6,6 +6,7 @@ use types::Tokens;
 use parsers;
 use shell;
 use tools;
+use libs;
 
 pub fn run(_sh: &shell::Shell, tokens: &Tokens) -> i32 {
     let mut i = 0;
@@ -29,8 +30,9 @@ pub fn run(_sh: &shell::Shell, tokens: &Tokens) -> i32 {
 
             for cap in re.captures_iter(text) {
                 let name = cap[1].to_string();
-                let value = parsers::parser_line::unquote(&cap[2]);
-                env::set_var(name, value);
+                let token = parsers::parser_line::unquote(&cap[2]);
+                let value = libs::path::expand_home(&token);
+                env::set_var(name, &value);
             }
         } else {
             println_stderr!("cicada: re new error");
