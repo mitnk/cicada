@@ -108,7 +108,7 @@ impl Shell {
             if let Some(x) = self.jobs.get_mut(&i) {
                 if x.gid == gid {
                     x.status = "Running".to_string();
-                    x.report = false;
+                    x.report = bg;
                     if bg && !x.cmd.ends_with(" &") {
                         x.cmd = format!("{} &", x.cmd);
                     }
