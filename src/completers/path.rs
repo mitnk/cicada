@@ -153,7 +153,7 @@ pub fn complete_path(buffer: &str, for_dir: bool) -> Vec<Completion> {
                         }
                         let suffix = if is_dir {
                             if quoted {
-                                name = name.trim_end_matches(&path_sep).to_string();
+                                name.pop();
                             }
                             Suffix::Some(MAIN_SEPARATOR)
                         } else {

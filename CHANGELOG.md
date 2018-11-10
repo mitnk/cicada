@@ -1,6 +1,10 @@
 # Change Logs
 
-## v0.8.9
+## v0.9.0
+
+- todo
+
+## v0.8.9 - 2018-11-11
 
 - Fixed issue of finding command in `$PATH`.
 - Fixed issue of cmds like `(ls)`.
