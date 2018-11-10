@@ -146,14 +146,19 @@ pub fn complete_path(buffer: &str, for_dir: bool) -> Vec<Completion> {
                             name = str::replace(&name, "\'", "\\\'");
                             name = str::replace(&name, "*", "\\*");
                         }
+                        let mut quoted = false;
+                        if !path_sep.is_empty() {
+                            name = tools::wrap_sep_string(&path_sep, &name);
+                            quoted = true;
+                        }
                         let suffix = if is_dir {
+                            if quoted {
+                                name = name.trim_end_matches(&path_sep).to_string();
+                            }
                             Suffix::Some(MAIN_SEPARATOR)
                         } else {
                             Suffix::Default
                         };
-                        if !path_sep.is_empty() {
-                            name = tools::wrap_sep_string(&path_sep, &name);
-                        }
                         res.push(Completion {
                             completion: name,
                             display,
