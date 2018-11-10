@@ -13,6 +13,7 @@ use linefeed::Prompter;
 
 use parsers;
 use shell;
+use tools;
 
 pub struct BinCompleter {
     pub sh: Arc<shell::Shell>,
@@ -63,12 +64,42 @@ impl<Term: Terminal> Completer<Term> for CdCompleter {
     }
 }
 
+fn ends_with_space(line: &str) -> bool {
+    let mut found_bs = false;
+    let mut found_space = false;
+    let mut with_quote = false;
+    let mut ch_quote = '\0';
+    for c in line.chars() {
+        if c == '\\' {
+            found_bs = true;
+            continue;
+        }
+
+        if !with_quote && !found_bs && (c == '"' || c == '\'') {
+            with_quote = true;
+            ch_quote = c;
+        } else if with_quote && !found_bs && ch_quote == c {
+            with_quote = false;
+        }
+
+        if c == ' ' && !found_bs && !with_quote {
+            found_space = true;
+        }
+        if found_space && c != ' ' {
+            found_space = false;
+        }
+        found_bs = false;
+    }
+    found_space
+}
+
 /// Returns a sorted list of paths whose prefix matches the given path.
 pub fn complete_path(buffer: &str, for_dir: bool) -> Vec<Completion> {
     let mut res = Vec::new();
     let mut path_sep = String::new();
     let mut path = String::new();
-    if !buffer.ends_with(' ') {
+
+    if !ends_with_space(buffer) {
         let tokens = parsers::parser_line::cmd_to_tokens(buffer);
         if tokens.is_empty() {
             return res;
@@ -78,14 +109,14 @@ pub fn complete_path(buffer: &str, for_dir: bool) -> Vec<Completion> {
         path = _path.clone();
         path_sep = _path_sep.clone();
     }
+
     let (_dir_orig, _) = split_path(&path);
     let dir_orig = if let Some(_dir) = _dir_orig { _dir } else { "" };
-    // let mut path_extended = String::from(path);
     let mut path_extended = path.clone();
-    if shell::needs_expand_home(path_extended.as_str()) {
+    if shell::needs_expand_home(&path_extended) {
         shell::expand_home_string(&mut path_extended)
     }
-    let (_dir_lookup, file_name) = split_path(path_extended.as_str());
+    let (_dir_lookup, file_name) = split_path(&path_extended);
     let dir_lookup = _dir_lookup.unwrap_or(".");
     if let Ok(entries) = read_dir(dir_lookup) {
         for entry in entries {
@@ -110,13 +141,19 @@ pub fn complete_path(buffer: &str, for_dir: bool) -> Vec<Completion> {
                         };
                         let mut name = str::replace(name.as_str(), "//", "/");
                         if path_sep.is_empty() {
-                            name = str::replace(name.as_str(), " ", "\\ ");
+                            name = str::replace(&name, " ", "\\ ");
+                            name = str::replace(&name, "\"", "\\\"");
+                            name = str::replace(&name, "\'", "\\\'");
+                            name = str::replace(&name, "*", "\\*");
                         }
                         let suffix = if is_dir {
                             Suffix::Some(MAIN_SEPARATOR)
                         } else {
                             Suffix::Default
                         };
+                        if !path_sep.is_empty() {
+                            name = tools::wrap_sep_string(&path_sep, &name);
+                        }
                         res.push(Completion {
                             completion: name,
                             display,
@@ -217,4 +254,42 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
         }
     }
     res
+}
+
+#[cfg(test)]
+mod tests {
+    use super::split_path;
+    use super::ends_with_space;
+
+    #[test]
+    fn test_split_path() {
+        assert_eq!(split_path(""), (None, ""));
+        assert_eq!(split_path(""), (None, ""));
+    }
+
+    #[test]
+    fn test_ends_with_space() {
+        assert!(ends_with_space("ls "));
+        assert!(ends_with_space("ls a "));
+        assert!(ends_with_space("  ls   foo "));
+        assert!(ends_with_space("\"ls\" "));
+        assert!(ends_with_space("\"ls\" a "));
+
+        assert!(!ends_with_space("ls a"));
+
+        assert!(!ends_with_space("ls \"a "));
+        assert!(!ends_with_space("ls \"a b"));
+        assert!(!ends_with_space("ls \"a b "));
+        assert!(!ends_with_space("ls \'a "));
+        assert!(!ends_with_space("ls \'a b"));
+        assert!(!ends_with_space("ls \'a b "));
+
+        assert!(!ends_with_space("\"ls\" \"a "));
+        assert!(!ends_with_space("\"ls\" \"a b"));
+
+        assert!(!ends_with_space("ls a\\ "));
+        assert!(!ends_with_space("ls a\\ b"));
+        assert!(!ends_with_space("  ls   a\\ b\\ c"));
+
+    }
 }

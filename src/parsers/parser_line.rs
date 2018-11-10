@@ -152,6 +152,16 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
     let mut new_round = true;
     let mut skip_next = false;
     let mut has_dollar = false;
+    // using semi_ok makes quite dirty here
+    // it is mainly for path completion like:
+    // $ ls "foo b<TAB>
+    // # then got `"foo bar"/`, then let tab again:
+    // $ ls "foo bar"/<TAB>
+    // # should got:
+    // $ ls "foo bar/the-single-file.txt"
+    // also using semi_ok makes the following command works as expected:
+    // $ touch "foo"/bar.txt  # create bar.txt under ./foo directory
+    let mut semi_ok = false;
     let count_chars = line.chars().count();
     for (i, c) in line.chars().enumerate() {
         if skip_next {
@@ -224,18 +234,38 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
             continue;
         }
 
-        if c == '|' && !has_backslash && !met_parenthesis && sep_second.is_empty() && sep.is_empty()
-        {
-            result.push((String::from(""), token));
-            result.push((String::from(""), "|".to_string()));
-            sep = String::new();
-            sep_second = String::new();
-            token = String::new();
-            new_round = true;
-            continue;
+        if c == '|' && !has_backslash {
+            if semi_ok {
+                result.push((sep.to_string(), token));
+                result.push((String::from(""), "|".to_string()));
+                sep = String::new();
+                sep_second = String::new();
+                token = String::new();
+                new_round = true;
+                semi_ok = false;
+                continue;
+            } else if !met_parenthesis && sep_second.is_empty() && sep.is_empty() {
+                result.push((String::from(""), token));
+                result.push((String::from(""), "|".to_string()));
+                sep = String::new();
+                sep_second = String::new();
+                token = String::new();
+                new_round = true;
+                continue;
+            }
         }
 
         if c == ' ' {
+            if semi_ok {
+                result.push((sep.to_string(), token));
+                sep = String::new();
+                sep_second = String::new();
+                token = String::new();
+                new_round = true;
+                semi_ok = false;
+                continue;
+            }
+
             if has_backslash {
                 has_backslash = false;
                 token.push(c);
@@ -270,6 +300,16 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
                 continue;
             }
 
+            if sep != c.to_string() && semi_ok {
+                result.push((sep.to_string(), token));
+                sep = String::new();
+                sep_second = String::new();
+                token = String::new();
+                new_round = true;
+                semi_ok = false;
+                // do not use continue here!
+            }
+
             if sep != c.to_string() && met_parenthesis {
                 token.push(c);
                 continue;
@@ -294,11 +334,7 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
                 }
                 continue;
             } else if sep == c.to_string() {
-                result.push((c.to_string(), token));
-                sep = String::new();
-                sep_second = String::new();
-                token = String::new();
-                new_round = true;
+                semi_ok = true;
                 continue;
             } else {
                 token.push(c);
@@ -313,7 +349,7 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
             token.push(c);
         }
     }
-    if !token.is_empty() {
+    if !token.is_empty() || semi_ok {
         result.push((sep, token));
     }
     result
@@ -710,6 +746,49 @@ mod tests {
                     ("", "echo"),
                     ("", "A`echo foo bar | awk '{print $2, $1}'`B"),
                 ],
+            ),
+            (
+                "echo \"a b c\"|wc -l",
+                vec![
+                    ("", "echo"),
+                    ("\"", "a b c"),
+                    ("", "|"),
+                    ("", "wc"),
+                    ("", "-l"),
+                ],
+            ),
+            (
+                "echo \"abc\"/",
+                vec![("", "echo"), ("\"", "abc/")],
+            ),
+            (
+                "echo \"abc\"/foo.txt",
+                vec![("", "echo"), ("\"", "abc/foo.txt")],
+            ),
+            (
+                "echo \"abc\"/\"def\"",
+                vec![("", "echo"), ("\"", "abc/def")],
+            ),
+            (
+                "echo \'abc\'/",
+                vec![("", "echo"), ("\'", "abc/")],
+            ),
+            (
+                "echo \'abc\'/foo",
+                vec![("", "echo"), ("\'", "abc/foo")],
+            ),
+            (
+                "echo 'abc'/'def'",
+                vec![("", "echo"), ("'", "abc/def")],
+            ),
+            (
+                // here the behavior is not the same with bash
+                // bash:   echo "foo"/'bar' -> foo/bar
+                // cicada: echo "foo"/'bar' -> foo/ bar
+                //                                 ^ an extra space
+                // see also comments up above on semi_ok
+                "echo \"abc\"/'def'",
+                vec![("", "echo"), ("\"", "abc/"), ("'", "def")],
             ),
         ];
         for (left, right) in v {

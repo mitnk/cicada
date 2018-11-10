@@ -110,51 +110,77 @@ impl<Term: Terminal> Completer<Term> for CicadaCompleter {
     }
 }
 
-/// via: https://github.com/murarth/linefeed/blob/master/src/complete.rs
-/// Returns the start position of a word with non-word characters escaped by
-/// backslash (`\\`).
-pub fn escaped_word_start(s: &str) -> usize {
-    let mut chars = s.char_indices().rev();
-    let mut start = s.len();
-
-    while let Some((idx, ch)) = chars.next() {
-        if needs_escape(ch) {
-            let n = {
-                let mut n = 0;
-
-                loop {
-                    let mut clone = chars.clone();
-
-                    let ch = match clone.next() {
-                        Some((_, ch)) => ch,
-                        None => break,
-                    };
-
-                    if ch == '\\' {
-                        chars = clone;
-                        n += 1;
-                    } else {
-                        break;
-                    }
-                }
-
-                n
-            };
-
-            if n % 2 == 0 {
-                break;
-            }
+pub fn escaped_word_start(line: &str) -> usize {
+    let mut n: usize = 0;
+    let mut found_bs = false;
+    let mut found_space = false;
+    let mut with_quote = false;
+    let mut ch_quote = '\0';
+    for (i, c) in line.chars().enumerate() {
+        if c == '\\' {
+            found_bs = true;
+            continue;
         }
 
-        start = idx;
-    }
+        if !with_quote && !found_bs && (c == '"' || c == '\'') {
+            with_quote = true;
+            ch_quote = c;
+        } else if with_quote && !found_bs && ch_quote == c {
+            with_quote = false;
+        }
 
-    start
+        if c == ' ' && !found_bs && !with_quote {
+            found_space = true;
+        }
+        if found_space && c != ' ' {
+            found_space = false;
+            n = i;
+        }
+        found_bs = false;
+    }
+    if found_space {
+        n = line.len();
+    }
+    n
 }
 
-fn needs_escape(ch: char) -> bool {
-    match ch {
-        ' ' | '\t' | '\n' | '\\' => true,
-        _ => false,
+#[cfg(test)]
+mod tests {
+    use super::escaped_word_start;
+
+    #[test]
+    fn test_escaped_word_start() {
+        assert_eq!(escaped_word_start("ls a"), 3);
+        assert_eq!(escaped_word_start("  ls   foo"), 7);
+
+        assert_eq!(escaped_word_start("ls a\\ "), 3);
+        assert_eq!(escaped_word_start("ls a\\ b"), 3);
+        assert_eq!(escaped_word_start("ls a\\ b\\ c"), 3);
+        assert_eq!(escaped_word_start("  ls   a\\ b\\ c"), 7);
+
+        assert_eq!(escaped_word_start("ls a\\'"), 3);
+        assert_eq!(escaped_word_start("ls a\\'b"), 3);
+        assert_eq!(escaped_word_start("ls a\\'b\\'c"), 3);
+        assert_eq!(escaped_word_start("  ls   a\\'b\\'c"), 7);
+
+        assert_eq!(escaped_word_start("ls a\\\""), 3);
+        assert_eq!(escaped_word_start("ls a\\\"b"), 3);
+        assert_eq!(escaped_word_start("ls a\\\"b\\\"c"), 3);
+        assert_eq!(escaped_word_start("  ls   a\\\"b\\\"c"), 7);
+
+        assert_eq!(escaped_word_start("ls \"a'b'c"), 3);
+        assert_eq!(escaped_word_start("ls \'a\"b\"c"), 3);
+
+        assert_eq!(escaped_word_start("rm "), 3);
+        assert_eq!(escaped_word_start("ls a "), 5);
+        assert_eq!(escaped_word_start("  ls   foo "), 11);
+
+        assert_eq!(escaped_word_start("ls \"a b"), 3);
+        assert_eq!(escaped_word_start("ls \"a "), 3);
+        assert_eq!(escaped_word_start("ls \"a b "), 3);
+        assert_eq!(escaped_word_start("ls \'a b"), 3);
+        assert_eq!(escaped_word_start("ls \'a "), 3);
+        assert_eq!(escaped_word_start("ls \'a b "), 3);
+        assert_eq!(escaped_word_start("\"ls\" \"a b"), 5);
     }
 }

@@ -6,6 +6,8 @@
 - Fixed issue of cmds like `(ls)`.
 - Fixed stuck issue of: `sort < foo.txt`.
 - Some improvements on history file init.
+- Improved path completion on chars needing escape.
+- Make command `touch "foo"/bar.txt` works as expected.
 
 ## v0.8.8
 
