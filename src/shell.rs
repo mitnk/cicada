@@ -193,6 +193,10 @@ impl Shell {
         self.alias.insert(name.to_string(), value.to_string());
     }
 
+    pub fn is_alias(&self, name: &str) -> bool {
+        self.alias.contains_key(name)
+    }
+
     pub fn get_alias_content(&self, name: &str) -> Option<String> {
         let result;
         match self.alias.get(name) {
@@ -482,6 +486,37 @@ pub fn expand_home_string(text: &mut String) {
     }
 }
 
+fn expand_alias(sh: &Shell, tokens: &mut types::Tokens) {
+    let mut idx: usize = 0;
+    let mut buff: HashMap<usize, String> = HashMap::new();
+    let mut is_head = true;
+    for (sep, text) in tokens.iter() {
+        if sep.is_empty() && text == "|" {
+            is_head = true;
+            idx += 1;
+            continue;
+        }
+        if !is_head || !sh.is_alias(&text) {
+            idx += 1;
+            continue;
+        }
+        if let Some(value) = sh.get_alias_content(&text) {
+            buff.insert(idx, value.clone());
+        }
+
+        idx += 1;
+        is_head = false;
+    }
+
+    for (i, text) in buff.iter() {
+        let tokens_ = parsers::parser_line::cmd_to_tokens(&text);
+        tokens.remove(*i as usize);
+        for item in tokens_.iter().rev() {
+            tokens.insert(*i as usize, item.clone());
+        }
+    }
+}
+
 fn expand_home(tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
 
@@ -675,6 +710,7 @@ fn do_command_substitution(sh: &mut Shell, tokens: &mut types::Tokens) {
 }
 
 pub fn do_expansion(sh: &mut Shell, tokens: &mut types::Tokens) {
+    expand_alias(sh, tokens);
     expand_home(tokens);
     expand_brace(tokens);
     expand_env(sh, tokens);

@@ -79,6 +79,12 @@ wc bar
 rm -f bar  # clean up
 
 
+touch "foo'bar.txt"
+
+
+rm foo\'bar.txt
+
+
 echo foo > /dev/null
 
 

@@ -96,11 +96,9 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         }
     }
 
-    let mut cmd_line: String = line.to_string();
-    cmd_line = tools::extend_alias(&sh, &cmd_line);
     let mut status = 0;
     let mut sep = String::new();
-    for token in parsers::parser_line::line_to_cmds(&cmd_line) {
+    for token in parsers::parser_line::line_to_cmds(&line) {
         if token == ";" || token == "&&" || token == "||" {
             sep = token.clone();
             continue;
@@ -671,9 +669,7 @@ pub fn run_pipeline(
 }
 
 fn run_with_shell<'a, 'b>(sh: &'a mut shell::Shell, line: &'b str) -> CommandResult {
-    let mut line2 = String::from(line);
-    line2 = tools::extend_alias(&sh, &line2);
-    let (mut tokens, envs) = line_to_tokens(sh, &line2);
+    let (mut tokens, envs) = line_to_tokens(sh, &line);
     if tokens.is_empty() {
         return CommandResult::new();
     }
