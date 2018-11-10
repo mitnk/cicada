@@ -488,7 +488,7 @@ pub fn expand_home_string(text: &mut String) {
 
 fn expand_alias(sh: &Shell, tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
-    let mut buff: HashMap<usize, String> = HashMap::new();
+    let mut buff = Vec::new();
     let mut is_head = true;
     for (sep, text) in tokens.iter() {
         if sep.is_empty() && text == "|" {
@@ -496,19 +496,21 @@ fn expand_alias(sh: &Shell, tokens: &mut types::Tokens) {
             idx += 1;
             continue;
         }
+
         if !is_head || !sh.is_alias(&text) {
             idx += 1;
             continue;
         }
+
         if let Some(value) = sh.get_alias_content(&text) {
-            buff.insert(idx, value.clone());
+            buff.push((idx, value.clone()));
         }
 
         idx += 1;
         is_head = false;
     }
 
-    for (i, text) in buff.iter() {
+    for (i, text) in buff.iter().rev() {
         let tokens_ = parsers::parser_line::cmd_to_tokens(&text);
         tokens.remove(*i as usize);
         for item in tokens_.iter().rev() {
