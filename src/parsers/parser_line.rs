@@ -228,6 +228,9 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
                     continue;
                 } else {
                     token.push(c);
+                    if has_backslash {
+                        has_backslash = false;
+                    }
                 }
             }
             new_round = false;
@@ -491,61 +494,6 @@ fn is_valid_cmd(cmd: &str) -> bool {
     true
 }
 
-#[allow(dead_code)]
-pub fn is_valid_input(line: &str) -> bool {
-    let cmd_splitors = vec![";", "||", "&&"];
-
-    let mut cmds = line_to_cmds(line);
-    let mut len = cmds.len();
-    if len == 0 {
-        return false;
-    }
-    let _cmds = cmds.clone();
-    let mut last = &_cmds[len - 1];
-    if len >= 1 && last == ";" {
-        cmds.pop();
-        len = cmds.len();
-        if len == 0 {
-            return false;
-        }
-        last = &cmds[len - 1];
-    }
-
-    let mut last_cmd_is_cmd_sep = false;
-    for cmd in &cmds {
-        if cmd_splitors.contains(&cmd.as_str()) {
-            if last_cmd_is_cmd_sep {
-                return false;
-            }
-            last_cmd_is_cmd_sep = true;
-            continue;
-        } else {
-            last_cmd_is_cmd_sep = false;
-        }
-        if !is_valid_cmd(cmd) {
-            return false;
-        }
-    }
-
-    if cmd_splitors.contains(&last.as_str()) {
-        return false;
-    }
-
-    if len > 1 {
-        for sep in cmd_splitors {
-            if cmds.contains(&sep.to_string()) {
-                if let Some(pos) = cmds.iter().position(|x| x == sep) {
-                    if pos < len - 1 && cmds[pos + 1] == sep {
-                        return false;
-                    }
-                }
-            }
-        }
-    }
-
-    true
-}
-
 pub fn unquote(text: &str) -> String {
     let mut new_str = String::from(text);
     for &c in ['"', '\''].iter() {
@@ -561,7 +509,6 @@ pub fn unquote(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::cmd_to_tokens;
-    use super::is_valid_input;
     use super::line_to_cmds;
     use super::line_to_plain_tokens;
     use super::Tokens;
@@ -790,6 +737,10 @@ mod tests {
                 "echo \"abc\"/'def'",
                 vec![("", "echo"), ("\"", "abc/"), ("'", "def")],
             ),
+            (
+                "echo \\a\\b\\c",
+                vec![("", "echo"), ("", "abc")],
+            ),
         ];
         for (left, right) in v {
             println!("\ninput: {:?}", left);
@@ -887,60 +838,6 @@ mod tests {
 
         for (left, right) in v {
             _assert_vec_str_eq(line_to_cmds(left), right);
-        }
-    }
-
-    #[test]
-    fn test_is_valid_input() {
-        let invalid_list = vec![
-            "foo |",
-            "foo ||",
-            "foo &&",
-            "foo|",
-            "foo | ",
-            "| foo",
-            "foo ; ; bar",
-            "foo && && bar",
-            "foo || || bar",
-            "foo | | bar",
-            "foo && ; bar",
-            "foo || && bar",
-            "foo | || bar",
-            "foo ; | bar",
-            "foo | ; bar",
-            "foo | && bar",
-            "foo | ; bar",
-            "& foo",
-            "foo & bar",
-            "",
-            ";",
-            "||",
-            "&&",
-            "|",
-        ];
-        for line in &invalid_list {
-            let valid = is_valid_input(line);
-            if valid {
-                println!("'{}' should be invalid", line);
-            }
-            assert!(!valid);
-        }
-
-        let valid_list = vec![
-            "foo",
-            "foo bar",
-            "foo;",
-            "foo ;",
-            "foo | bar",
-            "foo; bar",
-            "foo && bar",
-            "foo || bar",
-            "foo &",
-            "echo 'foo & bar'",
-            "echo `foo | | bar`",
-        ];
-        for line in &valid_list {
-            assert!(is_valid_input(line));
         }
     }
 }
