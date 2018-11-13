@@ -43,8 +43,21 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
     let mut result = Vec::new();
     let mut sep = String::new();
     let mut token = String::new();
+    let mut has_backslash = false;
     let len = line.len();
     for (i, c) in line.chars().enumerate() {
+        if has_backslash {
+            token.push('\\');
+            token.push(c);
+            has_backslash = false;
+            continue;
+        }
+
+        if c == '\\' && sep != "'" {
+            has_backslash = true;
+            continue;
+        }
+
         if c == '#' {
             if sep.is_empty() {
                 break;
@@ -169,6 +182,26 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
             continue;
         }
 
+        if has_backslash && sep == "\"" && c != '\"' {
+            // constant with bash: "\"" --> "; "\a" --> \a
+            token.push('\\');
+            token.push(c);
+            has_backslash = false;
+            continue;
+        }
+
+        if has_backslash {
+            if new_round && sep.is_empty() && (c == '|' || c == '$') && token.is_empty() {
+                sep = String::from("\\");
+                token = format!("{}", c);
+            } else {
+                token.push(c);
+            }
+            new_round = false;
+            has_backslash = false;
+            continue;
+        }
+
         if c == '$' {
             has_dollar = true;
         }
@@ -189,13 +222,8 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
             met_parenthesis = false;
         }
 
-        if c == '\\' && sep != "\'" {
-            if !has_backslash {
-                has_backslash = true;
-            } else {
-                has_backslash = false;
-                token.push(c);
-            }
+        if c == '\\' && sep != "'" {
+            has_backslash = true;
             continue;
         }
 
@@ -204,35 +232,29 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
                 continue;
             } else if c == '"' || c == '\'' || c == '`' {
                 sep = c.to_string();
-            } else {
-                sep = String::new();
-
-                // handle inline comments
-                if c == '#' {
-                    if has_backslash {
-                        has_backslash = false;
-                        token.push(c);
-                        continue;
-                    }
-                    break;
-                }
-
-                if c == '|' {
-                    if i + 1 < count_chars && line.chars().nth(i + 1).unwrap() == '|' {
-                        result.push((String::from(""), "||".to_string()));
-                        skip_next = true;
-                    } else {
-                        result.push((String::from(""), "|".to_string()));
-                    }
-                    new_round = true;
-                    continue;
-                } else {
-                    token.push(c);
-                    if has_backslash {
-                        has_backslash = false;
-                    }
-                }
+                new_round = false;
+                continue;
             }
+
+            sep = String::new();
+
+            if c == '#' {
+                // handle inline comments
+                break;
+            }
+
+            if c == '|' {
+                if i + 1 < count_chars && line.chars().nth(i + 1).unwrap() == '|' {
+                    result.push((String::from(""), "||".to_string()));
+                    skip_next = true;
+                } else {
+                    result.push((String::from(""), "|".to_string()));
+                }
+                new_round = true;
+                continue;
+            }
+
+            token.push(c);
             new_round = false;
             continue;
         }
@@ -277,6 +299,13 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
 
             if met_parenthesis {
                 token.push(c);
+                continue;
+            }
+
+            if sep == "\\" {
+                result.push((String::from("\\"), token));
+                token = String::new();
+                new_round = true;
                 continue;
             }
 
@@ -458,42 +487,6 @@ pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
     })
 }
 
-#[allow(dead_code)]
-fn is_valid_cmd(cmd: &str) -> bool {
-    if let Some(c) = cmd.chars().nth(0) {
-        if c == '|' {
-            return false;
-        }
-    }
-    if let Some(c) = cmd.chars().rev().nth(0) {
-        if c == '|' {
-            return false;
-        }
-    }
-
-    let tokens = cmd_to_tokens(cmd);
-    let mut found_pipe = false;
-    let len = tokens.len();
-    for (i, token) in tokens.iter().enumerate() {
-        let sep = &token.0;
-        if !sep.is_empty() {
-            found_pipe = false;
-            continue;
-        }
-        let value = &token.1;
-        if value == "|" {
-            if found_pipe {
-                return false;
-            }
-            found_pipe = true;
-        }
-        if value == "&" && i != len - 1 {
-            return false;
-        }
-    }
-    true
-}
-
 pub fn unquote(text: &str) -> String {
     let mut new_str = String::from(text);
     for &c in ['"', '\''].iter() {
@@ -543,6 +536,8 @@ mod tests {
             ("ls \"Hi 你好\"", vec![("", "ls"), ("\"", "Hi 你好")]),
             ("ls \"abc\"", vec![("", "ls"), ("\"", "abc")]),
             ("echo \"\"", vec![("", "echo"), ("\"", "")]),
+            ("echo \"\\\"\"", vec![("", "echo"), ("\"", "\"")]),
+            ("echo \"\\a\"", vec![("", "echo"), ("\"", "\\a")]),
             ("echo \"hi $USER\"", vec![("", "echo"), ("\"", "hi $USER")]),
             ("echo 'hi $USER'", vec![("", "echo"), ("'", "hi $USER")]),
             ("echo '###'", vec![("", "echo"), ("'", "###")]),
@@ -741,6 +736,42 @@ mod tests {
                 "echo \\a\\b\\c",
                 vec![("", "echo"), ("", "abc")],
             ),
+            (
+                "echo \\|",
+                vec![("", "echo"), ("\\", "|")],
+            ),
+            (
+                "echo \\|\\|\\|",
+                vec![("", "echo"), ("\\", "|||")],
+            ),
+            (
+                "echo a\\|b",
+                vec![("", "echo"), ("", "a|b")],
+            ),
+            (
+                "foo \\| bar",
+                vec![("", "foo"), ("\\", "|"), ("", "bar")],
+            ),
+            (
+                "echo \\| foo",
+                vec![("", "echo"), ("\\", "|"), ("", "foo")],
+            ),
+            (
+                "echo | foo",
+                vec![("", "echo"), ("", "|"), ("", "foo")],
+            ),
+            (
+                "echo \\foo \\bar",
+                vec![("", "echo"), ("", "foo"), ("", "bar")],
+            ),
+            (
+                "echo \\$\\(date\\)",
+                vec![("", "echo"), ("\\", "$(date)")],
+            ),
+            (
+                "ll foo\\#bar",
+                vec![("", "ll"), ("", "foo#bar")],
+            ),
         ];
         for (left, right) in v {
             println!("\ninput: {:?}", left);
@@ -828,12 +859,18 @@ mod tests {
                 vec!["echo foo", "&&", "echo bar", ";", "echo end"],
             ),
             (
+                "echo \"\\\"\"",
+                vec!["echo \"\\\"\""],
+            ),
+            (
                 "man awk| awk -F \"[ ,.\\\"]+\" 'foo' |sort -k2nr|head",
                 vec!["man awk| awk -F \"[ ,.\\\"]+\" 'foo' |sort -k2nr|head"],
             ),
             (";", vec![";"]),
             ("||", vec!["||"]),
             ("&&", vec!["&&"]),
+            ("ls foo\\#bar", vec!["ls foo\\#bar"]),
+            ("ls \\|\\|foo", vec!["ls \\|\\|foo"]),
         ];
 
         for (left, right) in v {

@@ -314,10 +314,24 @@ pub fn get_fd_from_file(file_name: &str) -> i32 {
     file.into_raw_fd()
 }
 
+pub fn escape_path(path: &str) -> String {
+    let re;
+    match Regex::new(r##"(?P<c>[!\(\)<>,\?\]\[\{\} \\'"`*\^#|$&;])"##) {
+        Ok(x) => {
+            re = x;
+        }
+        Err(_) => {
+            return path.to_string();
+        }
+    }
+    return re.replace_all(path, "\\$c").to_string();
+}
+
 #[cfg(test)]
 mod tests {
     use super::extend_bandband;
     use super::is_alias;
+    use super::escape_path;
     use shell;
 
     #[test]
@@ -345,5 +359,13 @@ mod tests {
         line = "echo '!!' && echo !!".to_string();
         extend_bandband(&sh, &mut line);
         assert_eq!(line, "echo '!!' && echo foo");
+    }
+
+    #[test]
+    fn test_escape_path() {
+        assert_eq!(
+            escape_path("a b!c\"d\'#$&e(f)g*h,i;j<k>l?m\\n[]o`p{}q|^z.txt"),
+            "a\\ b\\!c\\\"d\\\'\\#\\$\\&e\\(f\\)g\\*h\\,i\\;j\\<k\\>l\\?m\\\\n\\[\\]o\\`p\\{\\}q\\|\\^z.txt",
+        );
     }
 }

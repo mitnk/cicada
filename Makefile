@@ -14,7 +14,7 @@ doc:
 
 test:
 	@rustc -V
-	cargo test
+	cargo test --bins
 
 clippy:
 	cargo clippy -- -A clippy::needless_return -A clippy::ptr_arg

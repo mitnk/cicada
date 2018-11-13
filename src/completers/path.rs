@@ -141,10 +141,7 @@ pub fn complete_path(buffer: &str, for_dir: bool) -> Vec<Completion> {
                         };
                         let mut name = str::replace(name.as_str(), "//", "/");
                         if path_sep.is_empty() {
-                            name = str::replace(&name, " ", "\\ ");
-                            name = str::replace(&name, "\"", "\\\"");
-                            name = str::replace(&name, "\'", "\\\'");
-                            name = str::replace(&name, "*", "\\*");
+                            name = tools::escape_path(&name);
                         }
                         let mut quoted = false;
                         if !path_sep.is_empty() {
@@ -247,8 +244,10 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
                             let display = None;
                             let suffix = Suffix::Default;
                             checker.insert(name.clone());
+                            // TODO: need to handle quoted: `$ "foo#bar"`
+                            let name_e = tools::escape_path(&name);
                             res.push(Completion {
-                                completion: name,
+                                completion: name_e,
                                 display,
                                 suffix,
                             });

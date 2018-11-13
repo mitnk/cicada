@@ -2,7 +2,8 @@
 
 ## v0.9.0
 
-- todo
+- Works on escape file names.
+- Some improvements on command line parser (escape chars etc).
 
 ## v0.8.9 - 2018-11-11
 

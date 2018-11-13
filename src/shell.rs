@@ -594,7 +594,7 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
     let mut buff: HashMap<usize, String> = HashMap::new();
 
     for (sep, token) in tokens.iter() {
-        if sep == "'" || !should_do_dollar_command_extension(token) {
+        if sep == "'" || sep == "\\" || !should_do_dollar_command_extension(token) {
             idx += 1;
             continue;
         }
@@ -616,6 +616,7 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
                 }
             }
 
+            log!("run subcmd: {:?}", &cmd);
             let _args = parsers::parser_line::cmd_to_tokens(&cmd);
             let (_, cmd_result) =
                 execute::run_pipeline(sh, &_args, "", false, false, true, false, None);
@@ -650,7 +651,8 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
     for (sep, token) in tokens.iter() {
         let new_token: String;
         if sep == "`" {
-            let _args = parsers::parser_line::cmd_to_tokens(token.as_str());
+            log!("run subcmd: {:?}", token);
+            let _args = parsers::parser_line::cmd_to_tokens(&token);
             let (_, cr) = execute::run_pipeline(sh, &_args, "", false, false, true, false, None);
             new_token = cr.stdout.trim().to_string();
         } else if sep == "\"" || sep.is_empty() {
@@ -680,6 +682,7 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
                 for cap in re.captures_iter(&_token) {
                     _head = cap[1].to_string();
                     _tail = cap[3].to_string();
+                    log!("run subcmd: {:?}", &cap[2]);
                     let _args = parsers::parser_line::cmd_to_tokens(&cap[2]);
                     let (_, cr) =
                         execute::run_pipeline(sh, &_args, "", false, false, true, false, None);
