@@ -47,7 +47,10 @@ pub fn load_rcfile(sh: &mut shell::Shell) {
 
 fn handle_line(sh: &mut shell::Shell, line: &str) {
     let mut tokens = parsers::parser_line::cmd_to_tokens(line);
-    shell::do_expansion(sh, &mut tokens);
+    // todo - fix this quick&dirty
+    if !line.contains(" PROMPT=") {
+        shell::do_expansion(sh, &mut tokens);
+    }
     if tools::is_export_env(line) {
         handle_env(sh, &tokens);
         return;

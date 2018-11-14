@@ -28,6 +28,7 @@ mod history;
 mod jobc;
 mod libs;
 mod parsers;
+mod prompt;
 mod rcfile;
 mod shell;
 mod types;
@@ -75,9 +76,8 @@ fn main() {
         sh: Arc::new(sh.clone()),
     }));
 
-    let mut status = 0;
     loop {
-        let prompt = libs::prompt::get_prompt(status);
+        let prompt = prompt::get_prompt(&sh);
         match rl.set_prompt(&prompt) {
             Ok(_) => {}
             Err(e) => {
@@ -98,7 +98,7 @@ fn main() {
 
                 let mut line = line.clone();
                 tools::extend_bandband(&sh, &mut line);
-                status = execute::run_procs(&mut sh, &line, true);
+                let status = execute::run_procs(&mut sh, &line, true);
 
                 let tse_spec = time::get_time();
                 let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1_000_000_000.0;

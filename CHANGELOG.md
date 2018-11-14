@@ -4,6 +4,7 @@
 
 - Works on escape file names.
 - Some improvements on command line parser (escape chars etc).
+- Added suport for customizing prompt.
 
 ## v0.8.9 - 2018-11-11
 
