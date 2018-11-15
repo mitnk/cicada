@@ -1,11 +1,20 @@
 use std::env;
 
+use execute;
 use shell;
 use tools;
 
 const DEFAULT_PROMPT: &str = "${COLOR_STATUS}$USER${RESET}@${COLOR_STATUS}$HOSTNAME${RESET}: ${COLOR_STATUS}$CWD${RESET}$ ";
-use super::preset::apply_preset_token;
+use super::preset::apply_preset_item;
 use super::preset::apply_pyenv;
+
+fn is_prefix_char(c: char) -> bool {
+    c == '[' || c == '{'
+}
+
+fn is_suffix_char(c: char) -> bool {
+    c == ']' || c == '}'
+}
 
 fn is_prompt_item_char(c: char) -> bool {
     let s = c.to_string();
@@ -19,12 +28,22 @@ pub fn get_prompt_string() -> String {
     DEFAULT_PROMPT.to_string()
 }
 
-fn apply_token(sh: &shell::Shell, result: &mut String, token: &str) {
+fn apply_prompt_item(sh: &shell::Shell, result: &mut String, token: &str) {
     if let Ok(x) = env::var(token) {
         result.push_str(&x);
         return;
     }
-    apply_preset_token(sh, result, token);
+    apply_preset_item(sh, result, token);
+}
+
+fn apply_command(result: &mut String, token: &str, prefix: &str, suffix: &str) {
+    let cr = execute::run(&token);
+    let output = cr.stdout.trim();
+    if !output.is_empty() {
+        result.push_str(&prefix);
+        result.push_str(&output);
+        result.push_str(&suffix);
+    }
 }
 
 pub fn render_prompt(sh: &shell::Shell, ps: &str) -> String {
@@ -32,15 +51,34 @@ pub fn render_prompt(sh: &shell::Shell, ps: &str) -> String {
     apply_pyenv(&mut prompt);
 
     let mut met_dollar = false;
+    let mut met_brace = false;
+    let mut met_paren = false;
     let mut token = String::new();
+    let mut prefix = String::new();
+    let mut suffix = String::new();
     for c in ps.chars() {
         if met_dollar {
-            if c == '{' {
+            if c == '(' && !met_brace && !met_paren {
+                met_paren = true;
                 continue;
-            } else if c == '}' {
-                apply_token(sh, &mut prompt, &token);
+            }
+            if c == ')' && met_paren {
+                apply_command(&mut prompt, &token, &prefix, &suffix);
+                token.clear();
+                prefix.clear();
+                suffix.clear();
+                met_dollar = false;
+                met_paren = false;
+                continue;
+            }
+            if c == '{' && !met_brace && !met_paren {
+                met_brace = true;
+                continue;
+            } else if c == '}' && met_brace {
+                apply_prompt_item(sh, &mut prompt, &token);
                 token.clear();
                 met_dollar = false;
+                met_brace = false;
                 continue;
             } else if c == '$' {
                 if token.is_empty() {
@@ -49,11 +87,20 @@ pub fn render_prompt(sh: &shell::Shell, ps: &str) -> String {
                     met_dollar = true;
                     continue;
                 } else {
-                    apply_token(sh, &mut prompt, &token);
+                    apply_prompt_item(sh, &mut prompt, &token);
                     token.clear();
                     // met_dollar is still true
                     continue;
                 }
+            } else if met_paren {
+                if is_prefix_char(c) {
+                    prefix.push(c);
+                } else if is_suffix_char(c) {
+                    suffix.push(c);
+                } else {
+                    token.push(c);
+                }
+                continue;
             } else if is_prompt_item_char(c) {
                 token.push(c);
                 continue;
@@ -71,7 +118,7 @@ pub fn render_prompt(sh: &shell::Shell, ps: &str) -> String {
         }
 
         if !token.is_empty() {
-            apply_token(sh, &mut prompt, &token);
+            apply_prompt_item(sh, &mut prompt, &token);
             token.clear();
         }
         prompt.push(c);

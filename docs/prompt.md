@@ -15,21 +15,33 @@ username@hostname: current-dir$
 ## Available Prompt items
 
 A prompt item is prompt value fields like `$USER`, `${COLOR_STATUS}` etc.
-Note `$XYZ` is the same as `${XYZ}`, but sometime you need the `${XYZ}` form
-to achieve prompt string like `FOO${XYZ}BAR`, where it would be treated as
-`$XYZBAR` without the `{}` chars. Also, `$XYZ` is the same as `$xyz`.
+Note `$XYZ` is the same as `${XYZ}`, and `$XYZ` is the same as `$xyz`.
 
 | Prompt Item | Description |
 | --- | --- |
-| ${BLUE} | change terminal color to blue. |
-| ${COLOR_STATUS} | change terminal color to green/red based on last exit status code. |
 | ${CWD} | current work directory base name. e.g. `baz` for dir `/foo/bar/baz`. |
-| ${GREEN} | change terminal color to green. |
 | ${HOSTNAME} | system hostname. |
 | ${NEWLINE} | the newline char: `\n`. |
-| ${RED} | change terminal color to red. |
-| ${RESET} | reset terminal color. |
 | ${USER} | system user name. |
+| ${BLACK} | change terminal color to black. |
+| ${BLACK_B} | change terminal color to bold black. |
+| ${BLACK_BG} | change terminal color to background black. |
+| ${BLUE} | change terminal color to blue. |
+| ${BLUE_B} | change terminal color to bold blue. |
+| ${BLUE_BG} | change terminal color to background blue. |
+| ${GREEN} | change terminal color to green. |
+| ${GREEN_B} | change terminal color to bold green. |
+| ${GREEN_BG} | change terminal color to background green. |
+| ${RED} | change terminal color to red. |
+| ${RED_B} | change terminal color to bold red. |
+| ${RED_BG} | change terminal color to background red. |
+| ${WHITE} | change terminal color to white. |
+| ${WHITE_B} | change terminal color to bold white. |
+| ${WHITE_BG} | change terminal color to background white. |
+| ${COLOR_STATUS} | change terminal color to green/red based on last exit status code. |
+| ${BOLD} | make text bold. |
+| ${UNDERLINED} | Underlined text. |
+| ${RESET} | reset terminal color & format. |
 
 Note you can also use regular environment variables that not in the list, like `$HOME`, in the `$PROMPT` value.
 
@@ -39,3 +51,25 @@ See also [builtin vox](https://github.com/mitnk/cicada/blob/master/docs/built-in
 
 When you enter a virtual env, the prompt will prefix by `(pyenv-name)`. e.g.
 `(evn-test)mitnk:mbp: pip$ `.
+
+## Use Command Output in Prompt
+
+You can use `$(the cmd line)` in prompt, and the output of command
+`the cmd line` will be rendered in prompt. e.g.
+```
+export PROMPT="[$(git rev-parse --abbrev-ref HEAD)] $USER@HOSTNAME$ "
+```
+would render prompt with:
+```
+$ [master] mitnk@mpb$
+```
+
+### Use prefix & suffix in it (BETA)
+You can use `[` or `{` as prefix, and `]`, `}` as suffix when using command
+output int prompt. e.g.
+```
+export PROMPT="$({git rev-parse --abbrev-ref HEAD}) $USER@HOSTNAME$ "
+```
+So that when the output of the command is empty, the prefix/suffix wouldn't
+be rendered either.
+

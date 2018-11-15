@@ -7,21 +7,77 @@ use shell;
 use tools;
 use tools::clog;
 
+fn apply_underlined(result: &mut String) {
+    result.push_str(libs::colored::UNDERLINED);
+}
+
 fn apply_user(result: &mut String) {
     let username = tools::get_user_name();
     result.push_str(&username);
+}
+
+fn apply_black(result: &mut String) {
+    result.push_str(libs::colored::BLACK);
+}
+
+fn apply_black_b(result: &mut String) {
+    result.push_str(libs::colored::BLACK_B);
+}
+
+fn apply_black_bg(result: &mut String) {
+    result.push_str(libs::colored::BLACK_BG);
 }
 
 fn apply_blue(result: &mut String) {
     result.push_str(libs::colored::BLUE);
 }
 
+fn apply_blue_b(result: &mut String) {
+    result.push_str(libs::colored::BLUE_B);
+}
+
+fn apply_blue_bg(result: &mut String) {
+    result.push_str(libs::colored::BLUE_BG);
+}
+
+fn apply_bold(result: &mut String) {
+    result.push_str(libs::colored::BOLD);
+}
+
 fn apply_green(result: &mut String) {
     result.push_str(libs::colored::GREEN);
 }
 
+fn apply_green_b(result: &mut String) {
+    result.push_str(libs::colored::GREEN_B);
+}
+
+fn apply_green_bg(result: &mut String) {
+    result.push_str(libs::colored::GREEN_BG);
+}
+
 fn apply_red(result: &mut String) {
     result.push_str(libs::colored::RED);
+}
+
+fn apply_red_b(result: &mut String) {
+    result.push_str(libs::colored::RED_B);
+}
+
+fn apply_red_bg(result: &mut String) {
+    result.push_str(libs::colored::RED_BG);
+}
+
+fn apply_white(result: &mut String) {
+    result.push_str(libs::colored::WHITE);
+}
+
+fn apply_white_b(result: &mut String) {
+    result.push_str(libs::colored::WHITE_B);
+}
+
+fn apply_white_bg(result: &mut String) {
+    result.push_str(libs::colored::WHITE_BG);
 }
 
 fn apply_reset(result: &mut String) {
@@ -105,17 +161,31 @@ fn apply_others(result: &mut String, token: &str) {
     result.push_str(&s);
 }
 
-pub fn apply_preset_token(sh: &shell::Shell, result: &mut String, token: &str) {
+pub fn apply_preset_item(sh: &shell::Shell, result: &mut String, token: &str) {
     match token.to_ascii_lowercase().as_ref() {
+        "black" => apply_black(result),
+        "black_b" => apply_black_b(result),
+        "black_bg" => apply_black_bg(result),
         "blue" => apply_blue(result),
+        "blue_b" => apply_blue_b(result),
+        "blue_bg" => apply_blue_bg(result),
+        "bold" => apply_bold(result),
+        "color_status" => apply_color_status(sh, result),
         "cwd" => apply_cwd(result),
         "green" => apply_green(result),
+        "green_b" => apply_green_b(result),
+        "green_bg" => apply_green_bg(result),
         "hostname" => apply_hostname(result),
         "newline" => apply_newline(result),
         "red" => apply_red(result),
+        "red_b" => apply_red_b(result),
+        "red_bg" => apply_red_bg(result),
         "reset" => apply_reset(result),
-        "color_status" => apply_color_status(sh, result),
+        "underlined" => apply_underlined(result),
         "user" => apply_user(result),
+        "white" => apply_white(result),
+        "white_b" => apply_white_b(result),
+        "white_bg" => apply_white_bg(result),
         _ => apply_others(result, token),
     }
 }

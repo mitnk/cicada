@@ -715,6 +715,12 @@ fn do_command_substitution(sh: &mut Shell, tokens: &mut types::Tokens) {
 }
 
 pub fn do_expansion(sh: &mut Shell, tokens: &mut types::Tokens) {
+    if tokens.len() >= 2 {
+        if tokens[0].1 == "export" && tokens[1].1.starts_with("PROMPT=") {
+            return;
+        }
+    }
+
     expand_alias(sh, tokens);
     expand_home(tokens);
     expand_brace(tokens);
