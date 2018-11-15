@@ -9,7 +9,7 @@
 //!
 //! ```no-run
 //! [dependencies]
-//! cicada = "0.8.0"
+//! cicada = "0.9.0"
 //! ```
 //!
 //! **Use cicada functions**

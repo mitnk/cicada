@@ -6,7 +6,7 @@ See latest API Docs here: [https://docs.rs/cicada/](https://docs.rs/cicada/)
 
 ```
 [dependencies]
-cicada = "0.8.0"
+cicada = "0.9.0"
 ```
 
 ## Use cicada functions

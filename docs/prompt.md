@@ -38,7 +38,7 @@ Note `$XYZ` is the same as `${XYZ}`, and `$XYZ` is the same as `$xyz`.
 | ${WHITE} | change terminal color to white. |
 | ${WHITE_B} | change terminal color to bold white. |
 | ${WHITE_BG} | change terminal color to background white. |
-| ${COLOR_STATUS} | change terminal color to green/red based on last exit status code. |
+| ${COLOR_STATUS} | change terminal color to `green_b`/`red_b` based on last exit status code. |
 | ${BOLD} | make text bold. |
 | ${UNDERLINED} | Underlined text. |
 | ${RESET} | reset terminal color & format. |

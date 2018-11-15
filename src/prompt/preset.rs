@@ -86,9 +86,9 @@ fn apply_reset(result: &mut String) {
 
 fn apply_color_status(sh: &shell::Shell, result: &mut String) {
     if sh.previous_status == 0 {
-        result.push_str(libs::colored::GREEN);
+        result.push_str(libs::colored::GREEN_B);
     } else {
-        result.push_str(libs::colored::RED);
+        result.push_str(libs::colored::RED_B);
     }
 }
 
