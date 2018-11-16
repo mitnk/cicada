@@ -67,7 +67,6 @@ fn init_db(hfile: &str, htable: &str) {
                 Ok(_) => {}
                 Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e),
             }
-
         }
         Err(e) => {
             println_stderr!("cicada: sqlite conn error - {:?}", e);

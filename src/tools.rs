@@ -329,9 +329,9 @@ pub fn escape_path(path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use super::escape_path;
     use super::extend_bandband;
     use super::is_alias;
-    use super::escape_path;
     use shell;
 
     #[test]

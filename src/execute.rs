@@ -10,11 +10,11 @@ use std::process;
 use libc;
 use regex::Regex;
 
-use nix::Error;
 use nix::errno::Errno;
 use nix::unistd::execve;
 use nix::unistd::pipe;
 use nix::unistd::{fork, ForkResult};
+use nix::Error;
 use nom::IResult;
 
 use builtins;
@@ -465,16 +465,14 @@ fn run_command(
 
             match execve(&c_program, &c_args, &c_envs) {
                 Ok(_) => {}
-                Err(e) => {
-                    match e {
-                        Error::Sys(Errno::ENOEXEC) => {
-                            println_stderr!("cicada: {}: exec format error (ENOEXEC)", program);
-                        }
-                        _ => {
-                            println_stderr!("cicada: {}: {:?}", program, e);
-                        }
+                Err(e) => match e {
+                    Error::Sys(Errno::ENOEXEC) => {
+                        println_stderr!("cicada: {}: exec format error (ENOEXEC)", program);
                     }
-                }
+                    _ => {
+                        println_stderr!("cicada: {}: {:?}", program, e);
+                    }
+                },
             }
 
             process::exit(1);

@@ -2,8 +2,8 @@
 use std::io::Write;
 use std::process;
 
-use types::Tokens;
 use shell;
+use types::Tokens;
 
 pub fn run(sh: &shell::Shell, tokens: &Tokens) -> i32 {
     if tokens.len() > 2 {

@@ -76,7 +76,6 @@ mod shell;
 /// Represents an error calling `exec`.
 pub use types::CommandResult;
 
-
 /// Parse a command to tokens.
 pub fn cmd_to_tokens(cmd: &str) -> Vec<(String, String)> {
     return parsers::parser_line::cmd_to_tokens(cmd);

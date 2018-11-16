@@ -58,14 +58,14 @@ impl Shell {
             if indexed_job_missing {
                 self.jobs.insert(
                     i,
-                    types::Job{
+                    types::Job {
                         cmd: _cmd.to_string(),
                         id: i,
                         gid: gid,
                         pids: vec![pid],
                         status: status.to_string(),
                         report: bg,
-                    }
+                    },
                 );
                 return;
             }
@@ -74,7 +74,7 @@ impl Shell {
     }
 
     pub fn get_job_by_id(&self, job_id: i32) -> Option<&types::Job> {
-            self.jobs.get(&job_id)
+        self.jobs.get(&job_id)
     }
 
     pub fn get_job_by_gid(&self, gid: i32) -> Option<&types::Job> {
@@ -297,8 +297,8 @@ pub fn expand_glob(tokens: &mut types::Tokens) {
                                 Ok(path) => {
                                     let s = path.to_string_lossy();
                                     if !item.starts_with('.')
-                                        && s.starts_with('.')
-                                        && !s.contains('/')
+                                        && (s.starts_with('.')
+                                            || tools::re_contains(&s, r#"/\.[^/]+$"#))
                                     {
                                         // skip hidden files, you may need to
                                         // type `ls .*rc` instead of `ls *rc`

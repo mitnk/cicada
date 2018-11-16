@@ -699,10 +699,7 @@ mod tests {
                     ("", "-l"),
                 ],
             ),
-            (
-                "echo \"abc\"/",
-                vec![("", "echo"), ("\"", "abc/")],
-            ),
+            ("echo \"abc\"/", vec![("", "echo"), ("\"", "abc/")]),
             (
                 "echo \"abc\"/foo.txt",
                 vec![("", "echo"), ("\"", "abc/foo.txt")],
@@ -711,18 +708,9 @@ mod tests {
                 "echo \"abc\"/\"def\"",
                 vec![("", "echo"), ("\"", "abc/def")],
             ),
-            (
-                "echo \'abc\'/",
-                vec![("", "echo"), ("\'", "abc/")],
-            ),
-            (
-                "echo \'abc\'/foo",
-                vec![("", "echo"), ("\'", "abc/foo")],
-            ),
-            (
-                "echo 'abc'/'def'",
-                vec![("", "echo"), ("'", "abc/def")],
-            ),
+            ("echo \'abc\'/", vec![("", "echo"), ("\'", "abc/")]),
+            ("echo \'abc\'/foo", vec![("", "echo"), ("\'", "abc/foo")]),
+            ("echo 'abc'/'def'", vec![("", "echo"), ("'", "abc/def")]),
             (
                 // here the behavior is not the same with bash
                 // bash:   echo "foo"/'bar' -> foo/bar
@@ -732,46 +720,19 @@ mod tests {
                 "echo \"abc\"/'def'",
                 vec![("", "echo"), ("\"", "abc/"), ("'", "def")],
             ),
-            (
-                "echo \\a\\b\\c",
-                vec![("", "echo"), ("", "abc")],
-            ),
-            (
-                "echo \\|",
-                vec![("", "echo"), ("\\", "|")],
-            ),
-            (
-                "echo \\|\\|\\|",
-                vec![("", "echo"), ("\\", "|||")],
-            ),
-            (
-                "echo a\\|b",
-                vec![("", "echo"), ("", "a|b")],
-            ),
-            (
-                "foo \\| bar",
-                vec![("", "foo"), ("\\", "|"), ("", "bar")],
-            ),
-            (
-                "echo \\| foo",
-                vec![("", "echo"), ("\\", "|"), ("", "foo")],
-            ),
-            (
-                "echo | foo",
-                vec![("", "echo"), ("", "|"), ("", "foo")],
-            ),
+            ("echo \\a\\b\\c", vec![("", "echo"), ("", "abc")]),
+            ("echo \\|", vec![("", "echo"), ("\\", "|")]),
+            ("echo \\|\\|\\|", vec![("", "echo"), ("\\", "|||")]),
+            ("echo a\\|b", vec![("", "echo"), ("", "a|b")]),
+            ("foo \\| bar", vec![("", "foo"), ("\\", "|"), ("", "bar")]),
+            ("echo \\| foo", vec![("", "echo"), ("\\", "|"), ("", "foo")]),
+            ("echo | foo", vec![("", "echo"), ("", "|"), ("", "foo")]),
             (
                 "echo \\foo \\bar",
                 vec![("", "echo"), ("", "foo"), ("", "bar")],
             ),
-            (
-                "echo \\$\\(date\\)",
-                vec![("", "echo"), ("\\", "$(date)")],
-            ),
-            (
-                "ll foo\\#bar",
-                vec![("", "ll"), ("", "foo#bar")],
-            ),
+            ("echo \\$\\(date\\)", vec![("", "echo"), ("\\", "$(date)")]),
+            ("ll foo\\#bar", vec![("", "ll"), ("", "foo#bar")]),
         ];
         for (left, right) in v {
             println!("\ninput: {:?}", left);
@@ -858,10 +819,7 @@ mod tests {
                 "echo foo && echo bar; echo end",
                 vec!["echo foo", "&&", "echo bar", ";", "echo end"],
             ),
-            (
-                "echo \"\\\"\"",
-                vec!["echo \"\\\"\""],
-            ),
+            ("echo \"\\\"\"", vec!["echo \"\\\"\""]),
             (
                 "man awk| awk -F \"[ ,.\\\"]+\" 'foo' |sort -k2nr|head",
                 vec!["man awk| awk -F \"[ ,.\\\"]+\" 'foo' |sort -k2nr|head"],

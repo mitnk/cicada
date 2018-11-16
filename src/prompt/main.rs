@@ -4,7 +4,8 @@ use execute;
 use shell;
 use tools;
 
-const DEFAULT_PROMPT: &str = "${COLOR_STATUS}$USER${RESET}@${COLOR_STATUS}$HOSTNAME${RESET}: ${COLOR_STATUS}$CWD${RESET}$ ";
+const DEFAULT_PROMPT: &str =
+    "${COLOR_STATUS}$USER${RESET}@${COLOR_STATUS}$HOSTNAME${RESET}: ${COLOR_STATUS}$CWD${RESET}$ ";
 use super::preset::apply_preset_item;
 use super::preset::apply_pyenv;
 

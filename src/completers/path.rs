@@ -262,8 +262,8 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
 
 #[cfg(test)]
 mod tests {
-    use super::split_path;
     use super::ends_with_space;
+    use super::split_path;
 
     #[test]
     fn test_split_path() {
@@ -294,6 +294,5 @@ mod tests {
         assert!(!ends_with_space("ls a\\ "));
         assert!(!ends_with_space("ls a\\ b"));
         assert!(!ends_with_space("  ls   a\\ b\\ c"));
-
     }
 }

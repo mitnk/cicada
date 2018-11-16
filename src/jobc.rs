@@ -94,7 +94,7 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i3
                 log!("waitpid error: {:?}", e);
                 status = 1;
             }
-        }
+        },
     }
     status
 }

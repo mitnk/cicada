@@ -56,7 +56,6 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
                         println_stderr!("cicada: bg: job {} already in background", job.id);
                         return 0;
                     }
-
                 }
             }
             None => {

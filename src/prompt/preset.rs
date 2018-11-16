@@ -121,7 +121,13 @@ fn apply_cwd(result: &mut String) {
     }
 
     let home = tools::get_user_home();
-    let pwd = if last.is_empty() { "/" } else if current_dir == home { "~" } else { last };
+    let pwd = if last.is_empty() {
+        "/"
+    } else if current_dir == home {
+        "~"
+    } else {
+        last
+    };
     result.push_str(pwd);
 }
 
