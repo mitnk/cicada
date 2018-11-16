@@ -3,6 +3,7 @@
 ## 0.9.1
 
 - Skip hidden files when expanding `foo/*`.
+- Support `include` in rc file.
 
 ## v0.9.0
 

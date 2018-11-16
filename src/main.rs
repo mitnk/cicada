@@ -43,7 +43,7 @@ fn main() {
     }
 
     let mut sh = shell::Shell::new();
-    rcfile::load_rcfile(&mut sh);
+    rcfile::load_rc_files(&mut sh);
 
     // this section handles `cicada -c 'echo hi && echo yoo'`,
     // e.g. it could be triggered from Vim (`:!ls` etc).
