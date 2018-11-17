@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::env;
 use std::fs::read_dir;
 use std::io::Write;
@@ -6,6 +7,14 @@ use std::os::unix::fs::PermissionsExt;
 use regex::Regex;
 
 use tools;
+
+pub fn basename<'a>(path: &'a str) -> Cow<'a, str> {
+    let mut pieces = path.rsplit('/');
+    match pieces.next() {
+        Some(p) => p.into(),
+        None => path.into(),
+    }
+}
 
 pub fn expand_home(text: &str) -> String {
     let mut s: String = text.to_string();

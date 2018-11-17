@@ -289,22 +289,26 @@ pub fn expand_glob(tokens: &mut types::Tokens) {
             {
                 result.push(item.to_string());
             } else {
+                let _basename = libs::path::basename(item);
+                let show_hidden = _basename.starts_with(".*");
+
                 match glob::glob(item) {
                     Ok(paths) => {
                         let mut is_empty = true;
                         for entry in paths {
                             match entry {
                                 Ok(path) => {
-                                    let s = path.to_string_lossy();
-                                    if !item.starts_with('.')
-                                        && (s.starts_with('.')
-                                            || tools::re_contains(&s, r#"/\.[^/]+$"#))
-                                    {
+                                    let file_path = path.to_string_lossy();
+                                    let _basename = libs::path::basename(&file_path);
+                                    if _basename == ".." || _basename == "." {
+                                        continue;
+                                    }
+                                    if _basename.starts_with('.') && !show_hidden {
                                         // skip hidden files, you may need to
                                         // type `ls .*rc` instead of `ls *rc`
                                         continue;
                                     }
-                                    result.push(s.to_string());
+                                    result.push(file_path.to_string());
                                     is_empty = false;
                                 }
                                 Err(e) => {
@@ -464,7 +468,6 @@ fn expand_brace(tokens: &mut types::Tokens) {
 }
 
 pub fn expand_home_string(text: &mut String) {
-    // let mut s: String = String::from(text);
     let v = vec![
         r"(?P<head> +)~(?P<tail> +)",
         r"(?P<head> +)~(?P<tail>/)",
