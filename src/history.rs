@@ -9,7 +9,7 @@ use linefeed::Interface;
 use sqlite;
 
 use shell;
-use tools;
+use tools::{self, clog};
 
 fn init_db(hfile: &str, htable: &str) {
     let path = Path::new(hfile);
@@ -159,10 +159,18 @@ fn delete_duplicated_histories() {
             );
             match conn.execute(sql) {
                 Ok(_) => {}
-                Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e),
+                Err(e) => {
+                    if e.code == Some(5) {
+                        log!("sqlite is locked while delete dups");
+                    } else {
+                        println_stderr!("cicada: sqlite execute error: {:?}", e);
+                    }
+                }
             }
         }
-        Err(e) => println_stderr!("cicada: sqlite open file error - {:?}", e),
+        Err(e) => {
+            println_stderr!("cicada: sqlite open file error - {:?}", e);
+        }
     }
 }
 
