@@ -7,6 +7,7 @@ use linefeed::terminal::Terminal;
 use regex::Regex;
 
 pub mod dots;
+pub mod env;
 pub mod make;
 pub mod path;
 pub mod ssh;
@@ -21,6 +22,10 @@ pub struct CicadaCompleter {
 
 fn for_make(line: &str) -> bool {
     tools::re_contains(line, r"^ *make ")
+}
+
+fn for_env(line: &str) -> bool {
+    tools::re_contains(line, r" *\$[_a-zA-Z0-9]*")
 }
 
 fn for_ssh(line: &str) -> bool {
@@ -86,6 +91,14 @@ impl<Term: Terminal> Completer<Term> for CicadaCompleter {
         }
         if for_make(line) {
             let cpl = Arc::new(make::MakeCompleter);
+            if let Some(x) = cpl.complete(word, reader, start, _end) {
+                if !x.is_empty() {
+                    return Some(x);
+                }
+            }
+        }
+        if for_env(line) {
+            let cpl = Arc::new(env::EnvCompleter);
             if let Some(x) = cpl.complete(word, reader, start, _end) {
                 if !x.is_empty() {
                     return Some(x);

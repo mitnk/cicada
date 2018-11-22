@@ -4,6 +4,7 @@
 
 - Skip hidden files when expanding `foo/*`.
 - Support `include` in rc file.
+- Added completion for ENV.
 
 ## v0.9.0
 
