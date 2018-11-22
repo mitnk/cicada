@@ -469,6 +469,12 @@ fn run_command(
                     Error::Sys(Errno::ENOEXEC) => {
                         println_stderr!("cicada: {}: exec format error (ENOEXEC)", program);
                     }
+                    Error::Sys(Errno::ENOENT) => {
+                        println_stderr!("cicada: {}: file does not exist", program);
+                    }
+                    Error::Sys(Errno::EACCES) => {
+                        println_stderr!("cicada: {}: Permission denied", program);
+                    }
                     _ => {
                         println_stderr!("cicada: {}: {:?}", program, e);
                     }
