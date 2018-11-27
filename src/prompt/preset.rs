@@ -7,92 +7,92 @@ use shell;
 use tools;
 use tools::clog;
 
-fn apply_underlined(result: &mut String) {
-    result.push_str(libs::colored::UNDERLINED);
+fn apply_underlined(prompt: &mut String) {
+    prompt.push_str(libs::colored::UNDERLINED);
 }
 
-fn apply_user(result: &mut String) {
+fn apply_user(prompt: &mut String) {
     let username = tools::get_user_name();
-    result.push_str(&username);
+    prompt.push_str(&username);
 }
 
-fn apply_black(result: &mut String) {
-    result.push_str(libs::colored::BLACK);
+fn apply_black(prompt: &mut String) {
+    prompt.push_str(libs::colored::BLACK);
 }
 
-fn apply_black_b(result: &mut String) {
-    result.push_str(libs::colored::BLACK_B);
+fn apply_black_b(prompt: &mut String) {
+    prompt.push_str(libs::colored::BLACK_B);
 }
 
-fn apply_black_bg(result: &mut String) {
-    result.push_str(libs::colored::BLACK_BG);
+fn apply_black_bg(prompt: &mut String) {
+    prompt.push_str(libs::colored::BLACK_BG);
 }
 
-fn apply_blue(result: &mut String) {
-    result.push_str(libs::colored::BLUE);
+fn apply_blue(prompt: &mut String) {
+    prompt.push_str(libs::colored::BLUE);
 }
 
-fn apply_blue_b(result: &mut String) {
-    result.push_str(libs::colored::BLUE_B);
+fn apply_blue_b(prompt: &mut String) {
+    prompt.push_str(libs::colored::BLUE_B);
 }
 
-fn apply_blue_bg(result: &mut String) {
-    result.push_str(libs::colored::BLUE_BG);
+fn apply_blue_bg(prompt: &mut String) {
+    prompt.push_str(libs::colored::BLUE_BG);
 }
 
-fn apply_bold(result: &mut String) {
-    result.push_str(libs::colored::BOLD);
+fn apply_bold(prompt: &mut String) {
+    prompt.push_str(libs::colored::BOLD);
 }
 
-fn apply_green(result: &mut String) {
-    result.push_str(libs::colored::GREEN);
+fn apply_green(prompt: &mut String) {
+    prompt.push_str(libs::colored::GREEN);
 }
 
-fn apply_green_b(result: &mut String) {
-    result.push_str(libs::colored::GREEN_B);
+fn apply_green_b(prompt: &mut String) {
+    prompt.push_str(libs::colored::GREEN_B);
 }
 
-fn apply_green_bg(result: &mut String) {
-    result.push_str(libs::colored::GREEN_BG);
+fn apply_green_bg(prompt: &mut String) {
+    prompt.push_str(libs::colored::GREEN_BG);
 }
 
-fn apply_red(result: &mut String) {
-    result.push_str(libs::colored::RED);
+fn apply_red(prompt: &mut String) {
+    prompt.push_str(libs::colored::RED);
 }
 
-fn apply_red_b(result: &mut String) {
-    result.push_str(libs::colored::RED_B);
+fn apply_red_b(prompt: &mut String) {
+    prompt.push_str(libs::colored::RED_B);
 }
 
-fn apply_red_bg(result: &mut String) {
-    result.push_str(libs::colored::RED_BG);
+fn apply_red_bg(prompt: &mut String) {
+    prompt.push_str(libs::colored::RED_BG);
 }
 
-fn apply_white(result: &mut String) {
-    result.push_str(libs::colored::WHITE);
+fn apply_white(prompt: &mut String) {
+    prompt.push_str(libs::colored::WHITE);
 }
 
-fn apply_white_b(result: &mut String) {
-    result.push_str(libs::colored::WHITE_B);
+fn apply_white_b(prompt: &mut String) {
+    prompt.push_str(libs::colored::WHITE_B);
 }
 
-fn apply_white_bg(result: &mut String) {
-    result.push_str(libs::colored::WHITE_BG);
+fn apply_white_bg(prompt: &mut String) {
+    prompt.push_str(libs::colored::WHITE_BG);
 }
 
-fn apply_reset(result: &mut String) {
-    result.push_str(libs::colored::RESET);
+fn apply_reset(prompt: &mut String) {
+    prompt.push_str(libs::colored::RESET);
 }
 
-fn apply_color_status(sh: &shell::Shell, result: &mut String) {
+fn apply_color_status(sh: &shell::Shell, prompt: &mut String) {
     if sh.previous_status == 0 {
-        result.push_str(libs::colored::GREEN_B);
+        prompt.push_str(libs::colored::GREEN_B);
     } else {
-        result.push_str(libs::colored::RED_B);
+        prompt.push_str(libs::colored::RED_B);
     }
 }
 
-fn apply_cwd(result: &mut String) {
+fn apply_cwd(prompt: &mut String) {
     let _current_dir;
     match env::current_dir() {
         Ok(x) => _current_dir = x,
@@ -128,19 +128,19 @@ fn apply_cwd(result: &mut String) {
     } else {
         last
     };
-    result.push_str(pwd);
+    prompt.push_str(pwd);
 }
 
-fn apply_hostname(result: &mut String) {
+fn apply_hostname(prompt: &mut String) {
     let hostname = tools::get_hostname();
-    result.push_str(&hostname);
+    prompt.push_str(&hostname);
 }
 
-fn apply_newline(result: &mut String) {
-    result.push('\n');
+fn apply_newline(prompt: &mut String) {
+    prompt.push('\n');
 }
 
-pub fn apply_pyenv(result: &mut String) {
+pub fn apply_pyenv(prompt: &mut String) {
     if let Ok(x) = env::var("VIRTUAL_ENV") {
         if !x.is_empty() {
             let _tokens: Vec<&str> = x.split('/').collect();
@@ -152,46 +152,46 @@ pub fn apply_pyenv(result: &mut String) {
                     return;
                 }
             }
-            result.push('(');
-            apply_blue(result);
-            result.push_str(env_name);
-            apply_reset(result);
-            result.push(')');
+            apply_blue_b(prompt);
+            prompt.push('(');
+            prompt.push_str(env_name);
+            prompt.push(')');
+            apply_reset(prompt);
         }
     }
 }
 
-fn apply_others(result: &mut String, token: &str) {
+fn apply_others(prompt: &mut String, token: &str) {
     log!("unknown prompt item: {:?}", token);
     let s = format!("<{}>", token);
-    result.push_str(&s);
+    prompt.push_str(&s);
 }
 
-pub fn apply_preset_item(sh: &shell::Shell, result: &mut String, token: &str) {
+pub fn apply_preset_item(sh: &shell::Shell, prompt: &mut String, token: &str) {
     match token.to_ascii_lowercase().as_ref() {
-        "black" => apply_black(result),
-        "black_b" => apply_black_b(result),
-        "black_bg" => apply_black_bg(result),
-        "blue" => apply_blue(result),
-        "blue_b" => apply_blue_b(result),
-        "blue_bg" => apply_blue_bg(result),
-        "bold" => apply_bold(result),
-        "color_status" => apply_color_status(sh, result),
-        "cwd" => apply_cwd(result),
-        "green" => apply_green(result),
-        "green_b" => apply_green_b(result),
-        "green_bg" => apply_green_bg(result),
-        "hostname" => apply_hostname(result),
-        "newline" => apply_newline(result),
-        "red" => apply_red(result),
-        "red_b" => apply_red_b(result),
-        "red_bg" => apply_red_bg(result),
-        "reset" => apply_reset(result),
-        "underlined" => apply_underlined(result),
-        "user" => apply_user(result),
-        "white" => apply_white(result),
-        "white_b" => apply_white_b(result),
-        "white_bg" => apply_white_bg(result),
-        _ => apply_others(result, token),
+        "black" => apply_black(prompt),
+        "black_b" => apply_black_b(prompt),
+        "black_bg" => apply_black_bg(prompt),
+        "blue" => apply_blue(prompt),
+        "blue_b" => apply_blue_b(prompt),
+        "blue_bg" => apply_blue_bg(prompt),
+        "bold" => apply_bold(prompt),
+        "color_status" => apply_color_status(sh, prompt),
+        "cwd" => apply_cwd(prompt),
+        "green" => apply_green(prompt),
+        "green_b" => apply_green_b(prompt),
+        "green_bg" => apply_green_bg(prompt),
+        "hostname" => apply_hostname(prompt),
+        "newline" => apply_newline(prompt),
+        "red" => apply_red(prompt),
+        "red_b" => apply_red_b(prompt),
+        "red_bg" => apply_red_bg(prompt),
+        "reset" => apply_reset(prompt),
+        "underlined" => apply_underlined(prompt),
+        "user" => apply_user(prompt),
+        "white" => apply_white(prompt),
+        "white_b" => apply_white_b(prompt),
+        "white_bg" => apply_white_bg(prompt),
+        _ => apply_others(prompt, token),
     }
 }
