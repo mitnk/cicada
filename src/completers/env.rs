@@ -20,6 +20,9 @@ impl<Term: Terminal> Completer<Term> for EnvCompleter {
 
 fn complete_env(path: &str) -> Vec<Completion> {
     let mut res = Vec::new();
+    if path.trim().is_empty() {
+        return res;
+    }
     let mut prefix = path.to_string();
     prefix.remove(0);
 

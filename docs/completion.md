@@ -1,8 +1,26 @@
 # Cicada Completions
 
+## Builtin Completions
+
 Path completion is available out of box. In addition to this, cicada also
-supports simplifed customized completion using YAML file. Put your completion
-files under `~/.cicada/completers/`. The completion files look like this:
+support completion for command:
+
+- make
+- ssh
+- vox
+
+### Completions on OS Envs
+
+```
+$ echo $LC_<TAB><TAB>
+$LC_ALL  $LC_CTYPE
+```
+
+## Customize Completions
+
+Cicada also supports simplifed customized completion using YAML file.
+Put your completion files under `~/.cicada/completers/`. The completion files
+look like this:
 
 ```
 $ ls ~/.cicada/completers/
@@ -27,25 +45,16 @@ Currently, cicada supports maximum 2 level completion:
 ```
 $ cat ~/.cicada/completers/pip.yaml
 - install:
-    - --force-reinstall
     - -U
     - --upgrade
     - -r
     - --requirement
-    - --user
 - download
 - uninstall
-- freeze
-- list
-- show
-- check
 - search:
     - --no-cache-dir
     - --timeout
 - wheel
-- hash
-- completion
-- help
 
 $ pip ins<Tab>
 $ pip install

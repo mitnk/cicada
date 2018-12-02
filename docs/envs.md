@@ -9,11 +9,18 @@ there won't be any logs be written.
 
 default: `""` (empty)
 
-## HISTORY_SIZE
+## CICADA_GITBR_PREFIX
 
-How many history items should be loaded when cicada starts.
+In [prompt item](https://github.com/mitnk/cicada/blob/master/docs/prompt.md#available-prompt-items)
+`$GITBR`, works as a prefix if defined.
 
-default: `999`
+default: `""` (empty)
+
+## CICADA_GITBR_SUFFIX
+
+In prompt item `$GITBR`, works as a suffix if defined.
+
+default: `""` (empty)
 
 ## HISTORY_DELETE_DUPS
 
@@ -27,6 +34,12 @@ Specify the sqlite database file path.
 
 default: `$XDG_DATA_HOME/cicada/history.sqlite` (if `$XDG_DATA_HOME` is set)  
 default: `$HOME/.local/share/cicada/history.sqlite` (else)
+
+## HISTORY_SIZE
+
+How many history items should be loaded when cicada starts.
+
+default: `99999`
 
 ## HISTORY_TABLE
 

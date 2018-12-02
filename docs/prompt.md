@@ -29,6 +29,7 @@ Note `$XYZ` is the same as `${XYZ}`, and `$XYZ` is the same as `$xyz`.
 | ${BLUE} | change terminal color to blue. |
 | ${BLUE_B} | change terminal color to bold blue. |
 | ${BLUE_BG} | change terminal color to background blue. |
+| ${GITBR} | change terminal color to green. |
 | ${GREEN} | change terminal color to green. |
 | ${GREEN_B} | change terminal color to bold green. |
 | ${GREEN_BG} | change terminal color to background green. |

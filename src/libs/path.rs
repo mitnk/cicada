@@ -1,12 +1,13 @@
 use std::borrow::Cow;
 use std::env;
+use std::error::Error;
 use std::fs::read_dir;
 use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
 
 use regex::Regex;
 
-use tools;
+use tools::{self, clog};
 
 pub fn basename<'a>(path: &'a str) -> Cow<'a, str> {
     let mut pieces = path.rsplit('/');
@@ -78,4 +79,24 @@ pub fn find_first_exec(filename: &str) -> String {
         }
     }
     String::new()
+}
+
+pub fn current_dir() -> String {
+    let _current_dir;
+    match env::current_dir() {
+        Ok(x) => _current_dir = x,
+        Err(e) => {
+            log!("cicada: PROMPT: env current_dir error: {}", e.description());
+            return String::new();
+        }
+    }
+    let current_dir;
+    match _current_dir.to_str() {
+        Some(x) => current_dir = x,
+        None => {
+            log!("cicada: PROMPT: to_str error");
+            return String::new();
+        }
+    }
+    current_dir.to_string()
 }

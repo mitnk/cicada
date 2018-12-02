@@ -5,6 +5,7 @@
 - Skip hidden files when expanding `foo/*`.
 - Support `include` in rc file.
 - Added completion for ENV.
+- Added new prompt item: `$GITBR`.
 
 ## v0.9.0
 

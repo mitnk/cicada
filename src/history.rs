@@ -75,7 +75,7 @@ fn init_db(hfile: &str, htable: &str) {
 }
 
 pub fn init(rl: &mut Interface<DefaultTerminal>) {
-    let mut hist_size: usize = 100000;
+    let mut hist_size: usize = 99999;
     if let Ok(x) = env::var("HISTORY_SIZE") {
         if let Ok(y) = x.parse::<usize>() {
             hist_size = y;
