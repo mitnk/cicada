@@ -270,7 +270,7 @@ pub fn is_arithmetic(line: &str) -> bool {
     re_contains(line, r"^[ 0-9\.\(\)\+\-\*/]+$")
 }
 
-pub fn re_contains(line: &str, ptn: &str) -> bool {
+pub fn re_contains(text: &str, ptn: &str) -> bool {
     let re;
     match Regex::new(ptn) {
         Ok(x) => {
@@ -281,7 +281,7 @@ pub fn re_contains(line: &str, ptn: &str) -> bool {
             return false;
         }
     }
-    re.is_match(line)
+    re.is_match(text)
 }
 
 pub fn create_raw_fd_from_file(file_name: &str, append: bool) -> Result<i32, String> {

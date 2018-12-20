@@ -98,7 +98,7 @@ fn apply_gitbr(prompt: &mut String) {
     let current_dir = libs::path::current_dir();
     let dir_git = format!("{}/.git", current_dir);
     if !Path::new(&dir_git).exists() {
-        return
+        return;
     }
     let file_head = format!("{}/.git/HEAD", current_dir);
     if !Path::new(&file_head).exists() {
@@ -122,7 +122,8 @@ fn apply_gitbr(prompt: &mut String) {
         }
     }
 
-    if let Some(branch) = libs::re::find_first_group(r"^[a-z]+: ?[a-z]+/[a-z]+/(.+)$", text.trim()) {
+    if let Some(branch) = libs::re::find_first_group(r"^[a-z]+: ?[a-z]+/[a-z]+/(.+)$", text.trim())
+    {
         apply_blue_b(prompt);
         if let Ok(x) = env::var("CICADA_GITBR_PREFIX") {
             prompt.push_str(&x);

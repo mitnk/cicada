@@ -1,5 +1,9 @@
 # Change Logs
 
+## 0.9.2
+
+- Wrap prompt when it's too long.
+
 ## 0.9.1
 
 - Skip hidden files when expanding `foo/*`.
