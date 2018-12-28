@@ -3,6 +3,7 @@
 ## 0.9.2
 
 - Wrap prompt when it's too long.
+- Replace dep crate `sqlite` with `rusqlite`.
 
 ## 0.9.1
 

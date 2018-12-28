@@ -7,7 +7,7 @@ extern crate libc;
 extern crate linefeed;
 extern crate nix;
 extern crate regex;
-extern crate sqlite;
+extern crate rusqlite;
 extern crate time;
 extern crate yaml_rust;
 #[macro_use]

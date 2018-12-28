@@ -6,7 +6,9 @@ use std::path::Path;
 
 use linefeed::terminal::DefaultTerminal;
 use linefeed::Interface;
-use sqlite;
+use rusqlite::Connection as Conn;
+use rusqlite::Error::SqliteFailure;
+use rusqlite::NO_PARAMS;
 
 use shell;
 use tools::{self, clog};
@@ -18,7 +20,7 @@ fn init_db(hfile: &str, htable: &str) {
         match path.parent() {
             Some(x) => _parent = x,
             None => {
-                println!("cicada: history init - no parent found");
+                println_stderr!("cicada: history init - no parent found");
                 return;
             }
         }
@@ -26,14 +28,14 @@ fn init_db(hfile: &str, htable: &str) {
         match _parent.to_str() {
             Some(x) => parent = x,
             None => {
-                println!("cicada: parent to_str is None");
+                println_stderr!("cicada: parent to_str is None");
                 return;
             }
         }
         match fs::create_dir_all(parent) {
             Ok(_) => {}
             Err(e) => {
-                println!("dirs create failed: {:?}", e);
+                println_stderr!("cicada: dirs create failed: {:?}", e);
                 return;
             }
         }
@@ -42,35 +44,35 @@ fn init_db(hfile: &str, htable: &str) {
                 println!("cicada: created history file: {}", hfile);
             }
             Err(e) => {
-                println!("file create failed: {:?}", e);
+                println_stderr!("cicada: history: file create failed: {:?}", e);
             }
         }
     }
 
-    match sqlite::open(hfile.clone()) {
-        Ok(conn) => {
-            let sql_create = format!(
-                "
-                CREATE TABLE IF NOT EXISTS {}
-                    (inp TEXT,
-                     rtn INTEGER,
-                     tsb REAL,
-                     tse REAL,
-                     sessionid TEXT,
-                     out TEXT,
-                     info TEXT
-                    );
-            ",
-                htable
-            );
-            match conn.execute(sql_create) {
-                Ok(_) => {}
-                Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e),
-            }
-        }
+    let conn = match Conn::open(&hfile) {
+        Ok(x) => x,
         Err(e) => {
-            println_stderr!("cicada: sqlite conn error - {:?}", e);
+            println_stderr!("cicada: history: cannot open sqlite db: {:?}", e);
+            return;
         }
+    };
+    let sql = format!(
+        "
+        CREATE TABLE IF NOT EXISTS {}
+            (inp TEXT,
+             rtn INTEGER,
+             tsb REAL,
+             tse REAL,
+             sessionid TEXT,
+             out TEXT,
+             info TEXT
+            );
+    ",
+        htable
+    );
+    match conn.execute(&sql, NO_PARAMS) {
+        Ok(_) => {},
+        Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e),
     }
 }
 
@@ -95,35 +97,39 @@ pub fn init(rl: &mut Interface<DefaultTerminal>) {
         }
     }
 
-    let mut histories: HashMap<String, bool> = HashMap::new();
-    match sqlite::open(&hfile) {
-        Ok(conn) => {
-            let sql_select = format!("SELECT inp FROM {} ORDER BY tsb;", history_table);
-            match conn.iterate(sql_select, |pairs| {
-                for &(_, value) in pairs.iter() {
-                    let inp;
-                    match value {
-                        Some(x) => inp = x,
-                        None => {
-                            println!("cicada: sqlite pairs None");
-                            continue;
-                        }
-                    }
-                    let _k = inp.to_string();
-                    if histories.contains_key(&_k) {
-                        continue;
-                    }
-                    histories.insert(_k, true);
-                    rl.add_history(inp.trim().to_string());
-                }
-                true
-            }) {
-                Ok(_) => {}
-                Err(e) => println_stderr!("cicada: sqlite select error - {:?}", e),
-            }
-        }
+    let conn = match Conn::open(&hfile) {
+        Ok(x) => x,
         Err(e) => {
-            println_stderr!("cicada: sqlite conn error - {:?}", e);
+            println_stderr!("cicada: sqlite conn open error: {:?}", e);
+            return;
+        }
+    };
+    let sql = format!("SELECT inp FROM {} ORDER BY tsb;", history_table);
+    let mut stmt = match conn.prepare(&sql) {
+        Ok(x) => x,
+        Err(e) => {
+            println_stderr!("cicada: prepare select error: {:?}", e);
+            return;
+        }
+    };
+
+    let rows = match stmt.query_map(NO_PARAMS, |row| row.get(0)) {
+        Ok(x) => x,
+        Err(e) => {
+            println_stderr!("cicada: query select error: {:?}", e);
+            return;
+        }
+    };
+
+    let mut dict_helper: HashMap<String, bool> = HashMap::new();
+    for x in rows {
+        if let Ok(inp) = x {
+            let _inp: String = inp;
+            if dict_helper.contains_key(&_inp) {
+                continue;
+            }
+            dict_helper.insert(_inp.clone(), true);
+            rl.add_history(_inp.trim().to_string());
         }
     }
 }
@@ -150,26 +156,38 @@ pub fn get_history_table() -> String {
 fn delete_duplicated_histories() {
     let hfile = get_history_file();
     let history_table = get_history_table();
-    match sqlite::open(hfile.clone()) {
-        Ok(conn) => {
-            let sql = format!(
-                "DELETE FROM {} WHERE rowid NOT IN (
-                SELECT MAX(rowid) FROM {} GROUP BY inp)",
-                history_table, history_table
-            );
-            match conn.execute(sql) {
-                Ok(_) => {}
-                Err(e) => {
-                    if e.code == Some(5) {
-                        log!("sqlite is locked while delete dups");
-                    } else {
-                        println_stderr!("cicada: sqlite execute error: {:?}", e);
+    let conn = match Conn::open(&hfile) {
+        Ok(x) => x,
+        Err(e) => {
+            println_stderr!("cicada: sqlite conn open error: {:?}", e);
+            return;
+        }
+    };
+    let sql = format!(
+        "DELETE FROM {} WHERE rowid NOT IN (
+        SELECT MAX(rowid) FROM {} GROUP BY inp)",
+        history_table, history_table
+    );
+    match conn.execute(&sql, NO_PARAMS) {
+        Ok(_) => {},
+        Err(e) => {
+            match e {
+                SqliteFailure(ee, msg) => {
+                    if ee.extended_code == 5 {
+                        log!(
+                            "failed to delete dup histories: {}",
+                            msg.unwrap_or("db is locked?".to_owned()),
+                        );
+                        return;
                     }
+                    println_stderr!(
+                        "cicada: failed to delete dup histories: {:?}: {:?}", &ee, &msg
+                    );
+                }
+                _ => {
+                    println_stderr!("cicada: failed to delete dup histories: {:?}", e);
                 }
             }
-        }
-        Err(e) => {
-            println_stderr!("cicada: sqlite open file error - {:?}", e);
         }
     }
 }
@@ -199,14 +217,13 @@ pub fn add(
         init_db(&hfile, &history_table);
     }
 
-    let conn;
-    match sqlite::open(hfile) {
-        Ok(x) => conn = x,
+    let conn = match Conn::open(&hfile) {
+        Ok(x) => x,
         Err(e) => {
-            println!("cicada: sqlite open db error: {:?}", e);
+            println_stderr!("cicada: sqlite conn open error: {:?}", e);
             return;
         }
-    }
+    };
     let sql = format!(
         "INSERT INTO \
          {} (inp, rtn, tsb, tse, sessionid) \
@@ -218,8 +235,8 @@ pub fn add(
         tse,
         "cicada"
     );
-    match conn.execute(sql) {
+    match conn.execute(&sql, NO_PARAMS) {
         Ok(_) => {}
-        Err(e) => println!("failed to save history: {:?}", e),
+        Err(e) => println_stderr!("cicada: failed to save history: {:?}", e),
     }
 }
