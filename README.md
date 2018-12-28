@@ -107,3 +107,8 @@ Please refer to [docs/install.md](https://github.com/mitnk/cicada/blob/master/do
 - [Is cicada POSIX-compatible?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#is-cicada-posix-compatible)
 - [Will my bash/zsh scripts continue work in cicada?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#will-my-bashzsh-scripts-continue-work-in-cicada)
 - [Windows support?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#windows-support)
+
+## To Do List
+
+- to support simple Functions
+- to support simple Scripting

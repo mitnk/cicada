@@ -10,8 +10,14 @@ export PATH="/usr/local/bin:$PATH"
 
 alias ls="ls -G"
 alias ll="ls -lh"
+```
 
-# you can also include extra rc files,
+## include extra rc files in it
+
+```
+alias ll="ls -lh"
+
+# relative path
 include .cicadarc_local
 # or with full path
 include /etc/cicadarc
