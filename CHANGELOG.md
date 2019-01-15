@@ -4,6 +4,7 @@
 
 - Wrap prompt when it's too long.
 - Replace dep crate `sqlite` with `rusqlite`.
+- Fixed a completion issue for paths include unicode.
 
 ## 0.9.1
 
