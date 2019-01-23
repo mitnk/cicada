@@ -10,8 +10,8 @@ use rusqlite::Connection as Conn;
 use rusqlite::Error::SqliteFailure;
 use rusqlite::NO_PARAMS;
 
-use shell;
-use tools::{self, clog};
+use crate::shell;
+use crate::tools::{self, clog};
 
 fn init_db(hfile: &str, htable: &str) {
     let path = Path::new(hfile);
@@ -71,7 +71,7 @@ fn init_db(hfile: &str, htable: &str) {
         htable
     );
     match conn.execute(&sql, NO_PARAMS) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e),
     }
 }
@@ -169,26 +169,26 @@ fn delete_duplicated_histories() {
         history_table, history_table
     );
     match conn.execute(&sql, NO_PARAMS) {
-        Ok(_) => {},
-        Err(e) => {
-            match e {
-                SqliteFailure(ee, msg) => {
-                    if ee.extended_code == 5 {
-                        log!(
-                            "failed to delete dup histories: {}",
-                            msg.unwrap_or("db is locked?".to_owned()),
-                        );
-                        return;
-                    }
-                    println_stderr!(
-                        "cicada: failed to delete dup histories: {:?}: {:?}", &ee, &msg
+        Ok(_) => {}
+        Err(e) => match e {
+            SqliteFailure(ee, msg) => {
+                if ee.extended_code == 5 {
+                    log!(
+                        "failed to delete dup histories: {}",
+                        msg.unwrap_or("db is locked?".to_owned()),
                     );
+                    return;
                 }
-                _ => {
-                    println_stderr!("cicada: failed to delete dup histories: {:?}", e);
-                }
+                println_stderr!(
+                    "cicada: failed to delete dup histories: {:?}: {:?}",
+                    &ee,
+                    &msg
+                );
             }
-        }
+            _ => {
+                println_stderr!("cicada: failed to delete dup histories: {:?}", e);
+            }
+        },
     }
 }
 

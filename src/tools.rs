@@ -6,13 +6,13 @@ use std::io::Write;
 use std::os::unix::io::IntoRawFd;
 use std::path::Path;
 
+use libc;
 use regex::Regex;
 use time;
 
-use execute;
-use libc;
-use parsers;
-use shell;
+use crate::execute;
+use crate::parsers;
+use crate::shell;
 
 macro_rules! println_stderr {
     ($fmt:expr) => (
@@ -332,7 +332,7 @@ mod tests {
     use super::escape_path;
     use super::extend_bandband;
     use super::is_alias;
-    use shell;
+    use crate::shell;
 
     #[test]
     fn test_is_alias() {

@@ -4,10 +4,10 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 
-use libs;
-use shell;
-use tools;
-use tools::clog;
+use crate::libs;
+use crate::shell;
+use crate::tools;
+use crate::tools::clog;
 
 fn apply_underlined(prompt: &mut String) {
     prompt.push_str(libs::colored::UNDERLINED);

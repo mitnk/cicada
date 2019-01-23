@@ -34,7 +34,7 @@ mod rcfile;
 mod shell;
 mod types;
 
-use tools::clog;
+use crate::tools::clog;
 
 // #[allow(clippy::cast_lossless)]
 fn main() {

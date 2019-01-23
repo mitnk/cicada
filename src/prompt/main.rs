@@ -1,8 +1,8 @@
 use std::env;
 
-use execute;
-use shell;
-use tools;
+use crate::execute;
+use crate::shell;
+use crate::tools;
 
 const DEFAULT_PROMPT: &str =
     "${COLOR_STATUS}$USER${RESET}@${COLOR_STATUS}$HOSTNAME${RESET}: ${COLOR_STATUS}$CWD${RESET}$ ";

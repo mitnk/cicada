@@ -3,9 +3,9 @@ use std::fs::{self, read_dir};
 use std::io::Write;
 use std::path::Path;
 
-use parsers;
-use shell;
-use types;
+use crate::parsers;
+use crate::shell;
+use crate::types;
 
 fn in_env() -> bool {
     if let Ok(x) = env::var("VIRTUAL_ENV") {

@@ -28,6 +28,19 @@ fn main() {
         }
     }
 
+    match Command::new("git")
+        .args(&["status", "--porcelain"])
+        .output()
+    {
+        Ok(x) => {
+            let git_status = String::from_utf8_lossy(&x.stdout);
+            println!("cargo:rustc-env=GIT_STATUS={}", git_status.len());
+        }
+        Err(_) => {
+            println!("cargo:rustc-env=GIT_STATUS=0");
+        }
+    }
+
     match Command::new("rustc").args(&["-V"]).output() {
         Ok(x) => {
             let output = String::from_utf8_lossy(&x.stdout);

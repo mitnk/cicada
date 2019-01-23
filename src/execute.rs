@@ -17,17 +17,17 @@ use nix::unistd::{fork, ForkResult};
 use nix::Error;
 use nom::IResult;
 
-use builtins;
-use jobc;
-use libs;
-use parsers;
-use shell;
-use tools::{self, clog};
-use types;
+use crate::builtins;
+use crate::jobc;
+use crate::libs;
+use crate::parsers;
+use crate::shell;
+use crate::tools::{self, clog};
+use crate::types;
 
-use types::CommandOptions;
-use types::CommandResult;
-use types::Tokens;
+use crate::types::CommandOptions;
+use crate::types::CommandResult;
+use crate::types::Tokens;
 
 /// Entry point for non-ttys (e.g. Cmd-N on MacVim)
 pub fn handle_non_tty(sh: &mut shell::Shell) {
@@ -109,7 +109,7 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         if sep == "||" && status == 0 {
             break;
         }
-        let mut cmd = token.clone();
+        let cmd = token.clone();
         status = run_proc(sh, &cmd, tty);
     }
     status

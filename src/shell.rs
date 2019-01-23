@@ -8,11 +8,11 @@ use std::mem;
 use glob;
 use regex::Regex;
 
-use execute;
-use libs;
-use parsers;
-use tools::{self, clog};
-use types;
+use crate::execute;
+use crate::libs;
+use crate::parsers;
+use crate::tools::{self, clog};
+use crate::types;
 
 #[derive(Debug, Clone)]
 pub struct Shell {
@@ -502,6 +502,7 @@ fn expand_alias(sh: &Shell, tokens: &mut types::Tokens) {
 
         if !is_head || !sh.is_alias(&text) {
             idx += 1;
+            is_head = false;
             continue;
         }
 
@@ -738,9 +739,11 @@ pub fn needs_expand_home(line: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use super::expand_alias;
     use super::needs_expand_home;
     use super::needs_globbing;
     use super::should_do_dollar_command_extension;
+    use super::Shell;
 
     #[test]
     fn test_need_expand_home() {
@@ -776,5 +779,38 @@ mod tests {
         assert!(should_do_dollar_command_extension("echo $(foo bar)"));
         assert!(should_do_dollar_command_extension("echo $(echo foo)"));
         assert!(should_do_dollar_command_extension("$(pwd) foo"));
+    }
+
+    #[test]
+    fn test_expand_alias() {
+        let mut sh = Shell::new();
+        sh.add_alias("ls", "ls --color=auto");
+        sh.add_alias("wc", "wc -l");
+
+        let mut tokens = vec![
+            ("".to_string(), "ls".to_string()),
+            ("".to_string(), "|".to_string()),
+            ("".to_string(), "wc".to_string()),
+        ];
+        let exp_tokens = vec![
+            ("".to_string(), "ls".to_string()),
+            ("".to_string(), "--color=auto".to_string()),
+            ("".to_string(), "|".to_string()),
+            ("".to_string(), "wc".to_string()),
+            ("".to_string(), "-l".to_string()),
+        ];
+        expand_alias(&sh, &mut tokens);
+        assert_eq!(tokens, exp_tokens);
+
+        let mut tokens = vec![
+            ("".to_string(), "which".to_string()),
+            ("".to_string(), "ls".to_string()),
+        ];
+        let exp_tokens = vec![
+            ("".to_string(), "which".to_string()),
+            ("".to_string(), "ls".to_string()),
+        ];
+        expand_alias(&sh, &mut tokens);
+        assert_eq!(tokens, exp_tokens);
     }
 }

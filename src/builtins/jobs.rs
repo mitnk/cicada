@@ -1,5 +1,5 @@
-use jobc;
-use shell;
+use crate::jobc;
+use crate::shell;
 
 pub fn run(sh: &shell::Shell) -> i32 {
     if sh.jobs.is_empty() {

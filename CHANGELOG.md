@@ -5,6 +5,8 @@
 - Wrap prompt when it's too long.
 - Replace dep crate `sqlite` with `rusqlite`.
 - Fixed a completion issue for paths include unicode.
+- Fixed an alias expansion issue.
+- Changed to use Rust 2018.
 
 ## 0.9.1
 

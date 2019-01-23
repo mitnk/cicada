@@ -7,7 +7,7 @@ use linefeed::complete::{Completer, Completion, Suffix};
 use linefeed::terminal::Terminal;
 use linefeed::Prompter;
 
-use tools;
+use crate::tools;
 
 pub struct SshCompleter;
 

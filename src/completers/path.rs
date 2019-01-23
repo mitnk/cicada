@@ -11,9 +11,9 @@ use linefeed::complete::{Completer, Completion, Suffix};
 use linefeed::terminal::Terminal;
 use linefeed::Prompter;
 
-use parsers;
-use shell;
-use tools;
+use crate::parsers;
+use crate::shell;
+use crate::tools;
 
 pub struct BinCompleter {
     pub sh: Arc<shell::Shell>,

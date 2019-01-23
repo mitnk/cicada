@@ -6,9 +6,9 @@ use nix::sys::wait::{waitpid, WaitPidFlag, WaitStatus};
 use nix::unistd::Pid;
 use nix::Error;
 
-use shell;
-use tools::clog;
-use types;
+use crate::shell;
+use crate::tools::clog;
+use crate::types;
 
 pub fn print_job(job: &types::Job) {
     let mut cmd = job.cmd.clone();

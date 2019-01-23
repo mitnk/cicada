@@ -3,11 +3,11 @@ use std::error::Error;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use parsers;
-use shell;
-use tools;
+use crate::parsers;
+use crate::shell;
+use crate::tools;
 
-use types::Tokens;
+use crate::types::Tokens;
 
 pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
     let args = parsers::parser_line::tokens_to_args(&tokens);

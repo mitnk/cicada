@@ -4,11 +4,11 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 
-use builtins;
-use parsers;
-use shell;
-use tools;
-use types;
+use crate::builtins;
+use crate::parsers;
+use crate::shell;
+use crate::tools;
+use crate::types;
 
 fn load_file(sh: &mut shell::Shell, file_path: &str, count: i32) {
     if count > 99 {

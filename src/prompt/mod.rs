@@ -1,9 +1,9 @@
 mod main;
 mod preset;
 
-use libs::term_size;
-use shell;
-use tools::{self, clog};
+use crate::libs::term_size;
+use crate::shell;
+use crate::tools::{self, clog};
 
 use self::main::get_prompt_string;
 use self::main::render_prompt;

@@ -4,8 +4,8 @@ use std::path::Path;
 use rusqlite::Connection as Conn;
 use rusqlite::NO_PARAMS;
 
-use history;
-use types;
+use crate::history;
+use crate::types;
 
 pub fn run(cmd: &types::Command) -> i32 {
     let tokens = &cmd.tokens;

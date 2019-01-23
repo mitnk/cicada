@@ -1,12 +1,12 @@
 use regex::Regex;
 use std::env;
 use std::io::Write;
-use types::Tokens;
 
-use libs;
-use parsers;
-use shell;
-use tools;
+use crate::libs;
+use crate::parsers;
+use crate::shell;
+use crate::tools;
+use crate::types::Tokens;
 
 pub fn run(_sh: &shell::Shell, tokens: &Tokens) -> i32 {
     let mut i = 0;

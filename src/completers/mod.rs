@@ -4,7 +4,6 @@ use std::sync::Arc;
 use linefeed::complete::{Completer, Completion};
 use linefeed::prompter::Prompter;
 use linefeed::terminal::Terminal;
-use regex::Regex;
 
 pub mod dots;
 pub mod env;
@@ -12,9 +11,9 @@ pub mod make;
 pub mod path;
 pub mod ssh;
 
-use parsers;
-use shell;
-use tools;
+use crate::parsers;
+use crate::shell;
+use crate::tools;
 
 pub struct CicadaCompleter {
     pub sh: Arc<shell::Shell>,
@@ -37,13 +36,10 @@ fn for_cd(line: &str) -> bool {
 }
 
 fn for_bin(line: &str) -> bool {
-    let re;
-    if let Ok(x) = Regex::new(r"(^ *[a-zA-Z0-9_\.-]+$)|(^.+\| +[a-zA-Z0-9_\.-]+$)") {
-        re = x;
-    } else {
-        return false;
-    }
-    re.is_match(line)
+    // TODO: why 'echo hi|ech<TAB>' doesn't complete in real?
+    // but passes in test cases?
+    let ptn = r"(^ *(sudo|which)? *[a-zA-Z0-9_\.-]+$)|(^.+\| *(sudo|which)? *[a-zA-Z0-9_\.-]+$)";
+    tools::re_contains(line, ptn)
 }
 
 fn for_dots(line: &str) -> bool {
@@ -165,6 +161,7 @@ pub fn escaped_word_start(line: &str) -> usize {
 #[cfg(test)]
 mod tests {
     use super::escaped_word_start;
+    use super::for_bin;
 
     #[test]
     fn test_escaped_word_start() {
@@ -202,5 +199,16 @@ mod tests {
         assert_eq!(escaped_word_start("ls \'a "), 3);
         assert_eq!(escaped_word_start("ls \'a b "), 3);
         assert_eq!(escaped_word_start("\"ls\" \"a b"), 5);
+    }
+
+    #[test]
+    fn test_for_bin() {
+        assert!(for_bin("foo"));
+        assert!(for_bin("foo|bar"));
+        assert!(for_bin("foo|bar|baz"));
+        assert!(for_bin("foo | bar"));
+        assert!(for_bin("foo | bar | baz"));
+        assert!(!for_bin("foo bar"));
+        assert!(!for_bin("foo bar | foo bar"));
     }
 }

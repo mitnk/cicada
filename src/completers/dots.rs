@@ -15,9 +15,9 @@ use yaml_rust::yaml::Hash;
 use yaml_rust::Yaml;
 use yaml_rust::YamlLoader;
 
-use execute;
-use parsers;
-use tools::{self, clog};
+use crate::execute;
+use crate::parsers;
+use crate::tools::{self, clog};
 
 /// Performs completion by searching dotfiles
 pub struct DotsCompleter;

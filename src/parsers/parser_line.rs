@@ -1,8 +1,8 @@
 use regex::Regex;
 
-use tools;
-use types::Command;
-use types::Tokens;
+use crate::tools;
+use crate::types::Command;
+use crate::types::Tokens;
 
 pub fn line_to_plain_tokens(line: &str) -> Vec<String> {
     let mut result = Vec::new();
