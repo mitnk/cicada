@@ -10,7 +10,7 @@
 
 Bash is where most people come from and familiar with. So cicada is trying
 to support common cases that bash supports. Cicada will only be a "subset"
-of bash. Currently cicada does not have scriping/function ability.
+of bash. Currently cicada does not have scripting/function ability.
 
 ### When will functions get supported in cicada?
 
