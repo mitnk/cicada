@@ -108,7 +108,11 @@ fn main() {
 
                 let tse_spec = time::get_time();
                 let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1_000_000_000.0;
-                history::add(&mut sh, &mut rl, &line, status, tsb, tse);
+
+                if !sh.cmd.starts_with(' ') && line != sh.previous_cmd {
+                    history::add(&mut rl, &line, status, tsb, tse);
+                    sh.previous_cmd = line.clone();
+                }
             }
             Ok(ReadResult::Eof) => {
                 if let Ok(x) = env::var("NO_EXIT_ON_CTRL_D") {

@@ -111,6 +111,7 @@ pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
         }
         let cmd = token.clone();
         status = run_proc(sh, &cmd, tty);
+        sh.previous_status = status;
     }
     status
 }

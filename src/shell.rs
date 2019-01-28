@@ -272,7 +272,6 @@ fn needs_globbing(line: &str) -> bool {
 
 pub fn expand_glob(tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
-
     let mut buff: HashMap<usize, Vec<String>> = HashMap::new();
     for (sep, text) in tokens.iter() {
         if !sep.is_empty() || !needs_globbing(text) {
@@ -280,51 +279,48 @@ pub fn expand_glob(tokens: &mut types::Tokens) {
             continue;
         }
 
-        let _line = text.to_string();
-        // XXX: spliting needs to consider cases like `echo 'a * b'`
-        let _tokens: Vec<&str> = _line.split(' ').collect();
         let mut result: Vec<String> = Vec::new();
-        for item in &_tokens {
-            if !item.contains('*') || item.trim().starts_with('\'') || item.trim().starts_with('"')
-            {
-                result.push(item.to_string());
-            } else {
-                let _basename = libs::path::basename(item);
-                let show_hidden = _basename.starts_with(".*");
+        let item = text.as_str();
 
-                match glob::glob(item) {
-                    Ok(paths) => {
-                        let mut is_empty = true;
-                        for entry in paths {
-                            match entry {
-                                Ok(path) => {
-                                    let file_path = path.to_string_lossy();
-                                    let _basename = libs::path::basename(&file_path);
-                                    if _basename == ".." || _basename == "." {
-                                        continue;
-                                    }
-                                    if _basename.starts_with('.') && !show_hidden {
-                                        // skip hidden files, you may need to
-                                        // type `ls .*rc` instead of `ls *rc`
-                                        continue;
-                                    }
-                                    result.push(file_path.to_string());
-                                    is_empty = false;
+        if !item.contains('*') || item.trim().starts_with('\'') || item.trim().starts_with('"')
+        {
+            result.push(item.to_string());
+        } else {
+            let _basename = libs::path::basename(item);
+            let show_hidden = _basename.starts_with(".*");
+
+            match glob::glob(item) {
+                Ok(paths) => {
+                    let mut is_empty = true;
+                    for entry in paths {
+                        match entry {
+                            Ok(path) => {
+                                let file_path = path.to_string_lossy();
+                                let _basename = libs::path::basename(&file_path);
+                                if _basename == ".." || _basename == "." {
+                                    continue;
                                 }
-                                Err(e) => {
-                                    log!("glob error: {:?}", e);
+                                if _basename.starts_with('.') && !show_hidden {
+                                    // skip hidden files, you may need to
+                                    // type `ls .*rc` instead of `ls *rc`
+                                    continue;
                                 }
+                                result.push(file_path.to_string());
+                                is_empty = false;
+                            }
+                            Err(e) => {
+                                log!("glob error: {:?}", e);
                             }
                         }
-                        if is_empty {
-                            result.push(item.to_string());
-                        }
                     }
-                    Err(e) => {
-                        println!("glob error: {:?}", e);
+                    if is_empty {
                         result.push(item.to_string());
-                        return;
                     }
+                }
+                Err(e) => {
+                    println!("glob error: {:?}", e);
+                    result.push(item.to_string());
+                    return;
                 }
             }
         }
@@ -764,6 +760,8 @@ mod tests {
         assert!(needs_globbing("ls *"));
         assert!(needs_globbing("ls  *.txt"));
         assert!(needs_globbing("grep -i 'desc' /etc/*release*"));
+        assert!(needs_globbing("echo foo\\ 0*"));
+        assert!(needs_globbing("echo foo\\ bar\\ 0*"));
         assert!(!needs_globbing("2 * 3"));
         assert!(!needs_globbing("ls '*.md'"));
         assert!(!needs_globbing("ls 'a * b'"));

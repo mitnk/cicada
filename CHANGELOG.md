@@ -7,6 +7,7 @@
 - Fixed a completion issue for paths include unicode.
 - Fixed an alias expansion issue.
 - Changed to use Rust 2018.
+- Correct behavior of `foo; echo $?`.
 
 ## 0.9.1
 

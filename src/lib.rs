@@ -74,7 +74,7 @@ mod parsers;
 mod shell;
 
 /// Represents an error calling `exec`.
-pub use types::CommandResult;
+pub use crate::types::CommandResult;
 
 /// Parse a command to tokens.
 pub fn cmd_to_tokens(cmd: &str) -> Vec<(String, String)> {

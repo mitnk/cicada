@@ -10,7 +10,6 @@ use rusqlite::Connection as Conn;
 use rusqlite::Error::SqliteFailure;
 use rusqlite::NO_PARAMS;
 
-use crate::shell;
 use crate::tools::{self, clog};
 
 fn init_db(hfile: &str, htable: &str) {
@@ -193,24 +192,14 @@ fn delete_duplicated_histories() {
 }
 
 pub fn add(
-    sh: &mut shell::Shell,
     rl: &mut Interface<DefaultTerminal>,
     line: &str,
     status: i32,
     tsb: f64,
     tse: f64,
 ) {
-    if sh.cmd.starts_with(' ') {
-        return;
-    }
-
-    sh.previous_status = status;
-    if line == sh.previous_cmd {
-        return;
-    }
     rl.add_history(line.to_string());
 
-    sh.previous_cmd = line.to_string();
     let hfile = get_history_file();
     let history_table = get_history_table();
     if !Path::new(&hfile).exists() {
