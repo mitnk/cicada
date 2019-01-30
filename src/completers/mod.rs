@@ -153,7 +153,7 @@ pub fn escaped_word_start(line: &str) -> usize {
         found_bs = false;
     }
     if found_space {
-        start_position = line.len() + extra_bytes;
+        start_position = line.len();
     }
     start_position
 }
@@ -199,6 +199,9 @@ mod tests {
         assert_eq!(escaped_word_start("ls \'a "), 3);
         assert_eq!(escaped_word_start("ls \'a b "), 3);
         assert_eq!(escaped_word_start("\"ls\" \"a b"), 5);
+
+        assert_eq!(escaped_word_start("echo føo b"), 10);
+        assert_eq!(escaped_word_start("echo føo "), 10);
     }
 
     #[test]

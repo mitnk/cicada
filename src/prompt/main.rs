@@ -126,6 +126,11 @@ pub fn render_prompt(sh: &shell::Shell, ps: &str) -> String {
         met_dollar = false;
     }
 
+    if !token.is_empty() {
+        apply_prompt_item(sh, &mut prompt, &token);
+        met_dollar = false;
+    }
+
     if met_dollar {
         // for cases like PROMPT='$$'
         prompt.push('$');
@@ -135,4 +140,26 @@ pub fn render_prompt(sh: &shell::Shell, ps: &str) -> String {
         return format!("cicada-{} >> ", env!("CARGO_PKG_VERSION"));
     }
     prompt
+}
+
+#[cfg(test)]
+mod tests {
+    use super::render_prompt;
+    use super::shell::Shell;
+
+    #[test]
+    fn test_render_prompt() {
+        let mut sh = Shell::new();
+        sh.set_env("USER", "mitnk");
+
+        assert_eq!("mitnk$\n", render_prompt(&sh, "$USER$${newline}"));
+        assert_eq!("mitnk$\n", render_prompt(&sh, "$USER$$newline"));
+
+        assert_eq!("$", render_prompt(&sh, "$"));
+        assert_eq!("$$", render_prompt(&sh, "$$"));
+        assert_eq!("$$$", render_prompt(&sh, "$$$"));
+        assert_eq!("$ ", render_prompt(&sh, "$ "));
+        assert_eq!("$$ ", render_prompt(&sh, "$$ "));
+        assert_eq!("$$$ ", render_prompt(&sh, "$$$ "));
+    }
 }
