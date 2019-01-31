@@ -191,13 +191,7 @@ fn delete_duplicated_histories() {
     }
 }
 
-pub fn add(
-    rl: &mut Interface<DefaultTerminal>,
-    line: &str,
-    status: i32,
-    tsb: f64,
-    tse: f64,
-) {
+pub fn add(rl: &mut Interface<DefaultTerminal>, line: &str, status: i32, tsb: f64, tse: f64) {
     rl.add_history(line.to_string());
 
     let hfile = get_history_file();

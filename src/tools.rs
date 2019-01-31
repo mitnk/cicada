@@ -129,10 +129,6 @@ pub fn is_env(line: &str) -> bool {
     re_contains(line, r"^[a-zA-Z0-9_]+=.*$")
 }
 
-pub fn should_extend_brace(line: &str) -> bool {
-    re_contains(line, r#"\{[^ "']+,[^ "']+,?[^ "']*\}"#)
-}
-
 // #[allow(clippy::trivial_regex)]
 pub fn extend_bandband(sh: &shell::Shell, line: &mut String) {
     if !re_contains(line, r"!!") {

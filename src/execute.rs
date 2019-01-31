@@ -439,7 +439,9 @@ fn run_command(
             // We are certain that our string doesn't have 0 bytes in the
             // middle, so we can use CString::new().expect()
             let mut c_envs: Vec<_> = env::vars()
-                .map(|(k, v)| CString::new(format!("{}={}", k, v).as_str()).expect("CString error"))
+                .map(|(k, v)| {
+                    CString::new(format!("{}={}", k, v).as_str()).expect("CString error")
+                })
                 .collect();
             for (key, value) in options.envs.iter() {
                 c_envs.push(

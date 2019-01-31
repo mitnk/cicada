@@ -282,8 +282,7 @@ pub fn expand_glob(tokens: &mut types::Tokens) {
         let mut result: Vec<String> = Vec::new();
         let item = text.as_str();
 
-        if !item.contains('*') || item.trim().starts_with('\'') || item.trim().starts_with('"')
-        {
+        if !item.contains('*') || item.trim().starts_with('\'') || item.trim().starts_with('"') {
             result.push(item.to_string());
         } else {
             let _basename = libs::path::basename(item);
@@ -390,73 +389,111 @@ pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
     result
 }
 
+fn need_expand_brace(line: &str) -> bool {
+    tools::re_contains(line, r#"\{[^ "']*,[^ "']*,?[^ "']*\}"#)
+}
+
+fn getitem(s: &str, depth: i32) -> (Vec<String>, String) {
+    let mut out: Vec<String> = vec![String::new()];
+    let mut ss = s.to_string();
+    let mut tmp;
+    while ss.len() > 0 {
+        let c = ss.chars().next().unwrap();
+        if depth > 0 && (c == ',' || c == '}') {
+            return (out, ss);
+        }
+        if c == '{' {
+            let mut sss = ss.clone();
+            sss.remove(0);
+            let result_groups = getgroup(&sss, depth + 1);
+            if let Some((out_group, s_group)) = result_groups {
+                let mut tmp_out = Vec::new();
+                for x in out.iter() {
+                    for y in out_group.iter() {
+                        let item = format!("{}{}", x, y);
+                        tmp_out.push(item);
+                    }
+                }
+                out = tmp_out;
+                ss = s_group.clone();
+                continue;
+            }
+        }
+        // FIXME: here we mean more than one char.
+        if c == '\\' && ss.len() > 1 {
+            ss.remove(0);
+            let c = ss.chars().next().unwrap();
+            tmp = format!("\\{}", c);
+        } else {
+            tmp = c.to_string();
+        }
+        let mut result = Vec::new();
+        for x in out.iter() {
+            let item = format!("{}{}", x, tmp);
+            result.push(item);
+        }
+        out = result;
+        ss.remove(0);
+    }
+    (out, ss)
+}
+
+fn getgroup(s: &str, depth: i32) -> Option<(Vec<String>, String)> {
+    let mut out: Vec<String> = Vec::new();
+    let mut comma = false;
+    let mut ss = s.to_string();
+    while ss.len() > 0 {
+        let (g, sss) = getitem(ss.as_str(), depth);
+        ss = sss.clone();
+        if ss.is_empty() {
+            break;
+        }
+        for x in g.iter() {
+            out.push(x.clone());
+        }
+        let c = ss.chars().next().unwrap();
+        if c == '}' {
+            let mut sss = ss.clone();
+            sss.remove(0);
+            if comma {
+                return Some((out, sss));
+            }
+            let mut result = Vec::new();
+            for x in out.iter() {
+                let item = format!("{{{}}}", x);
+                result.push(item);
+            }
+            return Some((result, ss));
+        }
+        if c == ',' {
+            comma = true;
+            ss.remove(0);
+        }
+    }
+    return None;
+}
+
 fn expand_brace(tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
-    let mut buff: HashMap<usize, Vec<String>> = HashMap::new();
-    for (sep, line) in tokens.iter() {
-        if !sep.is_empty() || !tools::should_extend_brace(&line) {
+    let mut buff = Vec::new();
+    for (sep, token) in tokens.iter() {
+        if !sep.is_empty() || !need_expand_brace(&token) {
             idx += 1;
             continue;
         }
 
-        let _line = line.clone();
-        let args = parsers::parser_line::cmd_to_tokens(_line.as_str());
         let mut result: Vec<String> = Vec::new();
-        for (sep, token) in args {
-            if sep.is_empty() && tools::should_extend_brace(token.as_str()) {
-                let mut _prefix = String::new();
-                let mut _token = String::new();
-                let mut _result = Vec::new();
-                let mut only_tail_left = false;
-                let mut start_sign_found = false;
-                for c in token.chars() {
-                    if c == '{' {
-                        start_sign_found = true;
-                        continue;
-                    }
-                    if !start_sign_found {
-                        _prefix.push(c);
-                        continue;
-                    }
-                    if only_tail_left {
-                        _token.push(c);
-                        continue;
-                    }
-                    if c == '}' {
-                        if !_token.is_empty() {
-                            _result.push(_token);
-                            _token = String::new();
-                        }
-                        only_tail_left = true;
-                        continue;
-                    }
-                    if c == ',' {
-                        if !_token.is_empty() {
-                            _result.push(_token);
-                            _token = String::new();
-                        }
-                    } else {
-                        _token.push(c);
-                    }
-                }
-                for item in &mut _result {
-                    *item = format!("{}{}{}", _prefix, item, _token);
-                }
-                for item in _result.iter() {
-                    result.push(item.clone());
-                }
-            } else {
-                result.push(tools::wrap_sep_string(&sep, &token));
-            }
+        let items = getitem(&token, 0);
+        for x in items.0 {
+            result.push(x.clone());
         }
-
-        buff.insert(idx, result);
+        buff.push((idx, result));
         idx += 1;
     }
 
-    for (i, result) in buff.iter() {
+    for (i, items) in buff.iter().rev() {
         tokens.remove(*i as usize);
-        for (j, token) in result.iter().enumerate() {
+        for (j, token) in items.iter().enumerate() {
             let sep = if token.contains(' ') { "\"" } else { "" };
             tokens.insert((*i + j) as usize, (sep.to_string(), token.clone()));
         }
@@ -736,6 +773,7 @@ pub fn needs_expand_home(line: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::expand_alias;
+    use super::expand_brace;
     use super::needs_expand_home;
     use super::needs_globbing;
     use super::should_do_dollar_command_extension;
@@ -810,5 +848,91 @@ mod tests {
         ];
         expand_alias(&sh, &mut tokens);
         assert_eq!(tokens, exp_tokens);
+    }
+
+    fn assert_vec_eq(v1: Vec<(String, String)>, v2: Vec<(&str, &str)>) {
+        let mut v3: Vec<(&str, &str)> = Vec::new();
+        for (k, v) in v1.iter() {
+            v3.push((k.as_str(), v.as_str()));
+        }
+        assert_eq!(v3, v2);
+    }
+
+    fn make_tokens(v: &Vec<(&str, &str)>) -> Vec<(String, String)> {
+        let mut tokens = Vec::new();
+        for (k, v) in v.iter() {
+            tokens.push((k.to_string(), v.to_string()));
+        }
+        tokens
+    }
+
+    #[test]
+    fn test_expand_brace() {
+        let mut tokens = make_tokens(&vec![("", "echo"), ("", "f{1,2}.txt")]);
+        let exp_tokens = vec![("", "echo"), ("", "f1.txt"), ("", "f2.txt")];
+        expand_brace(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![("", "echo"), ("", "f{1,2,3,5}.txt")]);
+        let exp_tokens = vec![
+            ("", "echo"),
+            ("", "f1.txt"),
+            ("", "f2.txt"),
+            ("", "f3.txt"),
+            ("", "f5.txt"),
+        ];
+        expand_brace(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![("", "echo"), ("", "f{1,}.txt")]);
+        let exp_tokens = vec![("", "echo"), ("", "f1.txt"), ("", "f.txt")];
+        expand_brace(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![("", "echo"), ("", "f{,1}.txt")]);
+        let exp_tokens = vec![("", "echo"), ("", "f.txt"), ("", "f1.txt")];
+        expand_brace(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![("", "echo"), ("", "f{,}.txt")]);
+        let exp_tokens = vec![("", "echo"), ("", "f.txt"), ("", "f.txt")];
+        expand_brace(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![("", "echo"), ("", "f {1,2}.txt")]);
+        let exp_tokens = vec![("", "echo"), ("\"", "f 1.txt"), ("\"", "f 2.txt")];
+        expand_brace(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![("", "echo"), ("", "f {1,2}.txt"), ("", "bar.rs")]);
+        let exp_tokens = vec![
+            ("", "echo"),
+            ("\"", "f 1.txt"),
+            ("\"", "f 2.txt"),
+            ("", "bar.rs"),
+        ];
+        expand_brace(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![("", "echo"), ("", "f{1,2}b{3,4}.txt")]);
+        let exp_tokens = vec![
+            ("", "echo"),
+            ("", "f1b3.txt"),
+            ("", "f1b4.txt"),
+            ("", "f2b3.txt"),
+            ("", "f2b4.txt"),
+        ];
+        expand_brace(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![("", "echo"), ("", "{a,f{1,2}}b.txt")]);
+        let exp_tokens = vec![
+            ("", "echo"),
+            ("", "ab.txt"),
+            ("", "f1b.txt"),
+            ("", "f2b.txt"),
+        ];
+        expand_brace(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
     }
 }

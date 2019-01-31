@@ -1,5 +1,9 @@
 # Change Logs
 
+## 0.9.3 - master
+
+- Made brace expansion behavior align with bash.
+
 ## 0.9.2
 
 - Wrap prompt when it's too long.
