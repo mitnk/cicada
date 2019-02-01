@@ -20,11 +20,12 @@ Cicada is a simple Unix shell written in Rust.
 ```
 $ docker pull mitnk/cicada
 $ docker run --rm -it mitnk/cicada
+(in-cicada) $ cinfo
 ```
 
 ## Features
 
-### run programs and pipelines
+### Run programs and pipelines
 
 ```
 $ ls | head -n3
@@ -36,7 +37,7 @@ $ echo foo bar | awk -F " " '{print $2, $1}'
 bar foo
 ```
 
-### with redirections
+### With redirections
 
 ```
 $ ls file-not-exist 2>&1 | wc > e.txt
@@ -44,7 +45,7 @@ $ cat e.txt
        1       7      46
 ```
 
-### command substitution
+### Command substitution
 
 ```
 $ ls -l `which sh`
@@ -54,7 +55,7 @@ $ echo "Time is $(date)."
 Time is Sun Sep  2 12:04:13 CST 2018.
 ```
 
-### run multiple commands (with logical)
+### Run multiple commands (with logical)
 
 ```
 $ echo foo; echo bar
@@ -69,7 +70,7 @@ $ echo foo || echo bar
 foo
 ```
 
-### shell expansions
+### Shell expansions
 
 ```
 $ echo sp{el,il,al}l
@@ -82,7 +83,7 @@ $ echo *
 Cargo.lock Cargo.toml LICENSE Makefile README.md src target
 ```
 
-### do math arithmetic directly in the shell!
+### Math arithmetic directly in the shell!
 
 ```
 $ 1 + 2 * 3 - 4
@@ -91,13 +92,13 @@ $ (1 + 2) * (3 - 4) / 8.0
 -0.375
 ```
 
-## Cicada is also a library (BETA)
-
-Read APIs here: [https://docs.rs/cicada/](https://docs.rs/cicada/).
-
 ## Install Cicada
 
 Please refer to [docs/install.md](https://github.com/mitnk/cicada/blob/master/docs/install.md).
+
+## Cicada is also a library (BETA)
+
+Read APIs here: [https://docs.rs/cicada/](https://docs.rs/cicada/).
 
 ## FAQs
 
