@@ -12,7 +12,7 @@ use crate::types::Tokens;
 pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
     let args = parsers::parser_line::tokens_to_args(&tokens);
     if args.len() > 2 {
-        println_stderr!("invalid cd command");
+        println_stderr!("cicada: cd: too many argument");
         return 1;
     }
     let mut current_dir = PathBuf::new();

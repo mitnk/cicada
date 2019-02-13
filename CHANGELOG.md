@@ -3,6 +3,7 @@
 ## 0.9.3 - master
 
 - Made brace expansion behavior align with bash.
+- Fixed an issue of path completion in middle of input.
 
 ## 0.9.2
 

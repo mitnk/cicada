@@ -41,74 +41,38 @@ impl<Term: Terminal> Completer<Term> for BinCompleter {
 impl<Term: Terminal> Completer<Term> for PathCompleter {
     fn complete(
         &self,
-        _word: &str,
-        reader: &Prompter<Term>,
+        word: &str,
+        _reader: &Prompter<Term>,
         _start: usize,
         _end: usize,
     ) -> Option<Vec<Completion>> {
-        let buffer = reader.buffer();
-        Some(complete_path(buffer, false))
+        Some(complete_path(word, false))
     }
 }
 
 impl<Term: Terminal> Completer<Term> for CdCompleter {
     fn complete(
         &self,
-        _word: &str,
-        reader: &Prompter<Term>,
+        word: &str,
+        _reader: &Prompter<Term>,
         _start: usize,
         _end: usize,
     ) -> Option<Vec<Completion>> {
-        let buffer = reader.buffer();
-        Some(complete_path(buffer, true))
+        Some(complete_path(word, true))
     }
-}
-
-fn ends_with_space(line: &str) -> bool {
-    let mut found_bs = false;
-    let mut found_space = false;
-    let mut with_quote = false;
-    let mut ch_quote = '\0';
-    for c in line.chars() {
-        if c == '\\' {
-            found_bs = true;
-            continue;
-        }
-
-        if !with_quote && !found_bs && (c == '"' || c == '\'') {
-            with_quote = true;
-            ch_quote = c;
-        } else if with_quote && !found_bs && ch_quote == c {
-            with_quote = false;
-        }
-
-        if c == ' ' && !found_bs && !with_quote {
-            found_space = true;
-        }
-        if found_space && c != ' ' {
-            found_space = false;
-        }
-        found_bs = false;
-    }
-    found_space
 }
 
 /// Returns a sorted list of paths whose prefix matches the given path.
-pub fn complete_path(buffer: &str, for_dir: bool) -> Vec<Completion> {
+pub fn complete_path(word: &str, for_dir: bool) -> Vec<Completion> {
     let mut res = Vec::new();
-    let mut path_sep = String::new();
-    let mut path = String::new();
 
-    if !ends_with_space(buffer) {
-        let tokens = parsers::parser_line::cmd_to_tokens(buffer);
-        if tokens.is_empty() {
-            return res;
-        }
-
+    let tokens = parsers::parser_line::cmd_to_tokens(word);
+    let (path, path_sep) = if tokens.is_empty() {
+        (String::new(), String::new())
+    } else {
         let (ref _path_sep, ref _path) = tokens[tokens.len() - 1];
-        path = _path.clone();
-        path_sep = _path_sep.clone();
-    }
+        (_path.clone(), _path_sep.clone())
+    };
 
     let (_dir_orig, _) = split_path(&path);
     let dir_orig = if let Some(_dir) = _dir_orig { _dir } else { "" };
@@ -262,37 +226,11 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
 
 #[cfg(test)]
 mod tests {
-    use super::ends_with_space;
     use super::split_path;
 
     #[test]
     fn test_split_path() {
         assert_eq!(split_path(""), (None, ""));
         assert_eq!(split_path(""), (None, ""));
-    }
-
-    #[test]
-    fn test_ends_with_space() {
-        assert!(ends_with_space("ls "));
-        assert!(ends_with_space("ls a "));
-        assert!(ends_with_space("  ls   foo "));
-        assert!(ends_with_space("\"ls\" "));
-        assert!(ends_with_space("\"ls\" a "));
-
-        assert!(!ends_with_space("ls a"));
-
-        assert!(!ends_with_space("ls \"a "));
-        assert!(!ends_with_space("ls \"a b"));
-        assert!(!ends_with_space("ls \"a b "));
-        assert!(!ends_with_space("ls \'a "));
-        assert!(!ends_with_space("ls \'a b"));
-        assert!(!ends_with_space("ls \'a b "));
-
-        assert!(!ends_with_space("\"ls\" \"a "));
-        assert!(!ends_with_space("\"ls\" \"a b"));
-
-        assert!(!ends_with_space("ls a\\ "));
-        assert!(!ends_with_space("ls a\\ b"));
-        assert!(!ends_with_space("  ls   a\\ b\\ c"));
     }
 }
