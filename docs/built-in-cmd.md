@@ -66,12 +66,24 @@ See also `bg`, `fg`.
 
 ## vox
 
-First create your virtual envs under this directory:
+First, tell cicada where is your root directory of virtualenv in
+[rcfile](https://github.com/mitnk/cicada/blob/master/docs/rc-file.md).
+One example:
+
 ```
-export VIRTUALENV_HOME="${XDATA_DIR}"
+export VIRTUALENV_HOME="${XDATA_DIR}/venvs"
 ```
 
-Then use `vox` to enter them:
+This would set `$VIRTUALENV_HOME` to `$HOME/.local/share/venvs`
+
+Create your env with something like:
+
+```
+python3 -m venv ~/.local/share/venvs/my-project
+```
+
+Then use `vox` to enter it:
+
 ```
 $ vox enter my-project
 (my-project) $  # now you activated your env

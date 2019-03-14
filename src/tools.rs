@@ -172,7 +172,7 @@ pub fn extend_bandband(sh: &shell::Shell, line: &mut String) {
         new_line.push(' ');
     }
 
-    *line = new_line.trim_right().to_string();
+    *line = new_line.trim_end().to_string();
     // print full line after extending
     if replaced {
         println!("{}", line);

@@ -43,7 +43,7 @@ $ cicada
 
 ### 3) Install via Source
 
-Note: [Rust environment](https://rustup.rs/) is required.
+Note: [Rust environment](https://rustup.rs/) (Rust stable or above) is required.
 
 ```
 $ git clone https://github.com/mitnk/cicada
