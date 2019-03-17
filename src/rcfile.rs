@@ -10,7 +10,7 @@ use crate::shell;
 use crate::tools;
 use crate::types;
 
-fn load_file(sh: &mut shell::Shell, file_path: &str, count: i32) {
+pub fn load_file(sh: &mut shell::Shell, file_path: &str, count: i32) {
     if count > 99 {
         // to prevent dead include loop
         println_stderr!("loaded too many rc files");

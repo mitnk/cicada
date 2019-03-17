@@ -191,6 +191,9 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     if cmd == "vox" && tokens.len() > 1 && (tokens[1].1 == "enter" || tokens[1].1 == "exit") {
         return builtins::vox::run(sh, &tokens);
     }
+    if cmd == "source" {
+        return builtins::source::run(sh, &tokens);
+    }
 
     // for any other situations
     let mut background = false;

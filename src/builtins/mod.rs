@@ -8,3 +8,4 @@ pub mod fg;
 pub mod history;
 pub mod jobs;
 pub mod vox;
+pub mod source;
