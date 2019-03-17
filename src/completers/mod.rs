@@ -127,13 +127,17 @@ pub fn escaped_word_start(line: &str) -> usize {
     let mut ch_quote = '\0';
     let mut extra_bytes = 0;
     for (i, c) in line.chars().enumerate() {
-        let bytes_c = c.len_utf8();
-        if bytes_c > 1 {
-            extra_bytes += bytes_c - 1;
-        }
         if c == '\\' {
             found_bs = true;
             continue;
+        }
+        if c == ' ' && !found_bs && !with_quote {
+            found_space = true;
+            continue;
+        }
+        if found_space {
+            found_space = false;
+            start_position = i + extra_bytes;
         }
 
         if !with_quote && !found_bs && (c == '"' || c == '\'') {
@@ -143,14 +147,14 @@ pub fn escaped_word_start(line: &str) -> usize {
             with_quote = false;
         }
 
-        if c == ' ' && !found_bs && !with_quote {
-            found_space = true;
+        let bytes_c = c.len_utf8();
+        if bytes_c > 1 {
+            extra_bytes += bytes_c - 1;
         }
-        if found_space && c != ' ' {
+        if found_space {
             found_space = false;
             start_position = i + extra_bytes;
         }
-        found_bs = false;
     }
     if found_space {
         start_position = line.len();
@@ -166,6 +170,10 @@ mod tests {
     #[test]
     fn test_escaped_word_start() {
         assert_eq!(escaped_word_start("ls a"), 3);
+        assert_eq!(escaped_word_start("ls abc"), 3);
+        assert_eq!(escaped_word_start("ll 中文yoo"), 3);
+        assert_eq!(escaped_word_start("ll yoo中文"), 3);
+
         assert_eq!(escaped_word_start("  ls   foo"), 7);
         assert_eq!(escaped_word_start("ls foo bar"), 7);
         assert_eq!(escaped_word_start("ls føo bar"), 8);
