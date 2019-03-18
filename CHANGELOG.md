@@ -4,6 +4,7 @@
 
 - Made brace expansion behavior align with bash.
 - Fixed an issue of path completion in middle of input.
+- Implemented builtin command `source`
 
 ## 0.9.2
 
