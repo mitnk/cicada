@@ -19,6 +19,7 @@ pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
     if !args[1].ends_with("cicadarc") {
         println_stderr!("cicada: source command only supports cicadarc files");
         println_stderr!("scripting in cicada is still a work in progress");
+        return 1;
     }
 
     rcfile::load_file(sh, &args[1], 1);
