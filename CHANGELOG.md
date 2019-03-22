@@ -1,10 +1,10 @@
 # Change Logs
 
-## 0.9.3 - master
+## 0.9.3
 
 - Made brace expansion behavior align with bash.
-- Fixed an issue of path completion in middle of input.
-- Implemented builtin command `source`
+- Two more issues fixes on path completion.
+- Partly implemented builtin command `source`.
 
 ## 0.9.2
 

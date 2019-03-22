@@ -9,12 +9,11 @@ use crate::tools;
 use crate::types::Tokens;
 
 pub fn run(_sh: &shell::Shell, tokens: &Tokens) -> i32 {
-    let mut i = 0;
     for (_, text) in tokens.iter() {
-        if i == 0 {
-            i += 1;
+        if text == "export" {
             continue;
         }
+
         if !tools::is_env(text) {
             println!("export: invalid command");
             println!("usage: export XXX=YYY");
@@ -38,7 +37,6 @@ pub fn run(_sh: &shell::Shell, tokens: &Tokens) -> i32 {
             println_stderr!("cicada: re new error");
             return 2;
         }
-        i += 1;
     }
     0
 }

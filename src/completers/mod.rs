@@ -151,10 +151,7 @@ pub fn escaped_word_start(line: &str) -> usize {
         if bytes_c > 1 {
             extra_bytes += bytes_c - 1;
         }
-        if found_space {
-            found_space = false;
-            start_position = i + extra_bytes;
-        }
+        found_bs = false;
     }
     if found_space {
         start_position = line.len();
@@ -182,6 +179,8 @@ mod tests {
         assert_eq!(escaped_word_start("ls a\\ b"), 3);
         assert_eq!(escaped_word_start("ls a\\ b\\ c"), 3);
         assert_eq!(escaped_word_start("  ls   a\\ b\\ c"), 7);
+        assert_eq!(escaped_word_start("mv foo\\ bar abc"), 12);
+        assert_eq!(escaped_word_start("mv føo\\ bar abc"), 13);
 
         assert_eq!(escaped_word_start("ls a\\'"), 3);
         assert_eq!(escaped_word_start("ls a\\'b"), 3);

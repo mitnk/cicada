@@ -16,8 +16,9 @@ pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
         println_stderr!("cicada: source: no file specified");
         return 1;
     }
-    if !args[1].ends_with("cicadarc") {
+    if !args[1].ends_with("rc") {
         println_stderr!("cicada: source command only supports cicadarc files");
+        println_stderr!("cicada: try rename the target file to end with 'rc'");
         println_stderr!("scripting in cicada is still a work in progress");
         return 1;
     }

@@ -122,7 +122,8 @@ pub fn unquote(s: &str) -> String {
 }
 
 pub fn is_export_env(line: &str) -> bool {
-    re_contains(line, r"^ *export +[a-zA-Z0-9_]+=.*$")
+    re_contains(line, r"^ *export +[a-zA-Z0-9_]+=.*$") ||
+        re_contains(line, r"^ *[a-zA-Z0-9_]+=.*$")
 }
 
 pub fn is_env(line: &str) -> bool {
