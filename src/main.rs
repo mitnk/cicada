@@ -14,7 +14,6 @@ extern crate yaml_rust;
 extern crate nom;
 
 use std::env;
-use std::io::Write;
 use std::sync::Arc;
 
 use linefeed::{Interface, ReadResult};
@@ -31,6 +30,7 @@ mod libs;
 mod parsers;
 mod prompt;
 mod rcfile;
+mod scripting;
 mod shell;
 mod types;
 
@@ -47,13 +47,14 @@ fn main() {
     rcfile::load_rc_files(&mut sh);
 
     let args: Vec<String> = env::args().collect();
-    // this section handles `cicada -c 'echo hi && echo yoo'`,
-    // e.g. it could be triggered from Vim (`:!ls` etc).
     if args.len() > 1 {
         if args[1] != "-c" {
-            println_stderr!("cicada: run script: to be implemented");
+            scripting::run_script(&mut sh, &args);
             return;
         }
+
+        // this section handles `cicada -c 'echo hi && echo yoo'`,
+        // e.g. it could be triggered from Vim (`:!ls` etc).
         let line = tools::env_args_to_command_line();
         log!("run with -c args: {}", &line);
         execute::run_procs(&mut sh, &line, false);

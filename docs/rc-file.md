@@ -12,13 +12,11 @@ alias ls="ls -G"
 alias ll="ls -lh"
 ```
 
-## include extra rc files in it
+## Use source to load extra rc files in it
 
 ```
 alias ll="ls -lh"
 
-# relative path
-include .cicadarc_local
-# or with full path
-include /etc/cicadarc
+source ~/.cicadarc_local
+source /etc/cicadarc
 ```

@@ -71,6 +71,7 @@ mod history;
 mod jobc;
 mod libs;
 mod parsers;
+mod scripting;
 mod shell;
 mod rcfile;
 

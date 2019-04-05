@@ -1,10 +1,17 @@
 # Change Logs
 
+## 0.9.4 - master
+
+- Added basic scripting ability.
+- `source` fully implemented.
+- Removed `include` from rcfile, please use `source` instead.
+- Added new builtin `alias`.
+
 ## 0.9.3
 
 - Made brace expansion behavior align with bash.
 - Two more issues fixes on path completion.
-- Partly implemented builtin command `source`.
+- Partly implemented builtin command `source` (RC loading only).
 
 ## 0.9.2
 

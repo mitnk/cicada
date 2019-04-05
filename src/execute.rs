@@ -191,7 +191,7 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     if cmd == "vox" && tokens.len() > 1 && (tokens[1].1 == "enter" || tokens[1].1 == "exit") {
         return builtins::vox::run(sh, &tokens);
     }
-    if cmd == "source" {
+    if (cmd == "source" || cmd == ".") && tokens.len() <= 2 {
         return builtins::source::run(sh, &tokens);
     }
 
@@ -437,6 +437,12 @@ fn run_command(
             } else if program == "jobs" {
                 let status = builtins::jobs::run(sh);
                 process::exit(status);
+            } else if program == "source" || program == "." {
+                // NOTE: do pipeline on source would make processes forked,
+                // which may not get correct results (e.g. `echo $$`),
+                // (e.g. cannot make new $PROMPT take effects).
+                let status = builtins::source::run(sh, &cmd.tokens);
+                process::exit(status);
             }
 
             // We are certain that our string doesn't have 0 bytes in the
@@ -455,7 +461,7 @@ fn run_command(
             let path = if program.contains('/') {
                 program.clone()
             } else {
-                libs::path::find_first_exec(&program)
+                libs::path::find_file_in_path(&program, true)
             };
             if path.is_empty() {
                 println_stderr!("cicada: {}: command not found", program);

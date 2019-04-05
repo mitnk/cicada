@@ -41,7 +41,7 @@ pub fn expand_home(text: &str) -> String {
     s
 }
 
-pub fn find_first_exec(filename: &str) -> String {
+pub fn find_file_in_path(filename: &str, exec: bool) -> String {
     let env_path;
     match env::var("PATH") {
         Ok(x) => env_path = x,
@@ -59,19 +59,23 @@ pub fn find_first_exec(filename: &str) -> String {
                         if name != filename {
                             continue;
                         }
-                        let _mode;
-                        match entry.metadata() {
-                            Ok(x) => _mode = x,
-                            Err(e) => {
-                                println_stderr!("cicada: metadata error: {:?}", e);
+
+                        if exec {
+                            let _mode;
+                            match entry.metadata() {
+                                Ok(x) => _mode = x,
+                                Err(e) => {
+                                    println_stderr!("cicada: metadata error: {:?}", e);
+                                    continue;
+                                }
+                            }
+                            let mode = _mode.permissions().mode();
+                            if mode & 0o111 == 0 {
+                                // not binary
                                 continue;
                             }
                         }
-                        let mode = _mode.permissions().mode();
-                        if mode & 0o111 == 0 {
-                            // not binary
-                            continue;
-                        }
+
                         return entry.path().to_string_lossy().to_string();
                     }
                 }
