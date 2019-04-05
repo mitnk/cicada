@@ -153,11 +153,17 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
         }
     }
 
+    let mut checker: HashSet<String> = HashSet::new();
+
     // handle alias and builtins
     for alias in sh.alias.keys() {
         if !alias.starts_with(fname) {
             continue;
         }
+        if checker.contains(alias) {
+            continue;
+        }
+        checker.insert(alias.clone());
         res.push(Completion {
             completion: alias.to_owned(),
             display: None,
@@ -165,12 +171,17 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
         });
     }
     let builtins = vec![
-        "cd", "cinfo", "exec", "exit", "export", "fg", "history", "jobs", "fg", "vox", "source"
+        "alias", "bg", "cd", "cinfo", "exec", "exit", "export", "fg", "history",
+        "jobs", "source", "vox",
     ];
     for item in &builtins {
         if !item.starts_with(fname) {
             continue;
         }
+        if checker.contains(item.clone()) {
+            continue;
+        }
+        checker.insert(item.to_string());
         res.push(Completion {
             completion: item.to_string(),
             display: None,
@@ -181,7 +192,6 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
     let vec_path: Vec<&str> = env_path.split(':').collect();
     let path_list: HashSet<&str> = HashSet::from_iter(vec_path.iter().cloned());
 
-    let mut checker: HashSet<String> = HashSet::new();
     for p in &path_list {
         if let Ok(list) = read_dir(p) {
             for entry in list {

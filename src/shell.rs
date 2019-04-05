@@ -189,6 +189,14 @@ impl Shell {
         }
     }
 
+    pub fn get_alias_list(&self) -> Vec<(String, String)> {
+        let mut result = Vec::new();
+        for (name, value) in &self.alias {
+            result.push((name.clone(), value.clone()));
+        }
+        result
+    }
+
     pub fn add_alias(&mut self, name: &str, value: &str) {
         self.alias.insert(name.to_string(), value.to_string());
     }

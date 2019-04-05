@@ -162,6 +162,15 @@ fn line_to_tokens(sh: &mut shell::Shell, line: &str) -> (Tokens, HashMap<String,
     return (tokens, envs);
 }
 
+fn with_pipeline(tokens: &Tokens) -> bool {
+    for item in tokens {
+        if item.1 == "|" {
+            return true;
+        }
+    }
+    false
+}
+
 pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     let (mut tokens, envs) = line_to_tokens(sh, line);
     if tokens.is_empty() {
@@ -193,6 +202,9 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     }
     if (cmd == "source" || cmd == ".") && tokens.len() <= 2 {
         return builtins::source::run(sh, &tokens);
+    }
+    if cmd == "alias" && !with_pipeline(&tokens) {
+        return builtins::alias::run(sh, &tokens);
     }
 
     // for any other situations
@@ -442,6 +454,9 @@ fn run_command(
                 // which may not get correct results (e.g. `echo $$`),
                 // (e.g. cannot make new $PROMPT take effects).
                 let status = builtins::source::run(sh, &cmd.tokens);
+                process::exit(status);
+            } else if program == "alias" {
+                let status = builtins::alias::run(sh, &cmd.tokens);
                 process::exit(status);
             }
 

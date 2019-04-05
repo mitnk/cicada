@@ -114,6 +114,13 @@ fn main() {
                     history::add(&mut rl, &line, status, tsb, tse);
                     sh.previous_cmd = line.clone();
                 }
+
+                if line.trim().starts_with("alias ") {
+                    // temporary solution for completion when sh alias changes
+                    rl.set_completer(Arc::new(completers::CicadaCompleter {
+                        sh: Arc::new(sh.clone()),
+                    }));
+                }
             }
             Ok(ReadResult::Eof) => {
                 if let Ok(x) = env::var("NO_EXIT_ON_CTRL_D") {

@@ -1,3 +1,4 @@
+pub mod alias;
 pub mod bg;
 pub mod cd;
 pub mod cinfo;
@@ -7,5 +8,5 @@ pub mod export;
 pub mod fg;
 pub mod history;
 pub mod jobs;
-pub mod vox;
 pub mod source;
+pub mod vox;
