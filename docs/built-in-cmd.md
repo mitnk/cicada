@@ -84,7 +84,7 @@ See also `bg`, `fg`.
 ## source
 
 Read and execute commands from the `filename` argument in the current shell
-context.
+context. It stops at first command with non-zero return status.
 
 ```
 source filename

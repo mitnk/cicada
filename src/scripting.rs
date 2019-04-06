@@ -53,6 +53,9 @@ pub fn run_script(sh: &mut shell::Shell, args: &Vec<String>) -> i32 {
             continue;
         }
         status = execute::run_procs(sh, line, true);
+        if status != 0 {
+            return status;
+        }
     }
 
     status

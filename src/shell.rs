@@ -792,8 +792,10 @@ pub fn get_rc_file() -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
     use super::expand_alias;
     use super::expand_brace;
+    use super::expand_env;
     use super::needs_expand_home;
     use super::needs_globbing;
     use super::should_do_dollar_command_extension;
@@ -835,6 +837,35 @@ mod tests {
         assert!(should_do_dollar_command_extension("echo $(foo bar)"));
         assert!(should_do_dollar_command_extension("echo $(echo foo)"));
         assert!(should_do_dollar_command_extension("$(pwd) foo"));
+    }
+
+    #[test]
+    fn test_expand_env() {
+        let sh = Shell::new();
+        env::set_var("test_foo_expand_env1", "Test foo >> ");
+        env::set_var("test_foo_expand_env2", "test-foo");
+
+        let mut tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("\"".to_string(), "$test_foo_expand_env1".to_string()),
+        ];
+        let exp_tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("\"".to_string(), "Test foo >> ".to_string()),
+        ];
+        expand_env(&sh, &mut tokens);
+        assert_eq!(tokens, exp_tokens);
+
+        let mut tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("".to_string(), "$test_foo_expand_env2".to_string()),
+        ];
+        let exp_tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("".to_string(), "test-foo".to_string()),
+        ];
+        expand_env(&sh, &mut tokens);
+        assert_eq!(tokens, exp_tokens);
     }
 
     #[test]
