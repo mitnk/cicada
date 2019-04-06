@@ -3,7 +3,6 @@ use std::path::Path;
 
 use crate::scripting;
 use crate::shell;
-use crate::tools;
 
 pub fn load_rc_files(sh: &mut shell::Shell) {
     // make "/usr/local/bin" as the first item in PATH
@@ -14,7 +13,7 @@ pub fn load_rc_files(sh: &mut shell::Shell) {
         }
     }
 
-    let rc_file = tools::get_rc_file();
+    let rc_file = shell::get_rc_file();
     if !Path::new(&rc_file).exists() {
         return;
     }

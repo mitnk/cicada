@@ -2,8 +2,8 @@
 
 When cicada shell is invoked as an interactive
 [login shell](https://github.com/mitnk/cicada/blob/master/docs/install.md#set-cicada-as-your-login-shell),
-it first reads and executes commands from the file `~/.cicadarc`,
-if that file exists.
+or with the --login option, it first reads and executes commands from
+the file `~/.cicadarc`, if that file exists.
 
 > Hint: In non-login shell mode, you can apply RC file with
 > [source](https://github.com/mitnk/cicada/blob/master/docs/built-in-cmd.md#source):

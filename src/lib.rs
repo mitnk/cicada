@@ -71,9 +71,9 @@ mod history;
 mod jobc;
 mod libs;
 mod parsers;
+mod rcfile;
 mod scripting;
 mod shell;
-mod rcfile;
 
 /// Represents an error calling `exec`.
 pub use crate::types::CommandResult;

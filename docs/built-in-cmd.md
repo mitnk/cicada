@@ -83,18 +83,20 @@ See also `bg`, `fg`.
 
 ## source
 
+Read and execute commands from the `filename` argument in the current shell
+context.
+
 ```
 source filename
 ```
 
-Read and execute commands from the `filename` argument in the current shell
-context. If filename does not contain a slash, the PATH variable is used to
+If filename does not contain a slash, the PATH variable is used to
 find `filename`. The current directory is searched if `filename` is not
 found in `$PATH`. If any arguments are supplied, they become the positional
 parameters when filename is executed. The return status is the exit status
 of the last command executed, or zero if no commands are executed. If
 `filename` is not found, or cannot be read, the return status is non-zero.
-Like in Bash, this builtin is equivalent to `.` (a period).
+Like in Bash, **this builtin is equivalent to `.` (a period)**.
 
 ## unalias
 

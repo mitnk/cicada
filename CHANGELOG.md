@@ -3,7 +3,7 @@
 ## 0.9.4 - master
 
 - Added basic scripting ability.
-- `source` fully implemented.
+- Builtin `source` fully implemented.
 - Removed `include` from rcfile, please use `source` instead.
 - Added new builtin `alias`, `unalias`.
 - Only login shell loads rcfile.

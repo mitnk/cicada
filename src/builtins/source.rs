@@ -1,10 +1,9 @@
 use std::io::Write;
 
-use crate::shell;
 use crate::parsers;
-use crate::types::Tokens;
 use crate::scripting;
-
+use crate::shell;
+use crate::types::Tokens;
 
 pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
     let args = parsers::parser_line::tokens_to_args(&tokens);

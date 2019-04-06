@@ -54,17 +54,24 @@ fn main() {
     }
 
     if args.len() > 1 {
-        if args[1] != "-c" {
+        if !args[1].starts_with("-") {
             scripting::run_script(&mut sh, &args);
             return;
         }
 
         // this section handles `cicada -c 'echo hi && echo yoo'`,
         // e.g. it could be triggered from Vim (`:!ls` etc).
-        let line = tools::env_args_to_command_line();
-        log!("run with -c args: {}", &line);
-        execute::run_procs(&mut sh, &line, false);
-        return;
+        if args[1] == "-c" {
+            let line = tools::env_args_to_command_line();
+            log!("run with -c args: {}", &line);
+            execute::run_procs(&mut sh, &line, false);
+            return;
+        }
+
+        if args[1] == "--login" {
+            rcfile::load_rc_files(&mut sh);
+            sh.is_login = true;
+        }
     }
 
     let isatty: bool = unsafe { libc::isatty(0) == 1 };
@@ -121,8 +128,7 @@ fn main() {
                     sh.previous_cmd = line.clone();
                 }
 
-                if line.trim().starts_with("alias ") ||
-                    line.trim().starts_with("unalias ") {
+                if line.trim().starts_with("alias ") || line.trim().starts_with("unalias ") {
                     // temporary solution for completion when sh alias changes
                     rl.set_completer(Arc::new(completers::CicadaCompleter {
                         sh: Arc::new(sh.clone()),

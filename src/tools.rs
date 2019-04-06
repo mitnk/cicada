@@ -108,11 +108,6 @@ pub fn get_user_completer_dir() -> String {
     format!("{}/.cicada/completers", home)
 }
 
-pub fn get_rc_file() -> String {
-    let home = get_user_home();
-    format!("{}/{}", home, ".cicadarc")
-}
-
 pub fn unquote(s: &str) -> String {
     let args = parsers::parser_line::line_to_plain_tokens(s);
     if args.is_empty() {
