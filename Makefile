@@ -1,11 +1,11 @@
 run:
 	@rustc -V
-	cargo update
+	# cargo update
 	cargo build
 	./target/debug/cicada
 
 install:
-	cargo update
+	# cargo update
 	cargo build --release
 	cp target/release/cicada /usr/local/bin/
 

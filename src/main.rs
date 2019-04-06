@@ -44,9 +44,15 @@ fn main() {
     }
 
     let mut sh = shell::Shell::new();
-    rcfile::load_rc_files(&mut sh);
 
     let args: Vec<String> = env::args().collect();
+
+    // only load RC in a login shell
+    if args.len() > 0 && args[0].starts_with("-") {
+        rcfile::load_rc_files(&mut sh);
+        sh.is_login = true;
+    }
+
     if args.len() > 1 {
         if args[1] != "-c" {
             scripting::run_script(&mut sh, &args);
@@ -115,7 +121,8 @@ fn main() {
                     sh.previous_cmd = line.clone();
                 }
 
-                if line.trim().starts_with("alias ") {
+                if line.trim().starts_with("alias ") ||
+                    line.trim().starts_with("unalias ") {
                     // temporary solution for completion when sh alias changes
                     rl.set_completer(Arc::new(completers::CicadaCompleter {
                         sh: Arc::new(sh.clone()),

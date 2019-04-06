@@ -1,5 +1,22 @@
 # Cicada Built-in Commands
 
+## alias
+
+Aliases allow a string to be substituted for a word when it is used as
+the first word of a simple command.
+
+Aliases are created and listed with the alias command, and removed with
+the `unalias` command.
+
+```
+alias [name][=value]
+```
+
+Without arguments, alias prints the list of aliases on the standard output
+in a form that allows them to be reused as input. If arguments are supplied,
+an alias is defined for each name whose value is given.
+If no value is given, the name and value of the alias is printed.
+
 ## bg
 
 Make stopped job runing in background. See also `fg`, `jobs`.
@@ -78,6 +95,10 @@ parameters when filename is executed. The return status is the exit status
 of the last command executed, or zero if no commands are executed. If
 `filename` is not found, or cannot be read, the return status is non-zero.
 Like in Bash, this builtin is equivalent to `.` (a period).
+
+## unalias
+
+Remove an alias. Usage example: `$ unalias ls`.
 
 ## vox
 

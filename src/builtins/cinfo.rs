@@ -5,7 +5,6 @@ pub fn run() -> i32 {
     let mut info = vec![];
     const VERSION: &str = env!("CARGO_PKG_VERSION");
     info.push(("version", VERSION));
-    info.push(("rustc-version", env!("BUILD_RUSTC_VERSION")));
 
     let os_name = libs::os_type::get_os_name();
     info.push(("os-name", &os_name));
@@ -29,11 +28,12 @@ pub fn run() -> i32 {
         info.push(("git-branch", &branch));
     }
 
+    info.push(("built-with", env!("BUILD_RUSTC_VERSION")));
     info.push(("built-at", env!("BUILD_DATE")));
 
     for (k, v) in &info {
-        // longest key above is 13-char length
-        println!("{: >13}: {}", k, v);
+        // longest key above is 12-char length
+        println!("{: >12}: {}", k, v);
     }
     0
 }

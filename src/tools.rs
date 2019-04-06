@@ -121,11 +121,6 @@ pub fn unquote(s: &str) -> String {
     args[0].clone()
 }
 
-pub fn is_export_env(line: &str) -> bool {
-    re_contains(line, r"^ *export +[a-zA-Z0-9_]+=.*$") ||
-        re_contains(line, r"^ *[a-zA-Z0-9_]+=.*$")
-}
-
 pub fn is_env(line: &str) -> bool {
     re_contains(line, r"^[a-zA-Z0-9_]+=.*$")
 }
@@ -221,10 +216,6 @@ pub fn env_args_to_command_line() -> String {
         result.push_str(arg.as_str());
     }
     result
-}
-
-pub fn is_alias(line: &str) -> bool {
-    re_contains(line, r"^ *alias +[a-zA-Z0-9_\.-]+=.*$")
 }
 
 extern "C" {
@@ -328,13 +319,7 @@ pub fn escape_path(path: &str) -> String {
 mod tests {
     use super::escape_path;
     use super::extend_bandband;
-    use super::is_alias;
     use crate::shell;
-
-    #[test]
-    fn test_is_alias() {
-        assert!(is_alias("alias ls='ls -lh'"));
-    }
 
     #[test]
     fn test_extend_bandband() {

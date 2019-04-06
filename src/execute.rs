@@ -206,6 +206,9 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     if cmd == "alias" && !with_pipeline(&tokens) {
         return builtins::alias::run(sh, &tokens);
     }
+    if cmd == "unalias" {
+        return builtins::unalias::run(sh, &tokens);
+    }
 
     // for any other situations
     let mut background = false;

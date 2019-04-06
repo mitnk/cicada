@@ -23,6 +23,7 @@ pub struct Shell {
     pub previous_dir: String,
     pub previous_cmd: String,
     pub previous_status: i32,
+    pub is_login: bool,
 }
 
 impl Shell {
@@ -35,6 +36,7 @@ impl Shell {
             previous_dir: String::new(),
             previous_cmd: String::new(),
             previous_status: 0,
+            is_login: false,
         }
     }
 
@@ -203,6 +205,11 @@ impl Shell {
 
     pub fn is_alias(&self, name: &str) -> bool {
         self.alias.contains_key(name)
+    }
+
+    pub fn remove_alias(&mut self, name: &str) -> bool {
+        let opt = self.alias.remove(name);
+        return opt.is_some();
     }
 
     pub fn get_alias_content(&self, name: &str) -> Option<String> {

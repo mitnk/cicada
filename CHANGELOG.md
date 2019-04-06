@@ -5,7 +5,8 @@
 - Added basic scripting ability.
 - `source` fully implemented.
 - Removed `include` from rcfile, please use `source` instead.
-- Added new builtin `alias`.
+- Added new builtin `alias`, `unalias`.
+- Only login shell loads rcfile.
 
 ## 0.9.3
 
