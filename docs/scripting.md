@@ -1,6 +1,6 @@
 # Scripting in Cicada
 
-The goal of cicada is to be useful daily use shell and replace Bash. But
+The goal of cicada is to be a useful daily-use shell and replace Bash. But
 it does not intend to compete with shells like zsh, fish, etc. It keep
 [KISS Principle](https://en.wikipedia.org/wiki/KISS_principle) in mind.
 For scripting, cicada won't introduce a full featured scripting
