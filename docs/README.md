@@ -1,12 +1,8 @@
-# Cicada Unix Shell
+# Cicada Manual
 
-[![Travis Build Status](https://api.travis-ci.org/mitnk/cicada.svg?branch=master)](https://travis-ci.org/mitnk/cicada)
-[![Latest Version](https://img.shields.io/crates/v/cicada.svg)](https://crates.io/crates/cicada)
+Cicada is a simple bash-like Unix shell.
 
-Cicada is a simple Unix shell written in Rust.
-
-## Documents
-
+- [Install cicada](https://github.com/mitnk/cicada/blob/master/docs/install.md)
 - [Environment Variables](https://github.com/mitnk/cicada/tree/master/docs/envs.md)
 - [Built-in Commands](https://github.com/mitnk/cicada/tree/master/docs/built-in-cmd.md)
 - [Completion](https://github.com/mitnk/cicada/tree/master/docs/completion.md)
@@ -16,7 +12,7 @@ Cicada is a simple Unix shell written in Rust.
 - [Customize Prompt](https://github.com/mitnk/cicada/tree/master/docs/prompt.md)
 - [Scripting](https://github.com/mitnk/cicada/tree/master/docs/scripting.md)
 
-## Try out cicada with Docker
+### Try out cicada with Docker
 
 ```
 $ docker pull mitnk/cicada
@@ -24,7 +20,7 @@ $ docker run --rm -it mitnk/cicada
 (in-cicada) $ cinfo
 ```
 
-## Features
+## Brief Introduction on its Features
 
 ### Run programs and pipelines
 
@@ -92,24 +88,3 @@ $ 1 + 2 * 3 - 4
 $ (1 + 2) * (3 - 4) / 8.0
 -0.375
 ```
-
-## Install Cicada
-
-Please refer to [docs/install.md](https://github.com/mitnk/cicada/blob/master/docs/install.md).
-
-## Cicada is also a library (BETA)
-
-Read APIs here: [https://docs.rs/cicada/](https://docs.rs/cicada/).
-
-## FAQs
-
-- [Why another shell?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#why-another-shell)
-- [Compare to bash?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#compare-to-bash)
-- [When will functions get supported in cicada?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#when-will-functions-get-supported-in-cicada)
-- [Is cicada POSIX-compatible?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#is-cicada-posix-compatible)
-- [Will my bash/zsh scripts continue work in cicada?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#will-my-bashzsh-scripts-continue-work-in-cicada)
-- [Windows support?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#windows-support)
-
-## To Do List
-
-- to support simple Functions

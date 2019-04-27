@@ -109,10 +109,8 @@ First, tell cicada where is your root directory of virtualenv in
 One example:
 
 ```
-export VIRTUALENV_HOME="${XDATA_DIR}/venvs"
+export VIRTUALENV_HOME="${HOME}/.local/share/venvs"
 ```
-
-This would set `$VIRTUALENV_HOME` to `$HOME/.local/share/venvs`
 
 Create your env with something like:
 

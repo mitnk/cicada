@@ -1,12 +1,13 @@
 # Change Logs
 
-## 0.9.4 - master
+## 0.9.4
 
 - Added basic scripting ability.
 - Builtin `source` fully implemented.
 - Removed `include` from rcfile, please use `source` instead.
 - Added new builtin `alias`, `unalias`.
 - Only login shell loads rcfile.
+- Some other bug fixes.
 
 ## 0.9.3
 
