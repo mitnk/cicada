@@ -287,7 +287,7 @@ fn needs_globbing(line: &str) -> bool {
 
 pub fn expand_glob(tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
-    let mut buff: HashMap<usize, Vec<String>> = HashMap::new();
+    let mut buff = Vec::new();
     for (sep, text) in tokens.iter() {
         if !sep.is_empty() || !needs_globbing(text) {
             idx += 1;
@@ -339,11 +339,11 @@ pub fn expand_glob(tokens: &mut types::Tokens) {
             }
         }
 
-        buff.insert(idx, result);
+        buff.push((idx, result));
         idx += 1;
     }
 
-    for (i, result) in buff.iter() {
+    for (i, result) in buff.iter().rev() {
         tokens.remove(*i as usize);
         for (j, token) in result.iter().enumerate() {
             let sep = if token.contains(' ') { "\"" } else { "" };
@@ -353,14 +353,15 @@ pub fn expand_glob(tokens: &mut types::Tokens) {
 }
 
 pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
-    let re;
-    if let Ok(x) = Regex::new(r"([^\$]*)\$\{?([A-Za-z0-9\?\$_]+)\}?(.*)") {
-        re = x;
+    let re1;
+    if let Ok(x) = Regex::new(r"^(.*?)\$\{?([A-Za-z0-9_]+|\$|\?)\}?(.*)$") {
+        re1 = x;
     } else {
         println!("cicada: re new error");
         return String::new();
     }
-    if !re.is_match(token) {
+
+    if !re1.is_match(token) {
         return token.to_string();
     }
 
@@ -370,13 +371,16 @@ pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
     let mut _output = String::new();
     let mut _tail = String::new();
     loop {
-        if !re.is_match(&_token) {
+        if !re1.is_match(&_token) {
             if !_token.is_empty() {
                 result.push_str(&_token);
             }
             break;
         }
-        for cap in re.captures_iter(&_token) {
+
+        let cap_results = re1.captures_iter(&_token);
+
+        for cap in cap_results {
             _head = cap[1].to_string();
             _tail = cap[3].to_string();
             let _key = cap[2].to_string();
@@ -405,7 +409,7 @@ pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
 }
 
 fn need_expand_brace(line: &str) -> bool {
-    tools::re_contains(line, r#"\{[^ "']*,[^ "']*,?[^ "']*\}"#)
+    libs::re::re_contains(line, r#"\{[^ "']*,[^ "']*,?[^ "']*\}"#)
 }
 
 fn getitem(s: &str, depth: i32) -> (Vec<String>, String) {
@@ -573,8 +577,7 @@ fn expand_alias(sh: &Shell, tokens: &mut types::Tokens) {
 
 fn expand_home(tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
-
-    let mut buff: HashMap<usize, String> = HashMap::new();
+    let mut buff = Vec::new();
     for (sep, text) in tokens.iter() {
         if !sep.is_empty() || !needs_expand_home(&text) {
             idx += 1;
@@ -601,25 +604,24 @@ fn expand_home(tokens: &mut types::Tokens) {
             let result = re.replace_all(ss.as_str(), to.as_str());
             s = result.to_string();
         }
-        buff.insert(idx, s.clone());
+        buff.push((idx, s.clone()));
         idx += 1;
     }
 
-    for (i, text) in buff.iter() {
+    for (i, text) in buff.iter().rev() {
         tokens[*i as usize].1 = text.to_string();
     }
 }
 
 fn env_in_token(token: &str) -> bool {
-    if token == "$$" || token == "$?" {
-        return true;
-    }
-    tools::re_contains(token, r"\$\{?[a-zA-Z][a-zA-Z0-9_]+\}?")
+    libs::re::re_contains(token, r"\$\{?\$\}?") ||
+        libs::re::re_contains(token, r"\$\{?\?\}?") ||
+        libs::re::re_contains(token, r"\$\{?[a-zA-Z][a-zA-Z0-9_]+\}?")
 }
 
 pub fn expand_env(sh: &Shell, tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
-    let mut buff: HashMap<usize, String> = HashMap::new();
+    let mut buff = Vec::new();
 
     for (sep, token) in tokens.iter() {
         if sep == "`" || sep == "'" || !env_in_token(token) {
@@ -628,17 +630,17 @@ pub fn expand_env(sh: &Shell, tokens: &mut types::Tokens) {
         }
 
         let _token = extend_env_blindly(sh, token);
-        buff.insert(idx, _token);
+        buff.push((idx, _token));
         idx += 1;
     }
 
-    for (i, text) in buff.iter() {
+    for (i, text) in buff.iter().rev() {
         tokens[*i as usize].1 = text.to_string();
     }
 }
 
 fn should_do_dollar_command_extension(line: &str) -> bool {
-    tools::re_contains(line, r"\$\([^\)]+\)")
+    libs::re::re_contains(line, r"\$\([^\)]+\)")
 }
 
 fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens) {
@@ -782,7 +784,7 @@ pub fn do_expansion(sh: &mut Shell, tokens: &mut types::Tokens) {
 }
 
 pub fn needs_expand_home(line: &str) -> bool {
-    tools::re_contains(line, r"( +~ +)|( +~/)|(^ *~/)|( +~ *$)")
+    libs::re::re_contains(line, r"( +~ +)|( +~/)|(^ *~/)|( +~ *$)")
 }
 
 pub fn get_rc_file() -> String {
@@ -796,6 +798,7 @@ mod tests {
     use super::expand_alias;
     use super::expand_brace;
     use super::expand_env;
+    use super::libs;
     use super::needs_expand_home;
     use super::needs_globbing;
     use super::should_do_dollar_command_extension;
@@ -866,6 +869,30 @@ mod tests {
         ];
         expand_env(&sh, &mut tokens);
         assert_eq!(tokens, exp_tokens);
+
+        let mut tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("\"".to_string(), "foo$$=-$++==$$==".to_string()),
+        ];
+        let ptn_expected = r"^foo[0-9]+=-\$\+\+==[0-9]+==$";
+        expand_env(&sh, &mut tokens);
+        if !libs::re::re_contains(&tokens[1].1, ptn_expected) {
+            println!("expect RE: {:?}", ptn_expected);
+            println!("real: {:?}", &tokens[1].1);
+            assert!(false);
+        }
+
+        let mut tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("\"".to_string(), "==$++$$foo$$=-$++==$$==$--$$end".to_string()),
+        ];
+        let ptn_expected = r"^==\$\+\+[0-9]+foo[0-9]+=-\$\+\+==[0-9]+==\$--[0-9]+end$";
+        expand_env(&sh, &mut tokens);
+        if !libs::re::re_contains(&tokens[1].1, ptn_expected) {
+            println!("expect RE: {:?}", ptn_expected);
+            println!("real: {:?}", &tokens[1].1);
+            assert!(false);
+        }
     }
 
     #[test]

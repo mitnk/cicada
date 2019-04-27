@@ -19,6 +19,20 @@ pub fn find_first_group(ptn: &str, text: &str) -> Option<String> {
     None
 }
 
+pub fn re_contains(text: &str, ptn: &str) -> bool {
+    let re;
+    match regex::Regex::new(ptn) {
+        Ok(x) => {
+            re = x;
+        }
+        Err(e) => {
+            println!("Regex new error: {:?}", e);
+            return false;
+        }
+    }
+    re.is_match(text)
+}
+
 #[cfg(test)]
 mod tests {
     use super::find_first_group;

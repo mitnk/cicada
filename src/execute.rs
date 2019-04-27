@@ -120,7 +120,7 @@ fn drain_env_tokens(tokens: &mut Tokens) -> HashMap<String, String> {
     let mut envs: HashMap<String, String> = HashMap::new();
     let mut n = 0;
     for (sep, text) in tokens.iter() {
-        if !sep.is_empty() || !tools::re_contains(text, r"^([a-zA-Z0-9_]+)=(.*)$") {
+        if !sep.is_empty() || !libs::re::re_contains(text, r"^([a-zA-Z0-9_]+)=(.*)$") {
             break;
         }
 
@@ -756,7 +756,7 @@ mod tests {
     use super::run_calc_int;
     use super::run_with_shell;
     use super::shell;
-    use super::tools;
+    use super::libs;
 
     #[test]
     fn test_run_calc_float() {
@@ -798,7 +798,7 @@ mod tests {
                         } else {
                             expected_stdout.as_str()
                         };
-                        let matched = tools::re_contains(&cr.stdout.trim(), &ptn);
+                        let matched = libs::re::re_contains(&cr.stdout.trim(), &ptn);
                         if !matched {
                             println!("\nSTDOUT Check Failed:");
                             println!("input: {}", &input);
@@ -813,7 +813,7 @@ mod tests {
                         } else {
                             line.as_str()
                         };
-                        let matched = tools::re_contains(&cr.stderr.trim(), &ptn);
+                        let matched = libs::re::re_contains(&cr.stderr.trim(), &ptn);
                         if !matched {
                             println!("\nSTDERR Check Failed:");
                             println!("input: {}", &input);

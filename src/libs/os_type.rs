@@ -22,12 +22,12 @@ fn get_other_os_name() -> String {
     if !name.is_empty() {
         return name;
     }
-    String::new()
+    return get_uname_mo()
 }
 
 fn get_release_value(ptn: &str) -> String {
     let line = format!(
-        "grep -i '{}' /etc/*release* | grep -o '=.*' | tr '\"=' ' '",
+        "grep -i '{}' /etc/*release* 2>&1 | grep -o '=.*' | tr '\"=' ' '",
         ptn
     );
     let cr = execute::run(&line);
@@ -36,6 +36,11 @@ fn get_release_value(ptn: &str) -> String {
 
 fn get_uname() -> String {
     let cr = execute::run("uname");
+    return cr.stdout.trim().to_string();
+}
+
+fn get_uname_mo() -> String {
+    let cr = execute::run("uname -m -o");
     return cr.stdout.trim().to_string();
 }
 

@@ -1,6 +1,6 @@
 use regex::Regex;
 
-use crate::tools;
+use crate::libs;
 use crate::types::Command;
 use crate::types::Tokens;
 
@@ -352,7 +352,7 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
             }
 
             if sep.is_empty() {
-                let is_an_env = tools::re_contains(&token, r"^[a-zA-Z0-9_]+=.*$");
+                let is_an_env = libs::re::re_contains(&token, r"^[a-zA-Z0-9_]+=.*$");
                 if !is_an_env && (c == '\'' || c == '"') {
                     sep = c.to_string();
                     continue;
@@ -408,7 +408,7 @@ pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
             }
 
             let s3 = format!("{}{}{}", sep, word, sep);
-            if tools::re_contains(&to_be_continued_s1, r"^\d+$") {
+            if libs::re::re_contains(&to_be_continued_s1, r"^\d+$") {
                 if to_be_continued_s1 != "1" && to_be_continued_s1 != "2" {
                     return Err(String::from("Bad file descriptor #3"));
                 }
@@ -428,9 +428,9 @@ pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
 
         let ptn1 = r"^([^>]*)(>>?)([^>]+)$";
         let ptn2 = r"^([^>]*)(>>?)$";
-        if !tools::re_contains(word, r">") {
+        if !libs::re::re_contains(word, r">") {
             tokens_new.push(token.clone());
-        } else if tools::re_contains(word, ptn1) {
+        } else if libs::re::re_contains(word, ptn1) {
             let re;
             if let Ok(x) = Regex::new(ptn1) {
                 re = x;
@@ -446,7 +446,7 @@ pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
                     return Err(String::from("Bad file descriptor #1"));
                 }
 
-                if tools::re_contains(s1, r"^\d+$") {
+                if libs::re::re_contains(s1, r"^\d+$") {
                     if s1 != "1" && s1 != "2" {
                         return Err(String::from("Bad file descriptor #2"));
                     }
@@ -458,7 +458,7 @@ pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
                     redirects.push((String::from("1"), s2.to_string(), s3.to_string()));
                 }
             }
-        } else if tools::re_contains(word, ptn2) {
+        } else if libs::re::re_contains(word, ptn2) {
             let re;
             if let Ok(x) = Regex::new(ptn2) {
                 re = x;

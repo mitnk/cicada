@@ -11,6 +11,7 @@ pub mod make;
 pub mod path;
 pub mod ssh;
 
+use crate::libs;
 use crate::parsers;
 use crate::shell;
 use crate::tools;
@@ -20,26 +21,26 @@ pub struct CicadaCompleter {
 }
 
 fn for_make(line: &str) -> bool {
-    tools::re_contains(line, r"^ *make ")
+    libs::re::re_contains(line, r"^ *make ")
 }
 
 fn for_env(line: &str) -> bool {
-    tools::re_contains(line, r" *\$[_a-zA-Z0-9]*")
+    libs::re::re_contains(line, r" *\$[_a-zA-Z0-9]*")
 }
 
 fn for_ssh(line: &str) -> bool {
-    tools::re_contains(line, r"^ *(ssh|scp).* +[^ \./]+ *$")
+    libs::re::re_contains(line, r"^ *(ssh|scp).* +[^ \./]+ *$")
 }
 
 fn for_cd(line: &str) -> bool {
-    tools::re_contains(line, r"^ *cd +")
+    libs::re::re_contains(line, r"^ *cd +")
 }
 
 fn for_bin(line: &str) -> bool {
     // TODO: why 'echo hi|ech<TAB>' doesn't complete in real?
     // but passes in test cases?
     let ptn = r"(^ *(sudo|which)? *[a-zA-Z0-9_\.-]+$)|(^.+\| *(sudo|which)? *[a-zA-Z0-9_\.-]+$)";
-    tools::re_contains(line, ptn)
+    libs::re::re_contains(line, ptn)
 }
 
 fn for_dots(line: &str) -> bool {

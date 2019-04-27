@@ -11,6 +11,7 @@ use regex::Regex;
 use time;
 
 use crate::execute;
+use crate::libs::re::re_contains;
 use crate::parsers;
 use crate::shell;
 
@@ -251,20 +252,6 @@ pub fn is_arithmetic(line: &str) -> bool {
         return false;
     }
     re_contains(line, r"^[ 0-9\.\(\)\+\-\*/]+$")
-}
-
-pub fn re_contains(text: &str, ptn: &str) -> bool {
-    let re;
-    match Regex::new(ptn) {
-        Ok(x) => {
-            re = x;
-        }
-        Err(e) => {
-            println!("Regex new: {:?}", e);
-            return false;
-        }
-    }
-    re.is_match(text)
 }
 
 pub fn create_raw_fd_from_file(file_name: &str, append: bool) -> Result<i32, String> {

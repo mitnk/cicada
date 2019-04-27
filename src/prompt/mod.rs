@@ -1,9 +1,9 @@
 mod main;
 mod preset;
 
-use crate::libs::term_size;
+use crate::libs;
 use crate::shell;
-use crate::tools::{self, clog};
+use crate::tools::clog;
 
 use self::main::get_prompt_string;
 use self::main::render_prompt;
@@ -29,9 +29,9 @@ fn get_prompt_len(prompt: &str) -> i32 {
 pub fn get_prompt(sh: &shell::Shell) -> String {
     let ps = get_prompt_string();
     let mut prompt = render_prompt(sh, &ps);
-    if let Some((w, _h)) = term_size::dimensions() {
+    if let Some((w, _h)) = libs::term_size::dimensions() {
         if get_prompt_len(&prompt) > (w / 2) as i32
-            && !tools::re_contains(&ps, r#"(?i)\$\{?newline.\}?"#)
+            && !libs::re::re_contains(&ps, r#"(?i)\$\{?newline.\}?"#)
         {
             prompt.push_str("\n$ ");
         }

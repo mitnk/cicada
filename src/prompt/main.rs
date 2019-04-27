@@ -1,11 +1,12 @@
 use std::env;
 
 use crate::execute;
+use crate::libs;
 use crate::shell;
-use crate::tools;
 
-const DEFAULT_PROMPT: &str =
-    "${COLOR_STATUS}$USER${RESET}@${COLOR_STATUS}$HOSTNAME${RESET}: ${COLOR_STATUS}$CWD${RESET}$ ";
+const DEFAULT_PROMPT: &str = "${COLOR_STATUS}$USER${RESET}\
+    @${COLOR_STATUS}$HOSTNAME${RESET}: \
+    ${COLOR_STATUS}$CWD${RESET}$ ";
 use super::preset::apply_preset_item;
 use super::preset::apply_pyenv;
 
@@ -19,7 +20,7 @@ fn is_suffix_char(c: char) -> bool {
 
 fn is_prompt_item_char(c: char) -> bool {
     let s = c.to_string();
-    tools::re_contains(&s, r#"^[a-zA-Z_]$"#)
+    libs::re::re_contains(&s, r#"^[a-zA-Z_]$"#)
 }
 
 pub fn get_prompt_string() -> String {
