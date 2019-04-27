@@ -1,17 +1,17 @@
 # Scripting in Cicada
 
-The goal of cicada is to be a useful daily-use shell and replace Bash. But
-it does not intend to compete with shells like zsh, fish, etc. It keep
+The goal of cicada is to be a useful daily-use shell and replace Bash.
+It does not intend to compete with shells like zsh, fish, etc. Cicada keeps
 [KISS Principle](https://en.wikipedia.org/wiki/KISS_principle) in mind.
 For scripting, cicada won't introduce a full featured scripting
 language as bash did. For complex scripting job, I would recommend you
 to use bash (and call them with `$ bash xxx.sh` in cicada), or dynamic
-scripting languages like Python. Scripting with cicada should be only used
+scripting languages like Python. Scripting with cicada should only be used
 in simple cases.
 
 ## Introduction
 
-Currently its only support put commands (or pipes) line by line into a file:
+Currently cicada only support run commands (or pipes) line by line from a file:
 
 File content of `~/hello.sh`:
 ```
@@ -28,7 +28,7 @@ We can make this file as executable with:
 $ chmod +x ~/hello.sh
 ```
 
-Then there are two method to run it:
+Then there are two methods to run it:
 
 **a) Run it directly**
 ```
@@ -55,14 +55,15 @@ bye
 > See also [the source builtin](https://github.com/mitnk/cicada/blob/master/docs/built-in-cmd.md#source).
 
 Command like `$ cicada foo.sh` would create a new session and run the commands
-in file `foo.sh`. If you want to run then in current shell session, you
+of file `foo.sh`. If you want to run them in current shell session, you
 can run it with `$ source foo.sh`.
 
 ## Using Builtins
 
 In scripts, you could also use cicada's
 [builtins](https://github.com/mitnk/cicada/blob/master/docs/built-in-cmd.md).
-For example, you can include extra RC configs at the end of `~/.cicadarc` file:
+For example, you can include extra RC configs with `source` at the end of
+`~/.cicadarc` file:
 ([RC file](https://github.com/mitnk/cicada/blob/master/docs/rc-file.md)
 itself is also a valid cicada script).
 
@@ -73,11 +74,11 @@ alias ll='ls -lh'
 # other settings
 ...
 
-# including some extra settings for this host only:
+# include some extra settings for this host only:
 source ~/.cicadarc_local
 ```
 
-## Functions is not Supported Yet
+## Functions are not Supported Yet
 
-Supporing functions in cicada is in the to do list. But as said in beginning
-of this doc, it could be also a simplified thing.
+Supporting functions in cicada is still in the to-do-list. But as said
+in beginning of this doc, it could be also a simplified thing.
