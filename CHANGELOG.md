@@ -1,5 +1,9 @@
 # Change Logs
 
+## 0.9.5
+
+- Added `-l` as an equivalent to `--login`.
+
 ## 0.9.4
 
 - Added basic scripting ability.

@@ -68,7 +68,7 @@ fn main() {
             return;
         }
 
-        if args[1] == "--login" {
+        if args[1] == "--login" || args[1] == "-l" {
             rcfile::load_rc_files(&mut sh);
             sh.is_login = true;
         }
