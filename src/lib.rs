@@ -58,7 +58,10 @@ extern crate rusqlite;
 extern crate time;
 
 #[macro_use]
-extern crate nom;
+extern crate lazy_static;
+extern crate pest;
+#[macro_use]
+extern crate pest_derive;
 
 mod types;
 
@@ -66,6 +69,7 @@ mod types;
 mod tools;
 
 mod builtins;
+mod calculator;
 mod execute;
 mod history;
 mod jobc;

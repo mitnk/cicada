@@ -251,7 +251,7 @@ pub fn is_arithmetic(line: &str) -> bool {
     if !re_contains(line, r"[0-9]+") {
         return false;
     }
-    re_contains(line, r"^[ 0-9\.\(\)\+\-\*/]+$")
+    re_contains(line, r"^[ 0-9\.\(\)\+\-\*/\^]+$")
 }
 
 pub fn create_raw_fd_from_file(file_name: &str, append: bool) -> Result<i32, String> {

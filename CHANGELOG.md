@@ -3,6 +3,7 @@
 ## 0.9.5
 
 - Added `-l` as an equivalent to `--login`.
+- Replaced nom 3.0 with pest.
 
 ## 0.9.4
 

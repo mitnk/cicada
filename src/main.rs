@@ -10,8 +10,12 @@ extern crate regex;
 extern crate rusqlite;
 extern crate time;
 extern crate yaml_rust;
+
 #[macro_use]
-extern crate nom;
+extern crate lazy_static;
+extern crate pest;
+#[macro_use]
+extern crate pest_derive;
 
 use std::env;
 use std::sync::Arc;
@@ -22,6 +26,7 @@ use linefeed::{Interface, ReadResult};
 mod tools;
 
 mod builtins;
+mod calculator;
 mod completers;
 mod execute;
 mod history;

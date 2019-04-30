@@ -15,9 +15,9 @@ use nix::unistd::execve;
 use nix::unistd::pipe;
 use nix::unistd::{fork, ForkResult};
 use nix::Error;
-use nom::IResult;
 
 use crate::builtins;
+use crate::calculator;
 use crate::jobc;
 use crate::libs;
 use crate::parsers;
@@ -69,29 +69,32 @@ fn tokens_to_cmd_tokens(tokens: &Tokens) -> Vec<Tokens> {
     cmds
 }
 
+fn run_calculator(line: &str) -> Result<String, &str> {
+    let parse_result = calculator::calculate(line);
+    match parse_result {
+        Ok(calc) => {
+            if line.contains('.') {
+                Ok(format!("{}", calculator::eval_float(calc)))
+            } else {
+                Ok(format!("{}", calculator::eval_int(calc)))
+            }
+        }
+        Err(_) => {
+            return Err("syntax error");
+        }
+    }
+}
+
 pub fn run_procs(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     if tools::is_arithmetic(line) {
-        if line.contains('.') {
-            match run_calc_float(line) {
-                Ok(x) => {
-                    println!("{}", x);
-                    return 0;
-                }
-                Err(e) => {
-                    println!("Error: {}", e);
-                    return 1;
-                }
+        match run_calculator(line) {
+            Ok(result) => {
+                println!("{}", result);
+                return 0;
             }
-        } else {
-            match run_calc_int(line) {
-                Ok(x) => {
-                    println!("{}", x);
-                    return 0;
-                }
-                Err(e) => {
-                    println!("Error: {}", e);
-                    return 1;
-                }
+            Err(e) => {
+                println!("cicada: calculator: {}", e);
+                return 1;
             }
         }
     }
@@ -257,22 +260,6 @@ pub fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool) -> i32 {
     }
 
     cr.status
-}
-
-fn run_calc_float(line: &str) -> Result<f64, String> {
-    match parsers::parser_float::expr_float(line.as_bytes()) {
-        IResult::Done(_, x) => Ok(x),
-        IResult::Error(e) => Err(e.description().to_owned()),
-        IResult::Incomplete(_) => Err(String::from("Incomplete arithmetic")),
-    }
-}
-
-fn run_calc_int(line: &str) -> Result<i64, String> {
-    match parsers::parser_int::expr_int(line.as_bytes()) {
-        IResult::Done(_, x) => Ok(x),
-        IResult::Error(e) => Err(e.description().to_owned()),
-        IResult::Incomplete(_) => Err(String::from("Incomplete arithmetic")),
-    }
 }
 
 fn log_cmd_info(cmds: &Vec<Tokens>) {
@@ -752,23 +739,25 @@ pub fn run(line: &str) -> CommandResult {
 
 #[cfg(test)]
 mod tests {
-    use super::run_calc_float;
-    use super::run_calc_int;
+    use super::run_calculator;
     use super::run_with_shell;
     use super::shell;
     use super::libs;
 
     #[test]
-    fn test_run_calc_float() {
+    fn test_run_calculator() {
         assert_eq!(
-            run_calc_float("(1 + 2 * 3.0 - 1.54) / 0.2"),
-            Ok(27.299999999999997)
+            run_calculator("(1 + 2 * 3.0 - 1.5) / 0.2"),
+            Ok("27.5".to_string())
         );
-    }
-
-    #[test]
-    fn test_run_calc_int() {
-        assert_eq!(run_calc_int("(5 + 2 * 3 - 4) / 3"), Ok(2));
+        assert_eq!(
+            run_calculator("(5 + 2 * 3 - 4) / 3"),
+            Ok("2".to_string())
+        );
+        assert_eq!(
+            run_calculator("((2 ^ 35) + (3^7) - 9740555) / 10000000"),
+            Ok("3435".to_string())
+        );
     }
 
     #[test]
