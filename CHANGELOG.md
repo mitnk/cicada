@@ -4,6 +4,7 @@
 
 - Added `-l` as an equivalent to `--login`.
 - Replaced nom 3.0 with pest.
+- Fixed redirection issues like `echo foo\>bar`.
 
 ## 0.9.4
 

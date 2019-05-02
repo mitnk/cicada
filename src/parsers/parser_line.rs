@@ -165,6 +165,10 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
     let mut new_round = true;
     let mut skip_next = false;
     let mut has_dollar = false;
+
+    // for cmds like: `ll foo\>bar end` -> `ll 'foo>bar' end`
+    let mut sep_made = String::new();
+
     // using semi_ok makes quite dirty here
     // it is mainly for path completion like:
     // $ ls "foo b<TAB>
@@ -179,6 +183,13 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
     for (i, c) in line.chars().enumerate() {
         if skip_next {
             skip_next = false;
+            continue;
+        }
+
+        if has_backslash && sep.is_empty() && (c == '>' || c == '<') {
+            sep_made = String::from("'");
+            token.push(c);
+            has_backslash = false;
             continue;
         }
 
@@ -261,7 +272,12 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
 
         if c == '|' && !has_backslash {
             if semi_ok {
-                result.push((sep.to_string(), token));
+                if sep.is_empty() && !sep_made.is_empty() {
+                    result.push((sep_made.to_string(), token));
+                    sep_made = String::new();
+                } else {
+                    result.push((sep.to_string(), token));
+                }
                 result.push((String::from(""), "|".to_string()));
                 sep = String::new();
                 sep_second = String::new();
@@ -270,7 +286,12 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
                 semi_ok = false;
                 continue;
             } else if !met_parenthesis && sep_second.is_empty() && sep.is_empty() {
-                result.push((String::from(""), token));
+                if sep.is_empty() && !sep_made.is_empty() {
+                    result.push((sep_made.to_string(), token));
+                    sep_made = String::new();
+                } else {
+                    result.push((String::from(""), token));
+                }
                 result.push((String::from(""), "|".to_string()));
                 sep = String::new();
                 sep_second = String::new();
@@ -282,7 +303,12 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
 
         if c == ' ' {
             if semi_ok {
-                result.push((sep.to_string(), token));
+                if sep.is_empty() && !sep_made.is_empty() {
+                    result.push((sep_made.to_string(), token));
+                    sep_made = String::new();
+                } else {
+                    result.push((sep.to_string(), token));
+                }
                 sep = String::new();
                 sep_second = String::new();
                 token = String::new();
@@ -311,7 +337,12 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
 
             if sep.is_empty() {
                 if sep_second.is_empty() {
-                    result.push((String::from(""), token));
+                    if sep.is_empty() && !sep_made.is_empty() {
+                        result.push((sep_made.clone(), token));
+                        sep_made = String::new();
+                    } else {
+                        result.push((String::from(""), token));
+                    }
                     token = String::new();
                     new_round = true;
                     continue;
@@ -333,7 +364,12 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
             }
 
             if sep != c.to_string() && semi_ok {
-                result.push((sep.to_string(), token));
+                if sep.is_empty() && !sep_made.is_empty() {
+                    result.push((sep_made.to_string(), token));
+                    sep_made = String::new();
+                } else {
+                    result.push((sep.to_string(), token));
+                }
                 sep = String::new();
                 sep_second = String::new();
                 token = String::new();
@@ -382,7 +418,11 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
         }
     }
     if !token.is_empty() || semi_ok {
-        result.push((sep, token));
+        if sep.is_empty() && !sep_made.is_empty() {
+            result.push((sep_made.clone(), token));
+        } else {
+            result.push((sep, token));
+        }
     }
     result
 }
@@ -407,7 +447,7 @@ pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
                 return Err(String::from("bad redirection syntax near &"));
             }
 
-            let s3 = format!("{}{}{}", sep, word, sep);
+            let s3 = format!("{}", word);
             if libs::re::re_contains(&to_be_continued_s1, r"^\d+$") {
                 if to_be_continued_s1 != "1" && to_be_continued_s1 != "2" {
                     return Err(String::from("Bad file descriptor #3"));
@@ -502,6 +542,7 @@ pub fn unquote(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::cmd_to_tokens;
+    use super::cmd_to_with_redirects;
     use super::line_to_cmds;
     use super::line_to_plain_tokens;
     use super::Tokens;
@@ -541,6 +582,16 @@ mod tests {
             ("echo \"hi $USER\"", vec![("", "echo"), ("\"", "hi $USER")]),
             ("echo 'hi $USER'", vec![("", "echo"), ("'", "hi $USER")]),
             ("echo '###'", vec![("", "echo"), ("'", "###")]),
+
+            ("rd0 >", vec![("", "rd0"), ("", ">")]),
+            ("rd1 \\>", vec![("", "rd1"), ("'", ">")]),
+            ("rd2 foo > bar", vec![("", "rd2"), ("", "foo"), ("", ">"), ("", "bar")]),
+            ("rd3 foo>bar", vec![("", "rd3"), ("", "foo>bar")]),
+            ("rd4 foo\\>bar", vec![("", "rd4"), ("'", "foo>bar")]),
+            ("rd51 foo\\>bar end", vec![("", "rd51"), ("'", "foo>bar"), ("", "end")]),
+            ("rd52 foo\\>bar\\ baz", vec![("", "rd52"), ("'", "foo>bar baz")]),
+            ("rd6 foo\\>bar\\ baz end", vec![("", "rd6"), ("'", "foo>bar baz"), ("", "end")]),
+
             ("echo a\\ bc", vec![("", "echo"), ("", "a bc")]),
             ("echo a\\ b cd", vec![("", "echo"), ("", "a b"), ("", "cd")]),
             (
@@ -834,5 +885,103 @@ mod tests {
         for (left, right) in v {
             _assert_vec_str_eq(line_to_cmds(left), right);
         }
+    }
+
+    #[test]
+    fn test_cmd_to_with_redirects() {
+        let tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("".to_string(), "foo".to_string()),
+        ];
+        let crs = cmd_to_with_redirects(&tokens).unwrap();
+        assert_eq!(crs.tokens, tokens);
+        assert_eq!(crs.redirects.len(), 0);
+
+        let tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("".to_string(), "foo".to_string()),
+            ("".to_string(), ">".to_string()),
+            ("".to_string(), "bar".to_string()),
+        ];
+        let tokens_expect = vec![
+            ("".to_string(), "echo".to_string()),
+            ("".to_string(), "foo".to_string()),
+        ];
+        let redirects_expect = vec![
+            ("1".to_string(), ">".to_string(), "bar".to_string()),
+        ];
+        let crs = cmd_to_with_redirects(&tokens).unwrap();
+        assert_eq!(crs.tokens, tokens_expect);
+        assert_eq!(crs.redirects, redirects_expect);
+
+        let tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("".to_string(), "foo".to_string()),
+            ("".to_string(), "2>&1".to_string()),
+        ];
+        let tokens_expect = vec![
+            ("".to_string(), "echo".to_string()),
+            ("".to_string(), "foo".to_string()),
+        ];
+        let redirects_expect = vec![
+            ("2".to_string(), ">".to_string(), "&1".to_string()),
+        ];
+        let crs = cmd_to_with_redirects(&tokens).unwrap();
+        assert_eq!(crs.tokens, tokens_expect);
+        assert_eq!(crs.redirects, redirects_expect);
+
+        let tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("".to_string(), "foo".to_string()),
+            ("".to_string(), "2>&1".to_string()),
+            ("".to_string(), ">/dev/null".to_string()),
+        ];
+        let tokens_expect = vec![
+            ("".to_string(), "echo".to_string()),
+            ("".to_string(), "foo".to_string()),
+        ];
+        let redirects_expect = vec![
+            ("2".to_string(), ">".to_string(), "&1".to_string()),
+            ("1".to_string(), ">".to_string(), "/dev/null".to_string()),
+        ];
+        let crs = cmd_to_with_redirects(&tokens).unwrap();
+        assert_eq!(crs.tokens, tokens_expect);
+        assert_eq!(crs.redirects, redirects_expect);
+
+        let tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("".to_string(), "foo".to_string()),
+            ("".to_string(), "2>&1".to_string()),
+            ("".to_string(), ">".to_string()),
+            ("".to_string(), "/dev/null".to_string()),
+        ];
+        let tokens_expect = vec![
+            ("".to_string(), "echo".to_string()),
+            ("".to_string(), "foo".to_string()),
+        ];
+        let redirects_expect = vec![
+            ("2".to_string(), ">".to_string(), "&1".to_string()),
+            ("1".to_string(), ">".to_string(), "/dev/null".to_string()),
+        ];
+        let crs = cmd_to_with_redirects(&tokens).unwrap();
+        assert_eq!(crs.tokens, tokens_expect);
+        assert_eq!(crs.redirects, redirects_expect);
+
+        let tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("".to_string(), "foo".to_string()),
+            ("".to_string(), ">".to_string()),
+            ("'".to_string(), "foo>bar baz".to_string()),
+        ];
+        let tokens_expect = vec![
+            ("".to_string(), "echo".to_string()),
+            ("".to_string(), "foo".to_string()),
+        ];
+        let redirects_expect = vec![
+            ("1".to_string(), ">".to_string(), "foo>bar baz".to_string()),
+        ];
+        let crs = cmd_to_with_redirects(&tokens).unwrap();
+        assert_eq!(crs.tokens, tokens_expect);
+        assert_eq!(crs.redirects, redirects_expect);
     }
 }
