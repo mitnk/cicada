@@ -128,6 +128,11 @@ pub fn escaped_word_start(line: &str) -> usize {
     let mut ch_quote = '\0';
     let mut extra_bytes = 0;
     for (i, c) in line.chars().enumerate() {
+        if found_space {
+            found_space = false;
+            start_position = i + extra_bytes;
+        }
+
         if c == '\\' {
             found_bs = true;
             continue;
@@ -135,10 +140,6 @@ pub fn escaped_word_start(line: &str) -> usize {
         if c == ' ' && !found_bs && !with_quote {
             found_space = true;
             continue;
-        }
-        if found_space {
-            found_space = false;
-            start_position = i + extra_bytes;
         }
 
         if !with_quote && !found_bs && (c == '"' || c == '\'') {
@@ -210,6 +211,8 @@ mod tests {
 
         assert_eq!(escaped_word_start("echo føo b"), 10);
         assert_eq!(escaped_word_start("echo føo "), 10);
+
+        assert_eq!(escaped_word_start("echo \\["), 5);
     }
 
     #[test]

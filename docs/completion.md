@@ -9,6 +9,15 @@ support completion for command:
 - ssh
 - vox
 
+**Hint:** Always use strong quote when completing files with special
+characters:
+
+```
+$ ls -1
+[ www.MyMoive.com ] The Silence of the Lambs.srt
+$ mv '[<TAB>
+```
+
 ### Completions on OS Envs
 
 ```
@@ -61,4 +70,18 @@ $ pip install
 
 $ pip install --re<Tab>
 $ pip install --requirement
+```
+
+**You may use sub commands in it.** For example:
+
+```
+$ cat ~/.cicada/completers/git.yaml
+... skipped ...
+
+- checkout:
+    - "`git branch -a | tr -d '* ' | grep -v HEAD | sed 's_^.*/__' | sort | uniq`"
+- co:
+    - "`git branch -a | tr -d '* ' | grep -v HEAD | sed 's_^.*/__' | sort | uniq`"
+
+... skipped ...
 ```
