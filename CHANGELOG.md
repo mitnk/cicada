@@ -4,7 +4,9 @@
 
 - Added `-l` as an equivalent to `--login`.
 - Replaced nom 3.0 with pest.
-- Fixed redirection issues like `echo foo\>bar`.
+- Fixed redirection issue with `echo foo\>bar`.
+- Fixed completion issue with `ls \[<TAB>`.
+- Fixed issues that on Linux some commands sometimes would `STOPPED` just after start.
 
 ## 0.9.4
 

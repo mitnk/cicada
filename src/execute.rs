@@ -506,13 +506,20 @@ fn run_command(
                 *pgid = pid;
                 unsafe {
                     // we need to wait pgid of child set to itself,
-                    // before give terminal to it.
-                    loop {
-                        let _pgid = libc::getpgid(pid);
-                        if _pgid == pid {
-                            break;
+                    // before give terminal to it (for macos).
+                    // 1. this loop causes `bash`, `htop` etc to go `T` status
+                    //    immediate after start on linux (ubuntu).
+                    // 2. but on mac, we need this loop, otherwise commands
+                    //    like `vim` will go to `T` status after start.
+                    if cfg!(target_os = "macos") {
+                        loop {
+                            let _pgid = libc::getpgid(pid);
+                            if _pgid == pid {
+                                break;
+                            }
                         }
                     }
+
                     if !options.background {
                         *term_given = shell::give_terminal_to(pid);
                     }
