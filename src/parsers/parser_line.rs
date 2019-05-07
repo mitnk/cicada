@@ -3,6 +3,7 @@ use regex::Regex;
 use crate::libs;
 use crate::types::Command;
 use crate::types::Tokens;
+use crate::tools;
 
 pub fn line_to_plain_tokens(line: &str) -> Vec<String> {
     let mut result = Vec::new();
@@ -154,6 +155,13 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
 // #[allow(clippy::cyclomatic_complexity)]
 pub fn cmd_to_tokens(line: &str) -> Tokens {
     let mut result = Vec::new();
+    if tools::is_arithmetic(line) {
+        for x in line.split(' ') {
+            result.push((String::from(""), x.to_string()));
+        }
+        return result;
+    }
+
     let mut sep = String::new();
     // `sep_second` is for commands like this:
     //    export DIR=`brew --prefix openssl`/include
@@ -784,6 +792,15 @@ mod tests {
             ),
             ("echo \\$\\(date\\)", vec![("", "echo"), ("\\", "$(date)")]),
             ("ll foo\\#bar", vec![("", "ll"), ("", "foo#bar")]),
+
+            (
+                "(1 + 2) ^ 31",
+                vec![("", "(1"), ("", "+"), ("", "2)"), ("", "^"), ("", "31")],
+            ),
+            (
+                "1+2-3*(4/5.0)",
+                vec![("", "1+2-3*(4/5.0)"),],
+            ),
         ];
         for (left, right) in v {
             println!("\ninput: {:?}", left);

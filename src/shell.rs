@@ -658,14 +658,14 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
             if !should_do_dollar_command_extension(&line) {
                 break;
             }
-            let ptn_cmd = r"\$\(([^\(]+)\)";
+            let ptn_cmd = r"\$\((.+)\)";
             let cmd;
             match libs::re::find_first_group(ptn_cmd, &line) {
                 Some(x) => {
                     cmd = x;
                 }
                 None => {
-                    println_stderr!("cicada: no first group");
+                    println_stderr!("cicada: calculator: no first group");
                     return;
                 }
             }
@@ -676,7 +676,7 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
                 execute::run_pipeline(sh, &_args, "", false, false, true, false, None);
             let output_txt = cmd_result.stdout.trim();
 
-            let ptn = r"(?P<head>[^\$]*)\$\([^\(]+\)(?P<tail>.*)";
+            let ptn = r"(?P<head>[^\$]*)\$\(.+\)(?P<tail>.*)";
             let re;
             if let Ok(x) = Regex::new(ptn) {
                 re = x;

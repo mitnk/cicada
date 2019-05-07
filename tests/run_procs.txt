@@ -205,3 +205,9 @@ echo $?
 echo "result is $(2 ^ 35 + 1.1 - 2 * 2 + 3.02345 + 16 / 8)"
 ^result is 34359738370.12345$
 
+echo "result is `(1 + 1) ^ 31`"
+^result is 2147483648$
+
+echo "result is $(((1 + 1) ^ 31) - (3 - 2))"
+^result is 2147483647$
+
