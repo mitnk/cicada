@@ -55,7 +55,7 @@ extern crate linefeed;
 extern crate nix;
 extern crate regex;
 extern crate rusqlite;
-extern crate time;
+extern crate chrono;
 
 #[macro_use]
 extern crate lazy_static;

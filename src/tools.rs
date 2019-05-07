@@ -6,9 +6,9 @@ use std::io::Write;
 use std::os::unix::io::IntoRawFd;
 use std::path::Path;
 
+use chrono::prelude::{Local, Datelike, Timelike};
 use libc;
 use regex::Regex;
-use time;
 
 use crate::execute;
 use crate::libs::re::re_contains;
@@ -46,15 +46,15 @@ pub fn clog(s: &str) {
         }
     }
     let pid = unsafe { libc::getpid() };
-    let now = time::now();
+    let now = Local::now();
     let s = format!(
         "[{:04}-{:02}-{:02} {:02}:{:02}:{:02}][{}]{}",
-        now.tm_year + 1900,
-        now.tm_mon + 1,
-        now.tm_mday,
-        now.tm_hour,
-        now.tm_min,
-        now.tm_sec,
+        now.year(),
+        now.month(),
+        now.day(),
+        now.hour(),
+        now.minute(),
+        now.second(),
         pid,
         s,
     );

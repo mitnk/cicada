@@ -8,7 +8,7 @@ extern crate linefeed;
 extern crate nix;
 extern crate regex;
 extern crate rusqlite;
-extern crate time;
+extern crate chrono;
 extern crate yaml_rust;
 
 #[macro_use]
@@ -20,6 +20,7 @@ extern crate pest_derive;
 use std::env;
 use std::sync::Arc;
 
+use chrono::prelude::Local;
 use linefeed::{Interface, ReadResult};
 
 #[macro_use]
@@ -118,15 +119,11 @@ fn main() {
                 }
                 sh.cmd = line.clone();
 
-                let tsb_spec = time::get_time();
-                let tsb = (tsb_spec.sec as f64) + tsb_spec.nsec as f64 / 1_000_000_000.0;
-
+                let tsb = Local::now().timestamp_nanos() as f64 / 1000000000.0;
                 let mut line = line.clone();
                 tools::extend_bandband(&sh, &mut line);
                 let status = execute::run_procs(&mut sh, &line, true);
-
-                let tse_spec = time::get_time();
-                let tse = (tse_spec.sec as f64) + tse_spec.nsec as f64 / 1_000_000_000.0;
+                let tse = Local::now().timestamp_nanos() as f64 / 1000000000.0;
 
                 if !sh.cmd.starts_with(' ') && line != sh.previous_cmd {
                     history::add(&mut rl, &line, status, tsb, tse);

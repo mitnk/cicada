@@ -3,7 +3,8 @@
 ## 0.9.5
 
 - Added `-l` as an equivalent to `--login`.
-- Replaced nom 3.0 with pest.
+- Replaced dep nom 3.0 with pest.
+- Replaced dep time with chrono.
 - Fixed redirection issue with `echo foo\>bar`.
 - Fixed completion issue with `ls \[<TAB>`.
 - Fixed issues that on Linux some commands sometimes would `STOPPED` just after start.

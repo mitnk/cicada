@@ -1,5 +1,6 @@
-extern crate time;
+extern crate chrono;
 use std::process::Command;
+use chrono::prelude::Local;
 
 fn main() {
     match Command::new("git")
@@ -51,6 +52,6 @@ fn main() {
         }
     }
 
-    let tm = time::now();
-    println!("cargo:rustc-env=BUILD_DATE={}", tm.rfc822());
+    let tm = Local::now();
+    println!("cargo:rustc-env=BUILD_DATE={}", tm.to_rfc2822());
 }
