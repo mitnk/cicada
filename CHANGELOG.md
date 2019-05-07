@@ -8,6 +8,7 @@
 - Fixed redirection issue with `echo foo\>bar`.
 - Fixed completion issue with `ls \[<TAB>`.
 - Fixed issues that on Linux some commands sometimes would `STOPPED` just after start.
+- Support math calculation in sub commands: `echo "hi $(1 + 1)"`.
 
 ## 0.9.4
 

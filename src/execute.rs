@@ -585,6 +585,20 @@ pub fn run_pipeline(
         return (false, CommandResult::error());
     }
 
+    let line = parsers::parser_line::tokens_to_line(tokens);
+    if tools::is_arithmetic(&line) {
+        let mut cr = CommandResult::new();
+        match run_calculator(&line) {
+            Ok(x) => {
+                cr.stdout = x;
+            }
+            Err(e) => {
+                cr.stderr = e.to_string();
+            }
+        }
+        return (true, cr);
+    }
+
     // the defaults to return
     let mut term_given = false;
     let mut cmd_result = CommandResult::new();
