@@ -16,6 +16,10 @@ test:
 	@rustc -V
 	cargo test --bins
 
+scripting-test:
+	cargo build
+	./tests/test_scripts.sh
+
 clippy:
 	cargo clippy -- -A clippy::needless_return -A clippy::ptr_arg
 

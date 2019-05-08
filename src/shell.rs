@@ -353,15 +353,15 @@ pub fn expand_glob(tokens: &mut types::Tokens) {
 }
 
 pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
-    let re1;
+    let re;
     if let Ok(x) = Regex::new(r"^(.*?)\$\{?([A-Za-z0-9_]+|\$|\?)\}?(.*)$") {
-        re1 = x;
+        re = x;
     } else {
         println!("cicada: re new error");
         return String::new();
     }
 
-    if !re1.is_match(token) {
+    if !re.is_match(token) {
         return token.to_string();
     }
 
@@ -371,14 +371,14 @@ pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
     let mut _output = String::new();
     let mut _tail = String::new();
     loop {
-        if !re1.is_match(&_token) {
+        if !re.is_match(&_token) {
             if !_token.is_empty() {
                 result.push_str(&_token);
             }
             break;
         }
 
-        let cap_results = re1.captures_iter(&_token);
+        let cap_results = re.captures_iter(&_token);
 
         for cap in cap_results {
             _head = cap[1].to_string();
@@ -616,7 +616,7 @@ fn expand_home(tokens: &mut types::Tokens) {
 fn env_in_token(token: &str) -> bool {
     libs::re::re_contains(token, r"\$\{?\$\}?") ||
         libs::re::re_contains(token, r"\$\{?\?\}?") ||
-        libs::re::re_contains(token, r"\$\{?[a-zA-Z][a-zA-Z0-9_]+\}?")
+        libs::re::re_contains(token, r"\$\{?[a-zA-Z][a-zA-Z0-9_]*\}?")
 }
 
 pub fn expand_env(sh: &Shell, tokens: &mut types::Tokens) {
@@ -847,6 +847,18 @@ mod tests {
         let sh = Shell::new();
         env::set_var("test_foo_expand_env1", "Test foo >> ");
         env::set_var("test_foo_expand_env2", "test-foo");
+        env::set_var("c", "X");
+
+        let mut tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("\"".to_string(), "$c".to_string()),
+        ];
+        let exp_tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("\"".to_string(), "X".to_string()),
+        ];
+        expand_env(&sh, &mut tokens);
+        assert_eq!(tokens, exp_tokens);
 
         let mut tokens = vec![
             ("".to_string(), "echo".to_string()),

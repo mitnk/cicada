@@ -1,0 +1,18 @@
+hi
+foo
+bar
+baz
+hello
+a
+hello
+b
+args kwargs
+sh script
+source file src/builtins/exec.rs
+source file src/builtins/exit.rs
+source file src/builtins/export.rs
+append 'ab' into file
+append ',' into file
+append ' ' into file
+append 'xy' into file
+bye

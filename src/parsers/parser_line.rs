@@ -572,7 +572,7 @@ mod tests {
     }
 
     #[test]
-    fn test_line_to_tokens() {
+    fn test_cmd_to_tokens() {
         let v = vec![
             ("ls", vec![("", "ls")]),
             ("(ls)", vec![("", "ls")]),

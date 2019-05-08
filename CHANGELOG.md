@@ -1,5 +1,11 @@
 # Change Logs
 
+## 0.9.6 - master
+
+- Added `if`, `for`, `while` expression into cicada scripting ability.
+- Fixed a parsing issue for: `alias foo-bar='echo foo bar'`.
+- Fixed cannot define single-char-long env/variable.
+
 ## 0.9.5
 
 - Added `-l` as an equivalent to `--login`.

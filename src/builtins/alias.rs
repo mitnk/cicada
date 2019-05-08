@@ -17,7 +17,6 @@ pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
     }
 
     let input = &tokens[1].1;
-
     let re_single_read;
     match Regex::new(r"^[a-zA-Z0-9_\.-]+$") {
         Ok(x) => re_single_read = x,
@@ -41,7 +40,14 @@ pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
 
     for cap in re_to_add.captures_iter(input) {
         let name = tools::unquote(&cap[1]);
-        let value = tools::unquote(&cap[2]);
+        // due to limitation of `parses::parser_line`,
+        // `alias foo-bar='foo bar'` will become 'foo-bar=foo bar'
+        // while `alias foo_bar='foo bar'` keeps foo_bar='foo bar'
+        let value = if cap[2].starts_with('"') || cap[2].starts_with('\'') {
+            tools::unquote(&cap[2])
+        } else {
+            cap[2].to_string()
+        };
         sh.add_alias(name.as_str(), value.as_str());
     }
     0

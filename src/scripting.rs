@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 
+use pest::iterators::Pair;
 use regex::Regex;
 
 use crate::execute;
@@ -56,14 +57,16 @@ pub fn run_script(sh: &mut shell::Shell, args: &Vec<String>) -> i32 {
             return 1;
         }
     }
-    for line in text.lines() {
-        if line.trim().starts_with('#') || line.trim().is_empty() {
-            continue;
+
+    match parsers::locust::parse_lines(&text) {
+        Ok(pairs_exp) => {
+            for pair in pairs_exp {
+                status = run_exp(sh, pair, args);
+            }
         }
-        let line_new = expand_args(line, &args[1..]);
-        status = execute::run_procs(sh, &line_new, true);
-        if status != 0 {
-            return status;
+        Err(e) => {
+            println!("syntax error: {:?}", e);
+            return 1;
         }
     }
 
@@ -74,6 +77,15 @@ fn expand_args(line: &str, args: &[String]) -> String {
     let mut tokens = parsers::parser_line::cmd_to_tokens(line);
     expand_args_in_tokens(&mut tokens, args);
     return parsers::parser_line::tokens_to_line(&tokens);
+}
+
+fn expand_line_to_toknes(line: &str,
+                         args: &[String],
+                         sh: &mut shell::Shell) -> types::Tokens {
+    let mut tokens = parsers::parser_line::cmd_to_tokens(line);
+    expand_args_in_tokens(&mut tokens, args);
+    shell::do_expansion(sh, &mut tokens);
+    tokens
 }
 
 fn is_args_in_token(token: &str) -> bool {
@@ -147,6 +159,175 @@ fn expand_args_in_tokens(tokens: &mut types::Tokens, args: &[String]) {
     for (i, text) in buff.iter().rev() {
         tokens[*i as usize].1 = text.to_string();
     }
+}
+
+fn run_exp_test_br(sh: &mut shell::Shell,
+                   pair_br: Pair<parsers::locust::Rule>,
+                   args: &Vec<String>) -> bool {
+    let pairs = pair_br.into_inner();
+    let mut test_pass = false;
+    for pair in pairs {
+        let rule = pair.as_rule();
+        if rule == parsers::locust::Rule::IF_HEAD ||
+                rule == parsers::locust::Rule::IF_ELSEIF_HEAD ||
+                rule == parsers::locust::Rule::WHILE_HEAD {
+            let pairs_test: Vec<Pair<parsers::locust::Rule>> =
+                pair.into_inner().collect();
+            let pair_test = &pairs_test[0];
+            let line = pair_test.as_str().trim();
+            let line_new = expand_args(line, &args[1..]);
+            let status = execute::run_procs(sh, &line_new, false);
+            if status == 0 {
+                test_pass = true;
+            }
+            continue;
+        }
+
+        if rule == parsers::locust::Rule::KW_ELSE {
+            test_pass = true;
+            continue;
+        }
+
+        if rule == parsers::locust::Rule::EXP_BODY {
+            if !test_pass {
+                return false;
+            }
+            run_exp(sh, pair, args);
+            // branch executed successfully
+            return true;
+        }
+
+        unreachable!();
+    }
+    false
+}
+
+fn run_exp_if(sh: &mut shell::Shell,
+              pair_if: Pair<parsers::locust::Rule>,
+              args: &Vec<String>) {
+    let pairs = pair_if.into_inner();
+    for pair in pairs {
+        // break at first successful branch
+        if run_exp_test_br(sh, pair, args) {
+            break;
+        }
+    }
+}
+
+fn get_for_result_from_init(sh: &mut shell::Shell,
+                            pair_init: Pair<parsers::locust::Rule>,
+                            args: &Vec<String>) -> Vec<String> {
+    let mut result: Vec<String> = Vec::new();
+    let pairs = pair_init.into_inner();
+    for pair in pairs {
+        let rule = pair.as_rule();
+        if rule == parsers::locust::Rule::TEST {
+            let line = pair.as_str().trim();
+            let tokens = expand_line_to_toknes(line, &args[1..], sh);
+            for (sep, token) in tokens {
+                if sep.is_empty() {
+                    for x in token.split_whitespace() {
+                        result.push(x.to_string());
+                    }
+                } else {
+                    result.push(token.clone());
+                }
+            }
+        }
+    }
+    result
+}
+
+fn get_for_result_list(sh: &mut shell::Shell,
+                       pair_head: Pair<parsers::locust::Rule>,
+                       args: &Vec<String>) -> Vec<String> {
+    let pairs = pair_head.into_inner();
+    for pair in pairs {
+        let rule = pair.as_rule();
+        if rule == parsers::locust::Rule::FOR_INIT {
+            return get_for_result_from_init(sh, pair, args);
+        }
+    }
+    return Vec::new();
+}
+
+fn get_for_var_name(pair_head: Pair<parsers::locust::Rule>) -> String {
+    let pairs = pair_head.into_inner();
+    for pair in pairs {
+        let rule = pair.as_rule();
+        if rule == parsers::locust::Rule::FOR_INIT {
+            let pairs_init = pair.into_inner();
+            for pair_init in pairs_init {
+                let rule_init = pair_init.as_rule();
+                if rule_init == parsers::locust::Rule::FOR_VAR {
+                    let line = pair_init.as_str().trim();
+                    return line.to_string();
+                }
+            }
+        }
+    }
+    String::new()
+}
+
+fn run_exp_for(sh: &mut shell::Shell,
+               pair_for: Pair<parsers::locust::Rule>,
+               args: &Vec<String>) {
+    let pairs = pair_for.into_inner();
+    let mut result_list: Vec<String> = Vec::new();
+    let mut var_name: String = String::new();
+    for pair in pairs {
+        let rule = pair.as_rule();
+        if rule == parsers::locust::Rule::FOR_HEAD {
+            var_name = get_for_var_name(pair.clone());
+            result_list = get_for_result_list(sh, pair.clone(), args);
+            continue;
+        }
+        if rule == parsers::locust::Rule::EXP_BODY {
+            for value in &result_list {
+                sh.set_env(&var_name, &value);
+                run_exp(sh, pair.clone(), args);
+            }
+        }
+    }
+}
+
+fn run_exp_while(sh: &mut shell::Shell,
+                 pair_while: Pair<parsers::locust::Rule>,
+                 args: &Vec<String>) {
+    loop {
+        if !run_exp_test_br(sh, pair_while.clone(), args) {
+            break;
+        }
+    }
+}
+
+fn run_exp(sh: &mut shell::Shell,
+           pair_in: Pair<parsers::locust::Rule>,
+           args: &Vec<String>) -> i32 {
+    let mut status = 0;
+    let pairs = pair_in.into_inner();
+    for pair in pairs {
+        let line = pair.as_str().trim();
+        if line.is_empty() {
+            continue;
+        }
+
+        let rule = pair.as_rule();
+        if rule == parsers::locust::Rule::CMD {
+            let line_new = expand_args(line, &args[1..]);
+            status = execute::run_procs(sh, &line_new, false);
+            if status != 0 {
+                return status;
+            }
+        } else if rule == parsers::locust::Rule::EXP_IF {
+            run_exp_if(sh, pair, args);
+        } else if rule == parsers::locust::Rule::EXP_FOR {
+            run_exp_for(sh, pair, args);
+        } else if rule == parsers::locust::Rule::EXP_WHILE {
+            run_exp_while(sh, pair, args);
+        }
+    }
+    status
 }
 
 #[cfg(test)]
