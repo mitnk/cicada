@@ -20,7 +20,7 @@ in simple cases.
 Firstly, cicada supports run commands (or pipes) line by line from a file:
 
 File content of `~/hello.sh`:
-```
+```sh
 #!/usr/local/bin/cicada
 echo hello scripting
 echo "the args are: $@"
@@ -62,7 +62,7 @@ In every `if` statement, each test conditions are checked one by one,
 and run cmds in first True condition. True conditions means the commands
 that exit with `status 0`.
 
-```
+```sh
 if echo foo | grep -iq o
     echo found foo
 fi
@@ -95,7 +95,7 @@ In cicada, `for` statement loop the space splitted strings. In each iteration,
 the string is assigned to the variable, and run commands with this just
 available variable.
 
-```
+```sh
 for var in foo bar baz
     echo $var
 done
@@ -137,7 +137,7 @@ source file src/builtins/export.rs
 In `while` statements, the command body will be run whenever the test branch
 is still true.
 
-```
+```sh
 counter=17
 while echo "$counter" | grep -iq "^1.$"
     echo "counter = $counter"
@@ -156,7 +156,7 @@ counter = 19
 
 As expected, you can combine the above statements together.
 
-```
+```sh
 counter=17
 if echo foo | grep -q oo
     while echo "$counter" | grep -iq "^1.$"
