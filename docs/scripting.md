@@ -154,7 +154,26 @@ counter = 19
 
 ## Combine If, For, While Together
 
-As expected, you can combine the above statements together.
+As expected, you can combine/nested the above statements together.
+
+One example is set `ls` aliases in `~/.cicadarc`:
+
+```sh
+if which exa > /dev/null
+    alias ls='exa'
+    alias ll='exa -lh --time-style=long-iso'
+else
+    if uname -s | grep -iq 'darwin'
+        alias ls='ls -G'
+        alias ll='ls -Glh'
+    else
+        alias ls='ls --color=auth'
+        alias ll='ls -lh --color=auth'
+    fi
+fi
+```
+
+Another example:
 
 ```sh
 counter=17
