@@ -167,8 +167,8 @@ else
         alias ls='ls -G'
         alias ll='ls -Glh'
     else
-        alias ls='ls --color=auth'
-        alias ll='ls -lh --color=auth'
+        alias ls='ls --color=auto'
+        alias ll='ls -lh --color=auto'
     fi
 fi
 ```
