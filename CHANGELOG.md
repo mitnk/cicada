@@ -1,8 +1,9 @@
 # Change Logs
 
-## 0.9.6 - master
+## 0.9.6
 
 - Added `if`, `for`, `while` expression into cicada scripting ability.
+- Added new braces range expansion: `{1..10}`.
 - Fixed a parsing issue for: `alias foo-bar='echo foo bar'`.
 - Fixed cannot define single-char-long env/variable.
 

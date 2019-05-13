@@ -23,6 +23,9 @@ File content of `~/hello.sh`:
 ```sh
 #!/usr/local/bin/cicada
 echo hello scripting
+# spliting command into multiple lines
+echo hi \
+      there
 echo "the args are: $@"
 echo $3 $1 $2
 date
@@ -50,6 +53,7 @@ Either way, the output looks like this:
 
 ```
 hello scripting
+hi there
 runing /home/mitnk/hello.sh with args: foo bar baz
 baz foo bar
 Sat Apr 27 17:14:36 CST 2019
@@ -89,6 +93,29 @@ not found bar
 no a and no b
 ```
 
+### Use test `[` command
+
+The [test](https://linux.die.net/man/1/test) command `[` is a convenient tool
+to use in `if` and `while` statements.
+
+```
+foo=35
+if [ $foo -gt 10 ]
+    echo "foo is great than 10"
+else
+    echo "foo is less than 10"
+fi
+
+if [ $(uname -s) = 'Darwin' ]
+    echo "you're in Mac OS"
+fi
+```
+
+For for details, please check out `[ --help` in your shell.
+
+**Note:** Compare strings with `[ $str1 > $str2 ]` is not supported in cicada.
+The `>` would be treated as output redirections.
+
 ## For Statements
 
 In cicada, `for` statement loop the space splitted strings. In each iteration,
@@ -111,6 +138,10 @@ done
 for f in src/builtins/ex*.rs
     echo source file $f
 done
+
+for x in {1..10..2}
+    echo "x = $x"
+done
 ```
 
 The output of above script is:
@@ -130,6 +161,12 @@ sh script
 source file src/builtins/exec.rs
 source file src/builtins/exit.rs
 source file src/builtins/export.rs
+
+x = 1
+x = 3
+x = 5
+x = 7
+x = 9
 ```
 
 ## While Statements
@@ -209,7 +246,7 @@ counter = 22
 
 ## The source Builtin
 
-> See also [the source builtin](https://github.com/mitnk/cicada/blob/master/docs/built-in-cmd.md#source).
+> See also [the source builtin](https://github.com/mitnk/cicada/blob/master/docs/builtins.md#source).
 
 Command like `$ cicada foo.sh` would create a new session and run the commands
 of file `foo.sh`. If you want to run them in current shell session, you
@@ -218,7 +255,7 @@ can run it with `$ source foo.sh`.
 ## Using Builtins
 
 In scripts, you could also use cicada's
-[builtins](https://github.com/mitnk/cicada/blob/master/docs/built-in-cmd.md).
+[builtins](https://github.com/mitnk/cicada/blob/master/docs/builtins.md).
 For example, you can include extra RC configs with `source` at the end of
 `~/.cicadarc` file:
 ([RC file](https://github.com/mitnk/cicada/blob/master/docs/rc-file.md)

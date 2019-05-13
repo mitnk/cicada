@@ -6,7 +6,7 @@ or with the `--login`/`-l` option, it first reads and executes commands from
 the file `~/.cicadarc`, if that file exists.
 
 > Hint: In non-login shell mode, you can apply RC file with
-> [source](https://github.com/mitnk/cicada/blob/master/docs/built-in-cmd.md#source):
+> [source](https://github.com/mitnk/cicada/blob/master/docs/builtins.md#source):
 > `$ source ~/.cicadarc`.
 
 Here is a sample RC file:

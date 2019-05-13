@@ -8,7 +8,7 @@ Cicada is a simple Unix shell written in Rust.
 ## Documents
 
 - [Environment Variables](https://github.com/mitnk/cicada/tree/master/docs/envs.md)
-- [Built-in Commands](https://github.com/mitnk/cicada/tree/master/docs/built-in-cmd.md)
+- [Cicada Builtins](https://github.com/mitnk/cicada/tree/master/docs/builtins.md)
 - [Completion](https://github.com/mitnk/cicada/tree/master/docs/completion.md)
 - [RC File](https://github.com/mitnk/cicada/tree/master/docs/rc-file.md)
 - [History](https://github.com/mitnk/cicada/tree/master/docs/history.md)
@@ -34,7 +34,7 @@ Desktop
 Documents
 Downloads
 
-$ echo foo bar | awk -F " " '{print $2, $1}'
+$ echo foo,bar | awk -F "," '{print $2, $1}'
 bar foo
 ```
 
@@ -69,19 +69,6 @@ bar
 
 $ echo foo || echo bar
 foo
-```
-
-### Shell expansions
-
-```
-$ echo sp{el,il,al}l
-spell spill spall
-
-$ echo $SHELL
-/usr/local/bin/cicada
-
-$ echo *
-Cargo.lock Cargo.toml LICENSE Makefile README.md src target
 ```
 
 ### Math arithmetic directly in the shell!

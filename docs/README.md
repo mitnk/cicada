@@ -4,7 +4,7 @@ Cicada is a simple bash-like Unix shell.
 
 - [Install cicada](https://github.com/mitnk/cicada/blob/master/docs/install.md)
 - [Environment Variables](https://github.com/mitnk/cicada/tree/master/docs/envs.md)
-- [Built-in Commands](https://github.com/mitnk/cicada/tree/master/docs/built-in-cmd.md)
+- [Cicada Builtins](https://github.com/mitnk/cicada/tree/master/docs/builtins.md)
 - [Completion](https://github.com/mitnk/cicada/tree/master/docs/completion.md)
 - [RC File](https://github.com/mitnk/cicada/tree/master/docs/rc-file.md)
 - [History](https://github.com/mitnk/cicada/tree/master/docs/history.md)
@@ -30,7 +30,7 @@ Desktop
 Documents
 Downloads
 
-$ echo foo bar | awk -F " " '{print $2, $1}'
+$ echo foo,bar | awk -F "," '{print $2, $1}'
 bar foo
 ```
 

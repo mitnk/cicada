@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use std::path::Path;
 
 use pest::iterators::Pair;
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 
 use crate::execute;
 use crate::libs;
@@ -57,6 +57,18 @@ pub fn run_script(sh: &mut shell::Shell, args: &Vec<String>) -> i32 {
             return 1;
         }
     }
+
+    let re;
+    match RegexBuilder::new(r#" +\\\n +"#).multi_line(true).build() {
+        Ok(x) => {
+            re = x;
+        }
+        Err(e) => {
+            println_stderr!("cicada: re build error: {:?}", e);
+            return 1;
+        }
+    }
+    text = re.replace_all(&text, " ").to_string();
 
     match parsers::locust::parse_lines(&text) {
         Ok(pairs_exp) => {

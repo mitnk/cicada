@@ -24,5 +24,5 @@ export HISTORY_SIZE=100000
 export HISTORY_TABLE="cicada_history"
 ```
 
-See more on [history built-in command](https://github.com/mitnk/cicada/blob/master/docs/built-in-cmd.md#history)  
+See more on [history built-in command](https://github.com/mitnk/cicada/blob/master/docs/builtins.md#history)  
 See more on [Environment Variables](https://github.com/mitnk/cicada/blob/master/docs/envs.md#history_size)  

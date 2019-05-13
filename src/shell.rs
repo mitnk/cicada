@@ -412,7 +412,7 @@ fn need_expand_brace(line: &str) -> bool {
     libs::re::re_contains(line, r#"\{[^ "']*,[^ "']*,?[^ "']*\}"#)
 }
 
-fn getitem(s: &str, depth: i32) -> (Vec<String>, String) {
+fn brace_getitem(s: &str, depth: i32) -> (Vec<String>, String) {
     let mut out: Vec<String> = vec![String::new()];
     let mut ss = s.to_string();
     let mut tmp;
@@ -424,7 +424,7 @@ fn getitem(s: &str, depth: i32) -> (Vec<String>, String) {
         if c == '{' {
             let mut sss = ss.clone();
             sss.remove(0);
-            let result_groups = getgroup(&sss, depth + 1);
+            let result_groups = brace_getgroup(&sss, depth + 1);
             if let Some((out_group, s_group)) = result_groups {
                 let mut tmp_out = Vec::new();
                 for x in out.iter() {
@@ -457,12 +457,12 @@ fn getitem(s: &str, depth: i32) -> (Vec<String>, String) {
     (out, ss)
 }
 
-fn getgroup(s: &str, depth: i32) -> Option<(Vec<String>, String)> {
+fn brace_getgroup(s: &str, depth: i32) -> Option<(Vec<String>, String)> {
     let mut out: Vec<String> = Vec::new();
     let mut comma = false;
     let mut ss = s.to_string();
     while ss.len() > 0 {
-        let (g, sss) = getitem(ss.as_str(), depth);
+        let (g, sss) = brace_getitem(ss.as_str(), depth);
         ss = sss.clone();
         if ss.is_empty() {
             break;
@@ -502,10 +502,68 @@ fn expand_brace(tokens: &mut types::Tokens) {
         }
 
         let mut result: Vec<String> = Vec::new();
-        let items = getitem(&token, 0);
+        let items = brace_getitem(&token, 0);
         for x in items.0 {
             result.push(x.clone());
         }
+        buff.push((idx, result));
+        idx += 1;
+    }
+
+    for (i, items) in buff.iter().rev() {
+        tokens.remove(*i as usize);
+        for (j, token) in items.iter().enumerate() {
+            let sep = if token.contains(' ') { "\"" } else { "" };
+            tokens.insert((*i + j) as usize, (sep.to_string(), token.clone()));
+        }
+    }
+}
+
+fn expand_brace_range(tokens: &mut types::Tokens) {
+    let re;
+    if let Ok(x) = Regex::new(r#"\{(-?[0-9]+)\.\.(-?[0-9]+)(\.\.)?([0-9]+)?\}"#) {
+        re = x;
+    } else {
+        println_stderr!("cicada: re new error");
+        return;
+    }
+
+    let mut idx: usize = 0;
+    let mut buff: Vec<(usize, Vec<String>)> = Vec::new();
+    for (sep, token) in tokens.iter() {
+        if !sep.is_empty() || !re.is_match(&token) {
+            idx += 1;
+            continue;
+        }
+
+        // safe to unwrap here, since the `is_match` above already validated
+        let caps = re.captures(&token).unwrap();
+        let start = caps[1].to_string().parse::<i32>().unwrap();
+        let end = caps[2].to_string().parse::<i32>().unwrap();
+        // incr is always positive
+        let mut incr = if caps.get(4).is_none() {
+            1
+        } else {
+            caps[4].to_string().parse::<i32>().unwrap()
+        };
+        if incr <= 1 {
+            incr = 1;
+        }
+
+        let mut result: Vec<String> = Vec::new();
+        let mut n = start;
+        if start > end {
+            while n >= end {
+                result.push(format!("{}", n));
+                n -= incr;
+            }
+        } else {
+            while n <= end {
+                result.push(format!("{}", n));
+                n += incr;
+            }
+        }
+
         buff.push((idx, result));
         idx += 1;
     }
@@ -781,6 +839,7 @@ pub fn do_expansion(sh: &mut Shell, tokens: &mut types::Tokens) {
     expand_env(sh, tokens);
     expand_glob(tokens);
     do_command_substitution(sh, tokens);
+    expand_brace_range(tokens);
 }
 
 pub fn needs_expand_home(line: &str) -> bool {
@@ -797,6 +856,7 @@ mod tests {
     use std::env;
     use super::expand_alias;
     use super::expand_brace;
+    use super::expand_brace_range;
     use super::expand_env;
     use super::libs;
     use super::needs_expand_home;
@@ -1023,6 +1083,76 @@ mod tests {
             ("", "f2b.txt"),
         ];
         expand_brace(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+    }
+
+    #[test]
+    fn test_expand_brace_range() {
+        let mut tokens = make_tokens(&vec![("", "echo"), ("", "{1..4}")]);
+        let exp_tokens = vec![
+            ("", "echo"),
+            ("", "1"), ("", "2"), ("", "3"), ("", "4"),
+        ];
+        expand_brace_range(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![("", "echo"), ("", "{1..3..0}")]);
+        let exp_tokens = vec![
+            ("", "echo"),
+            ("", "1"), ("", "2"), ("", "3"),
+        ];
+        expand_brace_range(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![("", "echo"), ("", "{-2..1}")]);
+        let exp_tokens = vec![
+            ("", "echo"),
+            ("", "-2"), ("", "-1"), ("", "0"), ("", "1"),
+        ];
+        expand_brace_range(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![("", "echo"), ("", "{3..1}")]);
+        let exp_tokens = vec![
+            ("", "echo"),
+            ("", "3"), ("", "2"), ("", "1"),
+        ];
+        expand_brace_range(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![("", "echo"), ("", "{10..4..3}")]);
+        let exp_tokens = vec![
+            ("", "echo"),
+            ("", "10"), ("", "7"), ("", "4"),
+        ];
+        expand_brace_range(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![("", "echo"), ("", "{10..3..2}")]);
+        let exp_tokens = vec![
+            ("", "echo"),
+            ("", "10"), ("", "8"), ("", "6"), ("", "4"),
+        ];
+        expand_brace_range(&mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![
+             ("", "echo"),
+             ("", "foo"),
+             ("", "{1..3}"),
+             ("", "bar"),
+             ("", "{1..10..3}"),
+             ("", "end"),
+        ]);
+        let exp_tokens = vec![
+            ("", "echo"),
+            ("", "foo"),
+            ("", "1"), ("", "2"), ("", "3"),
+            ("", "bar"),
+            ("", "1"), ("", "4"), ("", "7"), ("", "10"),
+            ("", "end"),
+        ];
+        expand_brace_range(&mut tokens);
         assert_vec_eq(tokens, exp_tokens);
     }
 }
