@@ -1,5 +1,10 @@
 # Change Logs
 
+## 0.9.7 - master
+
+- Fixed alias expansion when using `xargs`: `foo | xargs ls`.
+- Other minor fixes.
+
 ## 0.9.6
 
 - Added `if`, `for`, `while` expression into cicada scripting ability.

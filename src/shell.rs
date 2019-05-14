@@ -609,6 +609,10 @@ fn expand_alias(sh: &Shell, tokens: &mut types::Tokens) {
             idx += 1;
             continue;
         }
+        if is_head && text == "xargs" {
+            idx += 1;
+            continue;
+        }
 
         if !is_head || !sh.is_alias(&text) {
             idx += 1;
@@ -987,6 +991,16 @@ mod tests {
         ];
         expand_alias(&sh, &mut tokens);
         assert_eq!(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![
+             ("", "foo"), ("", "|"), ("", "xargs"), ("", "ls"),
+        ]);
+        let exp_tokens = vec![
+            ("", "foo"), ("", "|"), ("", "xargs"),
+            ("", "ls"), ("", "--color=auto"),
+        ];
+        expand_alias(&sh, &mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
 
         let mut tokens = vec![
             ("".to_string(), "which".to_string()),

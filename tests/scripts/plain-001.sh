@@ -5,6 +5,9 @@ echo mid > /dev/null
 echo hello \
        world
 
+echo foo\
+bar
+
 echo hello world \
     | sed 's/hello/hi/' \
     | wc \

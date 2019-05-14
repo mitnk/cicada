@@ -167,7 +167,7 @@ fn line_to_tokens(sh: &mut shell::Shell, line: &str) -> (Tokens, HashMap<String,
 
 fn with_pipeline(tokens: &Tokens) -> bool {
     for item in tokens {
-        if item.1 == "|" {
+        if item.1 == "|" || item.1 == ">" {
             return true;
         }
     }

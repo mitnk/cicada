@@ -58,17 +58,31 @@ pub fn run_script(sh: &mut shell::Shell, args: &Vec<String>) -> i32 {
         }
     }
 
-    let re;
-    match RegexBuilder::new(r#" +\\\n +"#).multi_line(true).build() {
-        Ok(x) => {
-            re = x;
+    if text.contains("\\\n") {
+        let re;
+        match RegexBuilder::new(r#"([ \t]*\\\n[ \t]+)|([ \t]+\\\n[ \t]*)"#).multi_line(true).build() {
+            Ok(x) => {
+                re = x;
+            }
+            Err(e) => {
+                println_stderr!("cicada: re build error: {:?}", e);
+                return 1;
+            }
         }
-        Err(e) => {
-            println_stderr!("cicada: re build error: {:?}", e);
-            return 1;
+        text = re.replace_all(&text, " ").to_string();
+
+        let re;
+        match RegexBuilder::new(r#"\\\n"#).multi_line(true).build() {
+            Ok(x) => {
+                re = x;
+            }
+            Err(e) => {
+                println_stderr!("cicada: re build error: {:?}", e);
+                return 1;
+            }
         }
+        text = re.replace_all(&text, "").to_string();
     }
-    text = re.replace_all(&text, " ").to_string();
 
     match parsers::locust::parse_lines(&text) {
         Ok(pairs_exp) => {
