@@ -202,9 +202,11 @@ fn run_exp_test_br(sh: &mut shell::Shell,
             let pair_test = &pairs_test[0];
             let line = pair_test.as_str().trim();
             let line_new = expand_args(line, &args[1..]);
-            let status = execute::run_procs(sh, &line_new, false);
-            if status == 0 {
-                test_pass = true;
+            let cr_list = execute::run_procs(sh, &line_new, false, false);
+            if let Some(last) = cr_list.last() {
+                if last.status == 0 {
+                    test_pass = true;
+                }
             }
             continue;
         }
@@ -341,9 +343,12 @@ fn run_exp(sh: &mut shell::Shell,
         let rule = pair.as_rule();
         if rule == parsers::locust::Rule::CMD {
             let line_new = expand_args(line, &args[1..]);
-            status = execute::run_procs(sh, &line_new, false);
-            if status != 0 {
-                return status;
+            let cr_list = execute::run_procs(sh, &line_new, false, false);
+            if let Some(last) = cr_list.last() {
+                status = last.status;
+                if status != 0 {
+                    return status;
+                }
             }
         } else if rule == parsers::locust::Rule::EXP_IF {
             run_exp_if(sh, pair, args);

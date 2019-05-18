@@ -29,6 +29,7 @@ mod tools;
 mod builtins;
 mod calculator;
 mod completers;
+mod core;
 mod execute;
 mod history;
 mod jobc;
@@ -70,7 +71,7 @@ fn main() {
         if args[1] == "-c" {
             let line = tools::env_args_to_command_line();
             log!("run with -c args: {}", &line);
-            execute::run_procs(&mut sh, &line, false);
+            execute::run_procs(&mut sh, &line, false, false);
             return;
         }
 
@@ -84,7 +85,7 @@ fn main() {
     if !isatty {
         // cases like open a new MacVim window,
         // (i.e. CMD+N) on an existing one
-        execute::handle_non_tty(&mut sh);
+        execute::run_procs_for_non_tty(&mut sh);
         return;
     }
 
@@ -121,8 +122,16 @@ fn main() {
 
                 let tsb = Local::now().timestamp_nanos() as f64 / 1000000000.0;
                 let mut line = line.clone();
-                tools::extend_bandband(&sh, &mut line);
-                let status = execute::run_procs(&mut sh, &line, true);
+
+                // since `!!` expansion is only meaningful in an interactive
+                // shell we extend it here, instead of in `run_procs()`.
+                tools::extend_bangbang(&sh, &mut line);
+
+                let mut status = 0;
+                let cr_list = execute::run_procs(&mut sh, &line, true, false);
+                if let Some(last) = cr_list.last() {
+                    status = last.status;
+                }
                 let tse = Local::now().timestamp_nanos() as f64 / 1000000000.0;
 
                 if !sh.cmd.starts_with(' ') && line != sh.previous_cmd {
@@ -130,8 +139,8 @@ fn main() {
                     sh.previous_cmd = line.clone();
                 }
 
+                // temporary solution for completion when sh alias changes
                 if line.trim().starts_with("alias ") || line.trim().starts_with("unalias ") {
-                    // temporary solution for completion when sh alias changes
                     rl.set_completer(Arc::new(completers::CicadaCompleter {
                         sh: Arc::new(sh.clone()),
                     }));

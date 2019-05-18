@@ -8,7 +8,7 @@ use std::mem;
 use glob;
 use regex::Regex;
 
-use crate::execute;
+use crate::core;
 use crate::libs;
 use crate::parsers;
 use crate::tools::{self, clog};
@@ -735,7 +735,7 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
             log!("run subcmd: {:?}", &cmd);
             let _args = parsers::parser_line::cmd_to_tokens(&cmd);
             let (_, cmd_result) =
-                execute::run_pipeline(sh, &_args, "", false, false, true, false, None);
+                core::run_pipeline(sh, &_args, "", false, false, true, false, None);
             let output_txt = cmd_result.stdout.trim();
 
             let ptn = r"(?P<head>[^\$]*)\$\(.+\)(?P<tail>.*)";
@@ -769,7 +769,7 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
         if sep == "`" {
             log!("run subcmd: {:?}", token);
             let _args = parsers::parser_line::cmd_to_tokens(&token);
-            let (_, cr) = execute::run_pipeline(sh, &_args, "", false, false, true, false, None);
+            let (_, cr) = core::run_pipeline(sh, &_args, "", false, false, true, false, None);
             new_token = cr.stdout.trim().to_string();
         } else if sep == "\"" || sep.is_empty() {
             let re;
@@ -801,7 +801,7 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
                     log!("run subcmd: {:?}", &cap[2]);
                     let _args = parsers::parser_line::cmd_to_tokens(&cap[2]);
                     let (_, cr) =
-                        execute::run_pipeline(sh, &_args, "", false, false, true, false, None);
+                        core::run_pipeline(sh, &_args, "", false, false, true, false, None);
                     _output = cr.stdout.trim().to_string();
                 }
                 _item = format!("{}{}{}", _item, _head, _output);

@@ -70,6 +70,7 @@ mod tools;
 
 mod builtins;
 mod calculator;
+mod core;
 mod execute;
 mod history;
 mod jobc;

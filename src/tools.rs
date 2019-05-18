@@ -122,7 +122,7 @@ pub fn is_env(line: &str) -> bool {
 }
 
 // #[allow(clippy::trivial_regex)]
-pub fn extend_bandband(sh: &shell::Shell, line: &mut String) {
+pub fn extend_bangbang(sh: &shell::Shell, line: &mut String) {
     if !re_contains(line, r"!!") {
         return;
     }
@@ -300,28 +300,28 @@ pub fn escape_path(path: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::escape_path;
-    use super::extend_bandband;
+    use super::extend_bangbang;
     use crate::shell;
 
     #[test]
-    fn test_extend_bandband() {
+    fn test_extend_bangbang() {
         let mut sh = shell::Shell::new();
         sh.previous_cmd = "foo".to_string();
 
         let mut line = "echo !!".to_string();
-        extend_bandband(&sh, &mut line);
+        extend_bangbang(&sh, &mut line);
         assert_eq!(line, "echo foo");
 
         line = "echo \"!!\"".to_string();
-        extend_bandband(&sh, &mut line);
+        extend_bangbang(&sh, &mut line);
         assert_eq!(line, "echo \"foo\"");
 
         line = "echo '!!'".to_string();
-        extend_bandband(&sh, &mut line);
+        extend_bangbang(&sh, &mut line);
         assert_eq!(line, "echo '!!'");
 
         line = "echo '!!' && echo !!".to_string();
-        extend_bandband(&sh, &mut line);
+        extend_bangbang(&sh, &mut line);
         assert_eq!(line, "echo '!!' && echo foo");
     }
 
