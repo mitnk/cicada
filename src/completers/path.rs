@@ -33,7 +33,7 @@ impl<Term: Terminal> Completer<Term> for BinCompleter {
         let sh = Arc::try_unwrap(self.sh.clone());
         match sh {
             Ok(x) => Some(complete_bin(&x, word)),
-            Err(e) => Some(complete_bin(&e, word)),
+            Err(_) => None,
         }
     }
 }

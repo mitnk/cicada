@@ -17,6 +17,7 @@ use crate::jobc;
 use crate::libs;
 use crate::parsers;
 use crate::shell;
+use crate::scripting;
 use crate::tools::{self, clog};
 use crate::types;
 
@@ -52,6 +53,16 @@ pub fn run_pipeline(
             }
         }
         return (true, cr);
+    }
+
+    // TODO: func arg1 arg2
+    log!("try run: {:?}", &line);
+    log!("funcs: {:?}", sh.funcs);
+    if let Some(func_body) = sh.get_func(&line) {
+        let args = vec!["cicada".to_string()];
+        scripting::run_lines(sh, &func_body, &args, capture_output);
+        // TODO: xxx
+        return (false, CommandResult::new());
     }
 
     // the defaults to return

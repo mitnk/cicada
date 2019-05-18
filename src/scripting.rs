@@ -9,11 +9,11 @@ use crate::execute;
 use crate::libs;
 use crate::parsers;
 use crate::shell;
+use crate::tools::clog;
 use crate::types;
+use crate::types::CommandResult;
 
 pub fn run_script(sh: &mut shell::Shell, args: &Vec<String>) -> i32 {
-    let mut status = 0;
-
     let src_file = &args[1];
     let full_src_file: String;
     if src_file.contains('/') {
@@ -59,44 +59,69 @@ pub fn run_script(sh: &mut shell::Shell, args: &Vec<String>) -> i32 {
     }
 
     if text.contains("\\\n") {
-        let re;
-        match RegexBuilder::new(r#"([ \t]*\\\n[ \t]+)|([ \t]+\\\n[ \t]*)"#).multi_line(true).build() {
-            Ok(x) => {
-                re = x;
-            }
-            Err(e) => {
-                println_stderr!("cicada: re build error: {:?}", e);
-                return 1;
-            }
-        }
+        let re = RegexBuilder::new(r#"([ \t]*\\\n[ \t]+)|([ \t]+\\\n[ \t]*)"#)
+            .multi_line(true).build().unwrap();
         text = re.replace_all(&text, " ").to_string();
 
-        let re;
-        match RegexBuilder::new(r#"\\\n"#).multi_line(true).build() {
-            Ok(x) => {
-                re = x;
-            }
-            Err(e) => {
-                println_stderr!("cicada: re build error: {:?}", e);
-                return 1;
-            }
-        }
+        let re = RegexBuilder::new(r#"\\\n"#).multi_line(true).build().unwrap();
         text = re.replace_all(&text, "").to_string();
     }
 
-    match parsers::locust::parse_lines(&text) {
-        Ok(pairs_exp) => {
-            for pair in pairs_exp {
-                status = run_exp(sh, pair, args);
-            }
+    let re_func_head = Regex::new(r"^function ([a-zA-Z_-][a-zA-Z0-9_-]*) *(?:\(\))? *\{$").unwrap();
+    let re_func_tail = Regex::new(r"^\}$").unwrap();
+    let mut text_new = String::new();
+    let mut enter_func = false;
+    let mut func_name = String::new();
+    let mut func_body = String::new();
+    for line in text.clone().lines() {
+        if re_func_head.is_match(line.trim()) {
+            enter_func = true;
+            let cap = re_func_head.captures(line.trim()).unwrap();
+            func_name = cap[1].to_string();
+            func_body = String::new();
+            continue;
         }
-        Err(e) => {
-            println!("syntax error: {:?}", e);
-            return 1;
+        if re_func_tail.is_match(line.trim()) {
+            sh.set_func(&func_name, &func_body);
+            log!("set_func: {}", &func_name);
+            enter_func = false;
+            continue;
+        }
+        if enter_func {
+            func_body.push_str(line);
+            func_body.push('\n');
+        } else {
+            text_new.push_str(line);
+            text_new.push('\n');
         }
     }
 
+    let mut status = 0;
+    let cr_list = run_lines(sh, &text_new, args, false);
+    if let Some(last) = cr_list.last() {
+        status = last.status;
+    }
     status
+}
+
+pub fn run_lines(sh: &mut shell::Shell,
+                 lines: &str,
+                 args: &Vec<String>,
+                 capture: bool) -> Vec<CommandResult> {
+    let mut cr_list = Vec::new();
+    match parsers::locust::parse_lines(&lines) {
+        Ok(pairs_exp) => {
+            for pair in pairs_exp {
+                let mut _cr_list = run_exp(sh, pair, args, capture);
+                cr_list.append(&mut _cr_list);
+            }
+        }
+        Err(e) => {
+            println_stderr!("syntax error: {:?}", e);
+            return cr_list;
+        }
+    }
+    cr_list
 }
 
 fn expand_args(line: &str, args: &[String]) -> String {
@@ -189,7 +214,9 @@ fn expand_args_in_tokens(tokens: &mut types::Tokens, args: &[String]) {
 
 fn run_exp_test_br(sh: &mut shell::Shell,
                    pair_br: Pair<parsers::locust::Rule>,
-                   args: &Vec<String>) -> bool {
+                   args: &Vec<String>,
+                   capture: bool) -> (bool, Vec<CommandResult>) {
+    let mut cr_list = Vec::new();
     let pairs = pair_br.into_inner();
     let mut test_pass = false;
     for pair in pairs {
@@ -202,12 +229,13 @@ fn run_exp_test_br(sh: &mut shell::Shell,
             let pair_test = &pairs_test[0];
             let line = pair_test.as_str().trim();
             let line_new = expand_args(line, &args[1..]);
-            let cr_list = execute::run_procs(sh, &line_new, false, false);
-            if let Some(last) = cr_list.last() {
+            let mut _cr_list = execute::run_procs(sh, &line_new, true, capture);
+            if let Some(last) = _cr_list.last() {
                 if last.status == 0 {
                     test_pass = true;
                 }
             }
+            cr_list.append(&mut _cr_list);
             continue;
         }
 
@@ -218,28 +246,34 @@ fn run_exp_test_br(sh: &mut shell::Shell,
 
         if rule == parsers::locust::Rule::EXP_BODY {
             if !test_pass {
-                return false;
+                return (false, cr_list);
             }
-            run_exp(sh, pair, args);
+            let mut _cr_list = run_exp(sh, pair, args, capture);
+            cr_list.append(&mut _cr_list);
             // branch executed successfully
-            return true;
+            return (true, cr_list);
         }
 
         unreachable!();
     }
-    false
+    (test_pass, cr_list)
 }
 
 fn run_exp_if(sh: &mut shell::Shell,
               pair_if: Pair<parsers::locust::Rule>,
-              args: &Vec<String>) {
+              args: &Vec<String>,
+              capture: bool) -> Vec<CommandResult> {
+    let mut cr_list = Vec::new();
     let pairs = pair_if.into_inner();
     for pair in pairs {
+        let (passed, mut _cr_list) = run_exp_test_br(sh, pair, args, capture);
+        cr_list.append(&mut _cr_list);
         // break at first successful branch
-        if run_exp_test_br(sh, pair, args) {
+        if passed {
             break;
         }
     }
+    cr_list
 }
 
 fn get_for_result_from_init(sh: &mut shell::Shell,
@@ -299,7 +333,9 @@ fn get_for_var_name(pair_head: Pair<parsers::locust::Rule>) -> String {
 
 fn run_exp_for(sh: &mut shell::Shell,
                pair_for: Pair<parsers::locust::Rule>,
-               args: &Vec<String>) {
+               args: &Vec<String>,
+               capture: bool) -> Vec<CommandResult> {
+    let mut cr_list = Vec::new();
     let pairs = pair_for.into_inner();
     let mut result_list: Vec<String> = Vec::new();
     let mut var_name: String = String::new();
@@ -313,26 +349,34 @@ fn run_exp_for(sh: &mut shell::Shell,
         if rule == parsers::locust::Rule::EXP_BODY {
             for value in &result_list {
                 sh.set_env(&var_name, &value);
-                run_exp(sh, pair.clone(), args);
+                let mut _cr_list = run_exp(sh, pair.clone(), args, capture);
+                cr_list.append(&mut _cr_list);
             }
         }
     }
+    cr_list
 }
 
 fn run_exp_while(sh: &mut shell::Shell,
                  pair_while: Pair<parsers::locust::Rule>,
-                 args: &Vec<String>) {
+                 args: &Vec<String>,
+                 capture: bool) -> Vec<CommandResult> {
+    let mut cr_list = Vec::new();
     loop {
-        if !run_exp_test_br(sh, pair_while.clone(), args) {
+        let (passed, mut _cr_list) = run_exp_test_br(sh, pair_while.clone(), args, capture);
+        cr_list.append(&mut _cr_list);
+        if !passed {
             break;
         }
     }
+    cr_list
 }
 
 fn run_exp(sh: &mut shell::Shell,
            pair_in: Pair<parsers::locust::Rule>,
-           args: &Vec<String>) -> i32 {
-    let mut status = 0;
+           args: &Vec<String>,
+           capture: bool) -> Vec<CommandResult> {
+    let mut cr_list = Vec::new();
     let pairs = pair_in.into_inner();
     for pair in pairs {
         let line = pair.as_str().trim();
@@ -343,22 +387,26 @@ fn run_exp(sh: &mut shell::Shell,
         let rule = pair.as_rule();
         if rule == parsers::locust::Rule::CMD {
             let line_new = expand_args(line, &args[1..]);
-            let cr_list = execute::run_procs(sh, &line_new, false, false);
+            let mut _cr_list = execute::run_procs(sh, &line_new, true, capture);
+            cr_list.append(&mut _cr_list);
             if let Some(last) = cr_list.last() {
-                status = last.status;
+                let status = last.status;
                 if status != 0 {
-                    return status;
+                    return cr_list;
                 }
             }
         } else if rule == parsers::locust::Rule::EXP_IF {
-            run_exp_if(sh, pair, args);
+            let mut _cr_list = run_exp_if(sh, pair, args, capture);
+            cr_list.append(&mut _cr_list);
         } else if rule == parsers::locust::Rule::EXP_FOR {
-            run_exp_for(sh, pair, args);
+            let mut _cr_list = run_exp_for(sh, pair, args, capture);
+            cr_list.append(&mut _cr_list);
         } else if rule == parsers::locust::Rule::EXP_WHILE {
-            run_exp_while(sh, pair, args);
+            let mut _cr_list = run_exp_while(sh, pair, args, capture);
+            cr_list.append(&mut _cr_list);
         }
     }
-    status
+    cr_list
 }
 
 #[cfg(test)]

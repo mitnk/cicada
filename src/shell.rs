@@ -19,6 +19,7 @@ pub struct Shell {
     pub jobs: HashMap<i32, types::Job>,
     pub alias: HashMap<String, String>,
     pub envs: HashMap<String, String>,
+    pub funcs: HashMap<String, String>,
     pub cmd: String,
     pub previous_dir: String,
     pub previous_cmd: String,
@@ -32,6 +33,7 @@ impl Shell {
             jobs: HashMap::new(),
             alias: HashMap::new(),
             envs: HashMap::new(),
+            funcs: HashMap::new(),
             cmd: String::new(),
             previous_dir: String::new(),
             previous_cmd: String::new(),
@@ -186,6 +188,17 @@ impl Shell {
 
     pub fn get_env(&self, name: &str) -> Option<String> {
         match self.envs.get(name) {
+            Some(x) => Some(x.to_string()),
+            None => None,
+        }
+    }
+
+    pub fn set_func(&mut self, name: &str, value: &str) {
+        self.funcs.insert(name.to_string(), value.to_string());
+    }
+
+    pub fn get_func(&self, name: &str) -> Option<String> {
+        match self.funcs.get(name) {
             Some(x) => Some(x.to_string()),
             None => None,
         }
