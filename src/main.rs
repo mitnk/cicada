@@ -62,6 +62,7 @@ fn main() {
 
     if args.len() > 1 {
         if !args[1].starts_with("-") {
+            log!("run script: {:?}", &args);
             scripting::run_script(&mut sh, &args);
             return;
         }

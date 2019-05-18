@@ -9,7 +9,6 @@ use crate::execute;
 use crate::libs;
 use crate::parsers;
 use crate::shell;
-use crate::tools::clog;
 use crate::types;
 use crate::types::CommandResult;
 
@@ -83,7 +82,6 @@ pub fn run_script(sh: &mut shell::Shell, args: &Vec<String>) -> i32 {
         }
         if re_func_tail.is_match(line.trim()) {
             sh.set_func(&func_name, &func_body);
-            log!("set_func: {}", &func_name);
             enter_func = false;
             continue;
         }

@@ -2,7 +2,6 @@ use std::borrow::Cow;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
-use std::sync::Arc;
 
 use linefeed::complete::escape;
 use linefeed::complete::escaped_word_start;
@@ -18,13 +17,10 @@ use yaml_rust::YamlLoader;
 
 use crate::execute;
 use crate::parsers;
-use crate::shell;
 use crate::tools::{self, clog};
 
 /// Performs completion by searching dotfiles
-pub struct DotsCompleter {
-    pub sh: Arc<shell::Shell>,
-}
+pub struct DotsCompleter;
 
 impl<Term: Terminal> Completer<Term> for DotsCompleter {
     fn complete(
@@ -35,15 +31,7 @@ impl<Term: Terminal> Completer<Term> for DotsCompleter {
         _end: usize,
     ) -> Option<Vec<Completion>> {
         let line = reader.buffer();
-
-        let result = Arc::try_unwrap(self.sh.clone());
-        match result {
-            Ok(mut sh) => Some(complete_dots(&mut sh, &line, word)),
-            Err(e) => {
-                log!("arc error: {:?}", e);
-                None
-            }
-        }
+        Some(complete_dots(line, word))
     }
 
     fn word_start(&self, line: &str, end: usize, _reader: &Prompter<Term>) -> usize {
@@ -76,30 +64,22 @@ fn get_dot_file(line: &str) -> (String, String) {
     return (dot_file, sub_cmd.to_string());
 }
 
-fn handle_lv1_string(sh: &mut shell::Shell,
-                     res: &mut Vec<Completion>,
+fn handle_lv1_string(res: &mut Vec<Completion>,
                      value: &str, word: &str) {
     if !value.starts_with(word) && !value.starts_with('`') {
         return;
     }
 
     let tokens = parsers::parser_line::cmd_to_tokens(value);
-    log!("here it is: {:?}", tokens);
     if tokens.len() == 1 && tokens[0].0 == "`" {
         log!("run subcmd: {:?}", &tokens[0].1);
-        let mut v: Vec<String> = Vec::new();
-        let cr_list = execute::run_procs(sh, &tokens[0].1, false, true);
-        for cr in cr_list {
-            let output = cr.stdout.clone();
-            for x in output.split(|c| c == '\n' || c == ' ') {
-                v.push(x.to_string());
-            }
-        }
+        let cr = execute::run(&tokens[0].1);
+        let v: Vec<&str> = cr.stdout.split(|c| c == '\n' || c == ' ').collect();
         for s in v {
             if s.trim().is_empty() {
                 continue;
             }
-            handle_lv1_string(sh, res, &s, word);
+            handle_lv1_string(res, &s, word);
         }
         return;
     }
@@ -113,8 +93,7 @@ fn handle_lv1_string(sh: &mut shell::Shell,
     });
 }
 
-fn handle_lv1_hash(sh: &mut shell::Shell,
-                   res: &mut Vec<Completion>,
+fn handle_lv1_hash(res: &mut Vec<Completion>,
                    h: &Hash, word: &str) {
     for v in h.values() {
         if let Yaml::Array(ref arr) = v {
@@ -123,14 +102,14 @@ fn handle_lv1_hash(sh: &mut shell::Shell,
                     if !value.starts_with(word) && !value.starts_with('`') {
                         continue;
                     }
-                    handle_lv1_string(sh, res, value, word);
+                    handle_lv1_string(res, value, word);
                 }
             }
         }
     }
 }
 
-fn complete_dots(sh: &mut shell::Shell, line: &str, word: &str) -> Vec<Completion> {
+fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
     let mut res = Vec::new();
     if line.trim().is_empty() {
         return res;
@@ -178,13 +157,13 @@ fn complete_dots(sh: &mut shell::Shell, line: &str, word: &str) -> Vec<Completio
                             if !sub_cmd.is_empty() {
                                 continue;
                             }
-                            handle_lv1_string(sh, &mut res, name, word);
+                            handle_lv1_string(&mut res, name, word);
                         }
                         Yaml::Hash(ref h) => {
                             if sub_cmd.is_empty() {
                                 for k in h.keys() {
                                     if let Yaml::String(value) = k {
-                                        handle_lv1_string(sh, &mut res, &value, word);
+                                        handle_lv1_string(&mut res, &value, word);
                                     }
                                 }
                             } else {
@@ -192,7 +171,7 @@ fn complete_dots(sh: &mut shell::Shell, line: &str, word: &str) -> Vec<Completio
                                 if !h.contains_key(&key) {
                                     continue;
                                 }
-                                handle_lv1_hash(sh, &mut res, h, word);
+                                handle_lv1_hash(&mut res, h, word);
                             }
                         }
                         _ => {

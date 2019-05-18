@@ -103,9 +103,7 @@ impl<Term: Terminal> Completer<Term> for CicadaCompleter {
             }
         }
         if for_dots(line) {
-            let cpl = Arc::new(dots::DotsCompleter {
-                sh: self.sh.clone(),
-            });
+            let cpl = Arc::new(dots::DotsCompleter);
             if let Some(x) = cpl.complete(word, reader, start, _end) {
                 if !x.is_empty() {
                     return Some(x);

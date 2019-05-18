@@ -55,14 +55,25 @@ pub fn run_pipeline(
         return (true, cr);
     }
 
-    // TODO: func arg1 arg2
-    log!("try run: {:?}", &line);
-    log!("funcs: {:?}", sh.funcs);
-    if let Some(func_body) = sh.get_func(&line) {
-        let args = vec!["cicada".to_string()];
-        scripting::run_lines(sh, &func_body, &args, capture_output);
-        // TODO: xxx
-        return (false, CommandResult::new());
+    if let Some(func_body) = sh.get_func(&tokens[0].1) {
+        let mut args = vec!["cicada".to_string()];
+        for token in tokens {
+            args.push(token.1.to_string());
+        }
+        log!("run func: {:?}", &args);
+        let cr_list = scripting::run_lines(sh, &func_body, &args, capture_output);
+        let mut stdout = String::new();
+        let mut stderr = String::new();
+        for cr in cr_list {
+            stdout.push_str(&cr.stdout.trim());
+            stdout.push(' ');
+            stderr.push_str(&cr.stderr.trim());
+            stderr.push(' ');
+        }
+        let mut cr = CommandResult::new();
+        cr.stdout = stdout;
+        cr.stderr = stderr;
+        return (false, cr);
     }
 
     // the defaults to return
@@ -97,7 +108,7 @@ pub fn run_pipeline(
     }
 
     let isatty = if tty {
-        unsafe { libc::isatty(0) == 1 }
+        unsafe { libc::isatty(1) == 1 }
     } else {
         false
     };
