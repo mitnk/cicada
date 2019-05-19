@@ -155,7 +155,21 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
 
     let mut checker: HashSet<String> = HashSet::new();
 
-    // handle alias and builtins
+    // handle alias, builtins, and functions
+    for func in sh.funcs.keys() {
+        if !func.starts_with(fname) {
+            continue;
+        }
+        if checker.contains(func) {
+            continue;
+        }
+        checker.insert(func.clone());
+        res.push(Completion {
+            completion: func.to_owned(),
+            display: None,
+            suffix: Suffix::Default,
+        });
+    }
     for alias in sh.alias.keys() {
         if !alias.starts_with(fname) {
             continue;

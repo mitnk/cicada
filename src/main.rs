@@ -140,8 +140,10 @@ fn main() {
                     sh.previous_cmd = line.clone();
                 }
 
-                // temporary solution for completion when sh alias changes
-                if line.trim().starts_with("alias ") || line.trim().starts_with("unalias ") {
+                // temporary solution for completion when alias/funcs changes
+                if line.trim().starts_with("alias ") ||
+                        line.trim().starts_with("unalias ") ||
+                        line.trim().starts_with("source ") {
                     rl.set_completer(Arc::new(completers::CicadaCompleter {
                         sh: Arc::new(sh.clone()),
                     }));
