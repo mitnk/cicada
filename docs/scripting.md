@@ -14,6 +14,7 @@ in simple cases.
 - [For Statements](#for-statements)
 - [While Statements](#while-statements)
 - [Using Builtins](#using-builtins)
+- [Functions](#functions)
 
 ## Introduction
 
@@ -272,7 +273,46 @@ alias ll='ls -lh'
 source ~/.cicadarc_local
 ```
 
-## Functions are not Supported Yet
+## Functions
 
-Supporting functions in cicada is still in the to-do-list. But as said
-in beginning of this doc, it could be also a simplified thing.
+A function is defined like this:
+
+```txt
+function <function-name>() {
+    <function-body>
+}
+```
+
+**NOTE:** The `function <function-name>() {` and `}` part must be in its own
+line. The `()` part is optional.
+
+One example:
+
+```
+$ cat bar.sh
+function foo-bar() {
+    echo hi
+    echo $0
+    echo $1 $2
+    echo bye
+}
+```
+
+After define it, you can call it in the same file (`bar.sh`) like this:
+```
+foo-bar arg1 arg2
+```
+
+Another way is you can `source` this file and run this function in the shell:
+```
+$ source bar.sh
+$ foo-bar arg1 arg2 arg3
+```
+
+The output would be:
+```
+hi
+foo-bar
+arg1 arg2
+bye
+```
