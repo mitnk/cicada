@@ -112,7 +112,7 @@ if [ $(uname -s) = 'Darwin' ]
 fi
 ```
 
-For for details, please check out `[ --help` in your shell.
+For for details, please check out `[ --help` (or `man test`) in your shell.
 
 **Note:** Compare strings with `[ $str1 > $str2 ]` is not supported in cicada.
 The `>` would be treated as output redirections.
