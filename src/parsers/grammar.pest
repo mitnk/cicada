@@ -1,12 +1,12 @@
 WHITESPACE = _{ " " | "\t" }
 
-KW_IF = _{ "if" }
-KW_FI = _{ "fi" }
-KW_FOR = _{ "for" }
-KW_ELSE = { "else" }
-KW_ELSEIF = _{ "else if" }
-KW_WHILE = _{ "while" }
-KW_DONE = _{ "done" }
+KW_IF = _{ "if " }
+KW_FI = _{ "fi" ~ (NEWLINE | EOI) }
+KW_FOR = _{ "for " }
+KW_ELSE = { "else" ~ NEWLINE }
+KW_ELSEIF = _{ "else if " }
+KW_WHILE = _{ "while " }
+KW_DONE = _{ "done" ~ (NEWLINE | EOI) }
 KW_LIST = _{ KW_IF | KW_FOR | KW_ELSEIF | KW_ELSE | KW_FI | KW_WHILE | KW_DONE }
 
 TEST = {(!NEWLINE ~ ANY)+ ~ NEWLINE}
@@ -27,7 +27,7 @@ EXP_IF = {
     IF_IF_BR ~
     IF_ELSEIF_BR* ~
     IF_ELSE_BR? ~
-    KW_FI ~ (NEWLINE | EOI)
+    KW_FI
 }
 
 FOR_VAR = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
@@ -38,7 +38,7 @@ EXP_FOR = {
     (SOI)? ~
     FOR_HEAD ~
         EXP_BODY ~
-    KW_DONE ~ (NEWLINE | EOI)
+    KW_DONE
 }
 
 WHILE_HEAD = { KW_WHILE ~ TEST }
@@ -47,7 +47,7 @@ EXP_WHILE = {
     (SOI)? ~
     WHILE_HEAD ~
         EXP_BODY ~
-    KW_DONE ~ (NEWLINE | EOI)
+    KW_DONE
 }
 
 EXP = { (EXP_IF | EXP_FOR | EXP_WHILE | CMD)* }
