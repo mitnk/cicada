@@ -2,6 +2,7 @@
 
 ## 0.9.7 - master
 
+- Added functions ability into scripting.
 - Fixed alias expansion when using `xargs`: `foo | xargs ls`.
 - Other minor fixes.
 

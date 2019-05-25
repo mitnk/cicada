@@ -110,7 +110,7 @@ pub fn run_lines(sh: &mut shell::Shell,
     match parsers::locust::parse_lines(&lines) {
         Ok(pairs_exp) => {
             for pair in pairs_exp {
-                let (mut _cr_list, _cont) = run_exp(sh, pair, args, capture, 1);
+                let (mut _cr_list, _cont) = run_exp(sh, pair, args, false, capture);
                 cr_list.append(&mut _cr_list);
             }
         }
@@ -213,8 +213,8 @@ fn expand_args_in_tokens(tokens: &mut types::Tokens, args: &[String]) {
 fn run_exp_test_br(sh: &mut shell::Shell,
                    pair_br: Pair<parsers::locust::Rule>,
                    args: &Vec<String>,
-                   capture: bool,
-                   _lv: i32) -> (Vec<CommandResult>, bool, bool) {
+                   in_loop: bool,
+                   capture: bool) -> (Vec<CommandResult>, bool, bool) {
     let mut cr_list = Vec::new();
     let pairs = pair_br.into_inner();
     let mut test_pass = false;
@@ -227,10 +227,6 @@ fn run_exp_test_br(sh: &mut shell::Shell,
                 pair.into_inner().collect();
             let pair_test = &pairs_test[0];
             let line = pair_test.as_str().trim();
-            if line == "continue" {
-                return (cr_list, true, true);
-            }
-
             let line_new = expand_args(line, &args[1..]);
             let mut _cr_list = execute::run_procs(sh, &line_new, true, capture);
             if let Some(last) = _cr_list.last() {
@@ -251,7 +247,7 @@ fn run_exp_test_br(sh: &mut shell::Shell,
             if !test_pass {
                 return (cr_list, false, false);
             }
-            let (mut _cr_list, _cont) = run_exp(sh, pair, args, capture, _lv + 1);
+            let (mut _cr_list, _cont) = run_exp(sh, pair, args, in_loop, capture);
             cr_list.append(&mut _cr_list);
             // branch executed successfully
             return (cr_list, true, _cont);
@@ -265,13 +261,13 @@ fn run_exp_test_br(sh: &mut shell::Shell,
 fn run_exp_if(sh: &mut shell::Shell,
               pair_if: Pair<parsers::locust::Rule>,
               args: &Vec<String>,
-              capture: bool,
-              _lv: i32) -> (Vec<CommandResult>, bool) {
+              in_loop: bool,
+              capture: bool) -> (Vec<CommandResult>, bool) {
     let mut cr_list = Vec::new();
     let pairs = pair_if.into_inner();
     let mut met_continue = false;
     for pair in pairs {
-        let (mut _cr_list, passed, _cont) = run_exp_test_br(sh, pair, args, capture, _lv);
+        let (mut _cr_list, passed, _cont) = run_exp_test_br(sh, pair, args, in_loop, capture);
         met_continue = _cont;
         cr_list.append(&mut _cr_list);
         // break at first successful branch
@@ -340,8 +336,7 @@ fn get_for_var_name(pair_head: Pair<parsers::locust::Rule>) -> String {
 fn run_exp_for(sh: &mut shell::Shell,
                pair_for: Pair<parsers::locust::Rule>,
                args: &Vec<String>,
-               capture: bool,
-               _lv: i32) -> Vec<CommandResult> {
+               capture: bool) -> Vec<CommandResult> {
     let mut cr_list = Vec::new();
     let pairs = pair_for.into_inner();
     let mut result_list: Vec<String> = Vec::new();
@@ -356,7 +351,8 @@ fn run_exp_for(sh: &mut shell::Shell,
         if rule == parsers::locust::Rule::EXP_BODY {
             for value in &result_list {
                 sh.set_env(&var_name, &value);
-                let (mut _cr_list, _cont) = run_exp(sh, pair.clone(), args, capture, _lv + 1);
+                let (mut _cr_list, _cont) = run_exp(
+                    sh, pair.clone(), args, true, capture);
                 cr_list.append(&mut _cr_list);
             }
         }
@@ -367,11 +363,10 @@ fn run_exp_for(sh: &mut shell::Shell,
 fn run_exp_while(sh: &mut shell::Shell,
                  pair_while: Pair<parsers::locust::Rule>,
                  args: &Vec<String>,
-                 capture: bool,
-                 _lv: i32) -> Vec<CommandResult> {
+                 capture: bool) -> Vec<CommandResult> {
     let mut cr_list = Vec::new();
     loop {
-        let (mut _cr_list, passed, _cont) = run_exp_test_br(sh, pair_while.clone(), args, capture, _lv);
+        let (mut _cr_list, passed, _cont) = run_exp_test_br(sh, pair_while.clone(), args, true, capture);
         cr_list.append(&mut _cr_list);
         if !passed {
             break;
@@ -383,8 +378,8 @@ fn run_exp_while(sh: &mut shell::Shell,
 fn run_exp(sh: &mut shell::Shell,
            pair_in: Pair<parsers::locust::Rule>,
            args: &Vec<String>,
-           capture: bool,
-           _lv: i32) -> (Vec<CommandResult>, bool) {
+           in_loop: bool,
+           capture: bool) -> (Vec<CommandResult>, bool) {
     let mut cr_list = Vec::new();
     let pairs = pair_in.into_inner();
     for pair in pairs {
@@ -396,7 +391,12 @@ fn run_exp(sh: &mut shell::Shell,
         let rule = pair.as_rule();
         if rule == parsers::locust::Rule::CMD {
             if line == "continue" {
-                return (cr_list, true);
+                if in_loop {
+                    return (cr_list, true);
+                } else {
+                    println_stderr!("continue: only meaningful in a `for', `while'");
+                    continue;
+                }
             }
 
             let line_new = expand_args(line, &args[1..]);
@@ -409,16 +409,16 @@ fn run_exp(sh: &mut shell::Shell,
                 }
             }
         } else if rule == parsers::locust::Rule::EXP_IF {
-            let (mut _cr_list, _cont) = run_exp_if(sh, pair, args, capture, _lv);
+            let (mut _cr_list, _cont) = run_exp_if(sh, pair, args, in_loop, capture);
             cr_list.append(&mut _cr_list);
             if _cont {
                 return (cr_list, true);
             }
         } else if rule == parsers::locust::Rule::EXP_FOR {
-            let mut _cr_list = run_exp_for(sh, pair, args, capture, _lv);
+            let mut _cr_list = run_exp_for(sh, pair, args, capture);
             cr_list.append(&mut _cr_list);
         } else if rule == parsers::locust::Rule::EXP_WHILE {
-            let mut _cr_list = run_exp_while(sh, pair, args, capture, _lv);
+            let mut _cr_list = run_exp_while(sh, pair, args, capture);
             cr_list.append(&mut _cr_list);
         }
     }

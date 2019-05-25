@@ -99,7 +99,7 @@ no a and no b
 The [test](https://linux.die.net/man/1/test) command `[` is a convenient tool
 to use in `if` and `while` statements.
 
-```
+```sh
 foo=35
 if [ $foo -gt 10 ]
     echo "foo is great than 10"
@@ -262,7 +262,7 @@ For example, you can include extra RC configs with `source` at the end of
 ([RC file](https://github.com/mitnk/cicada/blob/master/docs/rc-file.md)
 itself is also a valid cicada script).
 
-```
+```sh
 # my cicada rc file: ~/.cicadarc
 alias ll='ls -lh'
 
