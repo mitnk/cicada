@@ -110,7 +110,7 @@ pub fn run_lines(sh: &mut shell::Shell,
     match parsers::locust::parse_lines(&lines) {
         Ok(pairs_exp) => {
             for pair in pairs_exp {
-                let (mut _cr_list, _cont) = run_exp(sh, pair, args, false, capture);
+                let (mut _cr_list, _cont, _brk) = run_exp(sh, pair, args, false, capture);
                 cr_list.append(&mut _cr_list);
             }
         }
@@ -214,7 +214,7 @@ fn run_exp_test_br(sh: &mut shell::Shell,
                    pair_br: Pair<parsers::locust::Rule>,
                    args: &Vec<String>,
                    in_loop: bool,
-                   capture: bool) -> (Vec<CommandResult>, bool, bool) {
+                   capture: bool) -> (Vec<CommandResult>, bool, bool, bool) {
     let mut cr_list = Vec::new();
     let pairs = pair_br.into_inner();
     let mut test_pass = false;
@@ -245,37 +245,39 @@ fn run_exp_test_br(sh: &mut shell::Shell,
 
         if rule == parsers::locust::Rule::EXP_BODY {
             if !test_pass {
-                return (cr_list, false, false);
+                return (cr_list, false, false, false);
             }
-            let (mut _cr_list, _cont) = run_exp(sh, pair, args, in_loop, capture);
+            let (mut _cr_list, _cont, _brk) = run_exp(sh, pair, args, in_loop, capture);
             cr_list.append(&mut _cr_list);
             // branch executed successfully
-            return (cr_list, true, _cont);
+            return (cr_list, true, _cont, _brk);
         }
 
         unreachable!();
     }
-    (cr_list, test_pass, false)
+    (cr_list, test_pass, false, false)
 }
 
 fn run_exp_if(sh: &mut shell::Shell,
               pair_if: Pair<parsers::locust::Rule>,
               args: &Vec<String>,
               in_loop: bool,
-              capture: bool) -> (Vec<CommandResult>, bool) {
+              capture: bool) -> (Vec<CommandResult>, bool, bool) {
     let mut cr_list = Vec::new();
     let pairs = pair_if.into_inner();
     let mut met_continue = false;
+    let mut met_break = false;
     for pair in pairs {
-        let (mut _cr_list, passed, _cont) = run_exp_test_br(sh, pair, args, in_loop, capture);
+        let (mut _cr_list, passed, _cont, _brk) = run_exp_test_br(sh, pair, args, in_loop, capture);
         met_continue = _cont;
+        met_break = _brk;
         cr_list.append(&mut _cr_list);
         // break at first successful branch
         if passed {
             break;
         }
     }
-    (cr_list, met_continue)
+    (cr_list, met_continue, met_break)
 }
 
 fn get_for_result_from_init(sh: &mut shell::Shell,
@@ -351,9 +353,12 @@ fn run_exp_for(sh: &mut shell::Shell,
         if rule == parsers::locust::Rule::EXP_BODY {
             for value in &result_list {
                 sh.set_env(&var_name, &value);
-                let (mut _cr_list, _cont) = run_exp(
+                let (mut _cr_list, _cont, _brk) = run_exp(
                     sh, pair.clone(), args, true, capture);
                 cr_list.append(&mut _cr_list);
+                if _brk {
+                    break;
+                }
             }
         }
     }
@@ -366,9 +371,9 @@ fn run_exp_while(sh: &mut shell::Shell,
                  capture: bool) -> Vec<CommandResult> {
     let mut cr_list = Vec::new();
     loop {
-        let (mut _cr_list, passed, _cont) = run_exp_test_br(sh, pair_while.clone(), args, true, capture);
+        let (mut _cr_list, passed, _cont, _brk) = run_exp_test_br(sh, pair_while.clone(), args, true, capture);
         cr_list.append(&mut _cr_list);
-        if !passed {
+        if !passed || _brk {
             break;
         }
     }
@@ -379,7 +384,7 @@ fn run_exp(sh: &mut shell::Shell,
            pair_in: Pair<parsers::locust::Rule>,
            args: &Vec<String>,
            in_loop: bool,
-           capture: bool) -> (Vec<CommandResult>, bool) {
+           capture: bool) -> (Vec<CommandResult>, bool, bool) {
     let mut cr_list = Vec::new();
     let pairs = pair_in.into_inner();
     for pair in pairs {
@@ -392,9 +397,17 @@ fn run_exp(sh: &mut shell::Shell,
         if rule == parsers::locust::Rule::CMD {
             if line == "continue" {
                 if in_loop {
-                    return (cr_list, true);
+                    return (cr_list, true, false);
                 } else {
-                    println_stderr!("continue: only meaningful in a `for', `while'");
+                    println_stderr!("cicada: continue: only meaningful in loops");
+                    continue;
+                }
+            }
+            if line == "break" {
+                if in_loop {
+                    return (cr_list, false, true);
+                } else {
+                    println_stderr!("cicada: break: only meaningful in loops");
                     continue;
                 }
             }
@@ -405,14 +418,17 @@ fn run_exp(sh: &mut shell::Shell,
             if let Some(last) = cr_list.last() {
                 let status = last.status;
                 if status != 0 {
-                    return (cr_list, false);
+                    return (cr_list, false, false);
                 }
             }
         } else if rule == parsers::locust::Rule::EXP_IF {
-            let (mut _cr_list, _cont) = run_exp_if(sh, pair, args, in_loop, capture);
+            let (mut _cr_list, _cont, _brk) = run_exp_if(sh, pair, args, in_loop, capture);
             cr_list.append(&mut _cr_list);
             if _cont {
-                return (cr_list, true);
+                return (cr_list, true, false);
+            }
+            if _brk {
+                return (cr_list, false, true);
             }
         } else if rule == parsers::locust::Rule::EXP_FOR {
             let mut _cr_list = run_exp_for(sh, pair, args, capture);
@@ -422,7 +438,7 @@ fn run_exp(sh: &mut shell::Shell,
             cr_list.append(&mut _cr_list);
         }
     }
-    (cr_list, false)
+    (cr_list, false, false)
 }
 
 #[cfg(test)]
