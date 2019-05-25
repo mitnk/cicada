@@ -84,21 +84,12 @@ pub fn run_procs(sh: &mut shell::Shell,
 fn drain_env_tokens(tokens: &mut Tokens) -> HashMap<String, String> {
     let mut envs: HashMap<String, String> = HashMap::new();
     let mut n = 0;
+    let re = Regex::new(r"^([a-zA-Z0-9_]+)=(.*)$").unwrap();
     for (sep, text) in tokens.iter() {
         if !sep.is_empty() || !libs::re::re_contains(text, r"^([a-zA-Z0-9_]+)=(.*)$") {
             break;
         }
 
-        let re;
-        match Regex::new(r"^([a-zA-Z0-9_]+)=(.*)$") {
-            Ok(x) => {
-                re = x;
-            }
-            Err(e) => {
-                println_stderr!("Regex new: {:?}", e);
-                return envs;
-            }
-        }
         for cap in re.captures_iter(text) {
             let name = cap[1].to_string();
             let value = parsers::parser_line::unquote(&cap[2]);

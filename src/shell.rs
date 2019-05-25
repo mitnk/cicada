@@ -689,9 +689,12 @@ fn expand_home(tokens: &mut types::Tokens) {
 }
 
 fn env_in_token(token: &str) -> bool {
+    if libs::re::re_contains(token, r"\$\{?[a-zA-Z][a-zA-Z0-9_]*\}?") {
+        return !libs::re::re_contains(token, r"='.*\$\{?[a-zA-Z][a-zA-Z0-9_]*\}?.*'$");
+    }
+
     libs::re::re_contains(token, r"\$\{?\$\}?") ||
-        libs::re::re_contains(token, r"\$\{?\?\}?") ||
-        libs::re::re_contains(token, r"\$\{?[a-zA-Z][a-zA-Z0-9_]*\}?")
+        libs::re::re_contains(token, r"\$\{?\?\}?")
 }
 
 pub fn expand_env(sh: &Shell, tokens: &mut types::Tokens) {
@@ -715,7 +718,8 @@ pub fn expand_env(sh: &Shell, tokens: &mut types::Tokens) {
 }
 
 fn should_do_dollar_command_extension(line: &str) -> bool {
-    libs::re::re_contains(line, r"\$\([^\)]+\)")
+    libs::re::re_contains(line, r"\$\([^\)]+\)") &&
+    !libs::re::re_contains(line, r"='.*\$\([^\)]+\).*'$")
 }
 
 fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens) {
@@ -912,6 +916,7 @@ mod tests {
     fn test_should_do_dollar_command_extension() {
         assert!(!should_do_dollar_command_extension("ls $HOME"));
         assert!(!should_do_dollar_command_extension("echo $[pwd]"));
+        assert!(!should_do_dollar_command_extension("='pwd is $(pwd).'"));
         assert!(should_do_dollar_command_extension("echo $(pwd)"));
         assert!(should_do_dollar_command_extension("echo $(pwd) foo"));
         assert!(should_do_dollar_command_extension("echo $(foo bar)"));
@@ -936,6 +941,15 @@ mod tests {
         ];
         expand_env(&sh, &mut tokens);
         assert_eq!(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![
+            ("", "alias"), ("", "foo=\'echo $PWD\'")
+        ]);
+        let exp_tokens = vec![
+            ("", "alias"), ("", "foo=\'echo $PWD\'")
+        ];
+        expand_env(&sh, &mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
 
         let mut tokens = vec![
             ("".to_string(), "echo".to_string()),

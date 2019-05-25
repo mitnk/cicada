@@ -25,7 +25,13 @@ pub fn tokens_to_args(tokens: &Tokens) -> Vec<String> {
 pub fn tokens_to_line(tokens: &Tokens) -> String {
     let mut result = String::new();
     for t in tokens {
-        result.push_str(format!("{}{}{} ", t.0, t.1, t.0).as_str());
+        if t.0.is_empty() {
+            result.push_str(&t.1);
+        } else {
+            let s = tools::wrap_sep_string(&t.0, &t.1);
+            result.push_str(&s);
+        }
+        result.push(' ');
     }
     if result.ends_with(' ') {
         let len = result.len();
@@ -554,6 +560,7 @@ mod tests {
     use super::line_to_cmds;
     use super::line_to_plain_tokens;
     use super::Tokens;
+    use super::tokens_to_line;
 
     fn _assert_vec_tuple_eq(a: Tokens, b: Vec<(&str, &str)>) {
         assert_eq!(a.len(), b.len());
@@ -1000,5 +1007,15 @@ mod tests {
         let crs = cmd_to_with_redirects(&tokens).unwrap();
         assert_eq!(crs.tokens, tokens_expect);
         assert_eq!(crs.redirects, redirects_expect);
+    }
+
+    #[test]
+    fn test_tokens_to_line() {
+        let tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("\"".to_string(), "a\"b".to_string()),
+        ];
+        let line_exp = "echo \"a\\\"b\"";
+        assert_eq!(tokens_to_line(&tokens), line_exp);
     }
 }

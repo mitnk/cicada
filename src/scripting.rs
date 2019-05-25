@@ -142,13 +142,7 @@ fn is_args_in_token(token: &str) -> bool {
 }
 
 fn expand_args_for_single_token(token: &str, args: &[String]) -> String {
-    let re;
-    if let Ok(x) = Regex::new(r"^(.*?)\$\{?([0-9]+|@)\}?(.*)$") {
-        re = x;
-    } else {
-        println_stderr!("cicada: re new error");
-        return String::new();
-    }
+    let re = Regex::new(r"^(.*?)\$\{?([0-9]+|@)\}?(.*)$").unwrap();
     if !re.is_match(token) {
         return token.to_string();
     }
@@ -453,6 +447,10 @@ mod tests {
         let line = "echo $@";
         let line_new = expand_args(line, &args);
         assert_eq!(line_new, "echo foo bar baz");
+
+        let line = "echo \"a\\\"b\"";
+        let line_new = expand_args(line, &args);
+        assert_eq!(line_new, "echo \"a\\\"b\"");
 
         let line = "echo \"$@\"";
         let line_new = expand_args(line, &args);
