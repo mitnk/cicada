@@ -108,7 +108,7 @@ else
 fi
 
 if [ $(uname -s) = 'Darwin' ]
-    echo "you're in Mac OS"
+    echo "you're using Mac OS"
 fi
 ```
 

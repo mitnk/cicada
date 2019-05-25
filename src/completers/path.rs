@@ -130,6 +130,7 @@ pub fn complete_path(word: &str, for_dir: bool) -> Vec<Completion> {
             }
         }
     }
+    res.sort_by(|a, b| a.completion.cmp(&b.completion));
     res
 }
 
