@@ -1,6 +1,6 @@
 # Change Logs
 
-## 0.9.7 - master
+## 0.9.7 - 2019-05-26
 
 - Added functions ability into scripting.
 - Fixed alias expansion when using `xargs`: `foo | xargs ls`.

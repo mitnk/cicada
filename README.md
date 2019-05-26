@@ -94,7 +94,6 @@ Read APIs here: [https://docs.rs/cicada/](https://docs.rs/cicada/).
 
 - [Why another shell?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#why-another-shell)
 - [Compare to bash?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#compare-to-bash)
-- [When will functions get supported in cicada?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#when-will-functions-get-supported-in-cicada)
 - [Is cicada POSIX-compatible?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#is-cicada-posix-compatible)
 - [Will my bash/zsh scripts continue work in cicada?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#will-my-bashzsh-scripts-continue-work-in-cicada)
 - [Windows support?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#windows-support)
