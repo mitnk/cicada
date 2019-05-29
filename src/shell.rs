@@ -856,8 +856,8 @@ pub fn do_expansion(sh: &mut Shell, tokens: &mut types::Tokens) {
 
     expand_alias(sh, tokens);
     expand_home(tokens);
-    expand_brace(tokens);
     expand_env(sh, tokens);
+    expand_brace(tokens);
     expand_glob(tokens);
     do_command_substitution(sh, tokens);
     expand_brace_range(tokens);

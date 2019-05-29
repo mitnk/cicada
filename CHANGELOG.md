@@ -1,5 +1,10 @@
 # Change Logs
 
+## 0.9.8 - master
+
+- Fixed a double expansion issue: `${1,2}-${foo}`.
+- `source` can take extra args now.
+
 ## 0.9.7 - 2019-05-26
 
 - Added functions ability into scripting.
