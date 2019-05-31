@@ -7,6 +7,7 @@ Cicada is a simple Unix shell written in Rust.
 
 ## Documents
 
+- [Install cicada](https://github.com/mitnk/cicada/blob/master/docs/install.md)
 - [Environment Variables](https://github.com/mitnk/cicada/tree/master/docs/envs.md)
 - [Cicada Builtins](https://github.com/mitnk/cicada/tree/master/docs/builtins.md)
 - [Completion](https://github.com/mitnk/cicada/tree/master/docs/completion.md)
@@ -82,10 +83,6 @@ $ 2 ^ 31
 2147483648
 ```
 
-## Install Cicada
-
-Please refer to [docs/install.md](https://github.com/mitnk/cicada/blob/master/docs/install.md).
-
 ## Cicada is also a library (BETA)
 
 Read APIs here: [https://docs.rs/cicada/](https://docs.rs/cicada/).
@@ -97,7 +94,3 @@ Read APIs here: [https://docs.rs/cicada/](https://docs.rs/cicada/).
 - [Is cicada POSIX-compatible?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#is-cicada-posix-compatible)
 - [Will my bash/zsh scripts continue work in cicada?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#will-my-bashzsh-scripts-continue-work-in-cicada)
 - [Windows support?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#windows-support)
-
-## To Do List
-
-- to support simple Functions
