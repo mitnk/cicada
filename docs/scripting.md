@@ -257,19 +257,18 @@ can run it with `$ source foo.sh`.
 
 In scripts, you could also use cicada's
 [builtins](https://github.com/mitnk/cicada/blob/master/docs/builtins.md).
-For example, you can include extra RC configs with `source` at the end of
-`~/.cicadarc` file:
-([RC file](https://github.com/mitnk/cicada/blob/master/docs/rc-file.md)
-itself is also a valid cicada script).
+For example, you can include extra configs with `source` at the end of
+[RC file](https://github.com/mitnk/cicada/blob/master/docs/rc-file.md):
+(RC file itself is a valid cicada script).
 
 ```sh
-# my cicada rc file: ~/.cicadarc
+# content of my rc-file
+
 alias ll='ls -lh'
 
-# other settings
-...
+...  # other configs
 
-# include some extra settings for this host only:
+# include some extra settings for this host only at the end
 source ~/.cicadarc_local
 ```
 

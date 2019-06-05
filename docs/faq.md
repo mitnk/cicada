@@ -6,7 +6,7 @@
 - <del>to learn Rust</del>
 - <del>have a shell that can customize a bit for my own needs</del>
 
-Because we can.
+Because we can. ☺
 
 ### Compare to bash?
 
@@ -32,7 +32,8 @@ You can invoke scripts with `$ ./my-script.sh` as long as it have
 `$ bash my-script.sh`.
 
 Cicada does not recognize these scripts itself. You cannot integrate these
-shell scripts/functions in RC files to initiate cicada shell.
+shell scripts/functions in RC files to initiate cicada shell. But you could
+use [the scripting ability of cicada](https://github.com/mitnk/cicada/tree/master/docs/scripting.md).
 
 ### Windows support?
 

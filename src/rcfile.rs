@@ -3,6 +3,19 @@ use std::path::Path;
 
 use crate::scripting;
 use crate::shell;
+use crate::tools;
+
+pub fn get_rc_file() -> String {
+    let dir_config = tools::get_config_dir();
+    let rc_file = format!("{}/cicadarc", dir_config);
+    if Path::new(&rc_file).exists() {
+        return rc_file;
+    }
+
+    // fail back to $HOME/.cicadarc
+    let home = tools::get_user_home();
+    format!("{}/{}", home, ".cicadarc")
+}
 
 pub fn load_rc_files(sh: &mut shell::Shell) {
     // make "/usr/local/bin" as the first item in PATH
@@ -13,7 +26,7 @@ pub fn load_rc_files(sh: &mut shell::Shell) {
         }
     }
 
-    let rc_file = shell::get_rc_file();
+    let rc_file = get_rc_file();
     if !Path::new(&rc_file).exists() {
         return;
     }

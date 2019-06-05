@@ -87,14 +87,19 @@ en_US.UTF-8
 ## Customize Completions
 
 Cicada supports simplifed customized completion using YAML file.
-Put your completion files under `~/.cicada/completers/`. The completion files
-look like this:
+Put your completion files under `$XDG_CONFIG_HOME/cicada/completers`
+(by default it's `~/.config/cicada/completers/`).
+The completion files look like this:
+
+> **NOTE:** cicada 0.9.x also loads completers from `~/.cicada/completers`
+> (if `~/.config/cicada/completers` not exist) for
+> compatibility. From 1.0, cicada will not read this location anymore.
 
 ```
-$ ls ~/.cicada/completers/
+$ ls ~/.config/cicada/completers/
 brew.yaml git.yaml  pip.yaml  vox.yaml
 
-$ cat ~/.cicada/completers/brew.yaml
+$ cat ~/.config/cicada/completers/brew.yaml
 - doctor
 - info
 - install
@@ -111,7 +116,7 @@ uninstall  update  upgrade
 Currently, cicada supports maximum 2 levels of completion:
 
 ```
-$ cat ~/.cicada/completers/pip.yaml
+$ cat ~/.config/cicada/completers/pip.yaml
 - install:
     - -U
     - --upgrade
@@ -134,7 +139,7 @@ $ pip install --requirement
 **You may use sub commands in it**. For example:
 
 ```
-$ cat ~/.cicada/completers/git.yaml
+$ cat ~/.config/cicada/completers/git.yaml
 ... skipped ...
 
 - checkout:
@@ -157,7 +162,7 @@ $ git co develep-the-customized-completion
 still possible to simulate 3 (or more) levels like this:
 
 ```
-$ cat ~/.cicada/completers/git.yaml
+$ cat ~/.config/cicada/completers/git.yaml
 
 ... skipped ...
 

@@ -867,11 +867,6 @@ pub fn needs_expand_home(line: &str) -> bool {
     libs::re::re_contains(line, r"( +~ +)|( +~/)|(^ *~/)|( +~ *$)")
 }
 
-pub fn get_rc_file() -> String {
-    let home = tools::get_user_home();
-    format!("{}/{}", home, ".cicadarc")
-}
-
 #[cfg(test)]
 mod tests {
     use std::env;

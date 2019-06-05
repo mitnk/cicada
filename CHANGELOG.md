@@ -4,6 +4,8 @@
 
 - Fixed a double expansion issue: `${1,2}-${foo}`.
 - `source` can take extra args now.
+- Recognized new RC file location: `~/.config/cicada/cicadarc`.
+- Replaced `~/.cicada/` with `~/.config/cicada/`.
 
 ## 0.9.7 - 2019-05-26
 

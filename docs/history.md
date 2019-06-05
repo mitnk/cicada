@@ -20,9 +20,14 @@ values on the right side are the default ones:
 
 ```
 export HISTORY_FILE="$HOME/.local/share/cicada/history.sqlite"
-export HISTORY_SIZE=100000
+export HISTORY_SIZE=99999
 export HISTORY_TABLE="cicada_history"
 ```
 
-See more on [history built-in command](https://github.com/mitnk/cicada/blob/master/docs/builtins.md#history)  
+## The history builtin command
+
+See details here: [history built-in command](https://github.com/mitnk/cicada/blob/master/docs/builtins.md#history)  
+
+## Others
+
 See more on [Environment Variables](https://github.com/mitnk/cicada/blob/master/docs/envs.md#history_size)  

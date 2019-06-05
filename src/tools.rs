@@ -104,7 +104,23 @@ pub fn get_user_home() -> String {
     }
 }
 
+pub fn get_config_dir() -> String {
+    if let Ok(x) = env::var("XDG_CONFIG_HOME") {
+        format!("{}/cicada", x)
+    } else {
+        let home = get_user_home();
+        format!("{}/.config/cicada", home)
+    }
+}
+
 pub fn get_user_completer_dir() -> String {
+    let dir_config = get_config_dir();
+    let dir_completers = format!("{}/completers", dir_config);
+    if Path::new(&dir_completers).exists() {
+        return dir_completers;
+    }
+
+    // fail back to $HOME/.cicada, will remove after 1.0 release
     let home = get_user_home();
     format!("{}/.cicada/completers", home)
 }

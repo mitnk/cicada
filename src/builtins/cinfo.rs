@@ -1,5 +1,6 @@
 use crate::history;
 use crate::libs;
+use crate::rcfile;
 
 pub fn run() -> i32 {
     let mut info = vec![];
@@ -11,6 +12,9 @@ pub fn run() -> i32 {
 
     let hfile = history::get_history_file();
     info.push(("history-file", &hfile));
+
+    let rcf = rcfile::get_rc_file();
+    info.push(("rc-file", &rcf));
 
     let git_hash = env!("GIT_HASH");
     if !git_hash.is_empty() {

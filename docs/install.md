@@ -1,6 +1,6 @@
 ## Install Cicada
 
-There are a few methods to install cicada into your system.
+There are a few ways to install cicada into your system.
 
 ### 1) Install via Pre-built Binaries
 
