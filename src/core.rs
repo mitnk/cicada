@@ -180,6 +180,13 @@ pub fn run_pipeline(
         }
     }
 
+    unsafe {
+        for fds in pipes {
+            libc::close(fds.0);
+            libc::close(fds.1);
+        }
+    }
+
     if cmd_result.status == types::STOPPED {
         jobc::mark_job_as_stopped(sh, pgid);
     }
@@ -465,14 +472,21 @@ fn run_command(
                 }
             }
 
+            unsafe {
+                libc::close(fds_capture_stdout.0);
+                libc::close(fds_capture_stdout.1);
+                libc::close(fds_capture_stderr.0);
+                libc::close(fds_capture_stderr.1);
+            }
+
             return pid;
         }
         Err(_) => {
             println_stderr!("Fork failed");
             *cmd_result = CommandResult::error();
+            0
         }
     }
-    0
 }
 
 pub fn run_calculator(line: &str) -> Result<String, &str> {

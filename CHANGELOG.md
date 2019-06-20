@@ -6,6 +6,7 @@
 - `source` can take extra args now.
 - Recognized new RC file location: `~/.config/cicada/cicadarc`.
 - Replaced `~/.cicada/` with `~/.config/cicada/`.
+- Fixed issue of not closing pipes when running commands.
 
 ## 0.9.7 - 2019-05-26
 
