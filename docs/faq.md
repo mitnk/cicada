@@ -27,8 +27,8 @@ cicada is missing, we could add it.
 
 ### Will my bash/zsh scripts continue work in cicada?
 
-You can invoke scripts with `$ ./my-script.sh` as long as it have
-"#!/bin/bash" stuff on the top. Or you can always run them as:
+You can invoke scripts with `$ ./my-script.sh` as long as it has the
+"#!/bin/bash" shebang. Or you can always run them as:
 `$ bash my-script.sh`.
 
 Cicada does not recognize these scripts itself. You cannot integrate these
