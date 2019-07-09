@@ -4,31 +4,31 @@
 
 - <del>for fun</del>
 - <del>to learn Rust</del>
-- <del>have a shell that can customize a bit for my own needs</del>
+- <del>have a shell that I can customize a bit for my own needs</del>
 
 Because we can. ☺
 
 ### Compare to bash?
 
-Bash is where most people come from and familiar with. So cicada is trying
+Bash is where most people come from and what they are familiar with. So cicada is trying
 to support common cases that bash supports. Cicada will only be a "subset"
 of bash. <del>Currently cicada does not have scripting/function ability.</del>
 
 ### When will functions get supported in cicada?
 
-<del>Maybe someday in future, and it won't be complex as bash scriping for sure.</del>
-Scripting/functions **have been added** since cicada 0.9.7.
+<del>Maybe someday in future, and it won't be complex as bash scripting for sure.</del>
+Scripting/functions **have been added** in cicada 0.9.7.
 
 ### Is cicada POSIX-compatible?
 
-As the above answers hints, while cicada is trying to be POSIX, but it will
+As the above answers hints, while cicada is trying to be POSIX, it will
 not be a fully POSIX shell. However, if any command pattern is common and
-cicada is missing, we could add it.
+cicada is missing support, we could add it.
 
 ### Will my bash/zsh scripts continue work in cicada?
 
-You can invoke scripts with `$ ./my-script.sh` as long as it has the
-"#!/bin/bash" shebang. Or you can always run them as:
+You can invoke scripts with `$ ./my-script.sh` as long as they have a shebang
+(`#!/bin/bash`) at the top. Or you can always run them as:
 `$ bash my-script.sh`.
 
 Cicada does not recognize these scripts itself. You cannot integrate these
