@@ -20,9 +20,9 @@ In following aspects, cicada wants to do a better (sanity) job:
 - [History](https://github.com/mitnk/cicada/tree/master/docs/history.md)
 - [Customize Prompt](https://github.com/mitnk/cicada/tree/master/docs/prompt.md)
 
-Compare to shells like zsh/fish, cicada tends to be a simpler shell. Cicada
-does not provide that many features like them. Audience of cicada shell
-should be people that are seeking simplicity and speed, while not full-feature.
+Compare to shells like zsh/fish, cicada tends to be a simpler shell.
+Audience of cicada shell should be people that are seeking simplicity and
+speed, while not full-feature.
 
 ### Is cicada POSIX-compatible?
 
