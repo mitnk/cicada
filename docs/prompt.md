@@ -1,7 +1,8 @@
 # Customize Prompt in Cicada Shell
 
 In bash, you can customize your shell prompt by setting `PS1` environment
-variable. In cicada, we can do this by setting `PROMPT` env in `~/.cicadarc`.
+variable. In cicada, we can do this by setting `PROMPT` env in
+[RC-file](https://github.com/mitnk/cicada/blob/master/docs/rc-file.md).
 
 By default, `$PROMPT` uses the following value:
 ```

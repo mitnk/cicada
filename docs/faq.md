@@ -8,11 +8,21 @@
 
 Because we can. ☺
 
-### Compare to bash?
+### Compare to bash/zsh/etc?
 
-Bash is where most people come from and what they are familiar with. So cicada is trying
-to support common cases that bash supports. Cicada will only be a "subset"
-of bash. <del>Currently cicada does not have scripting/function ability.</del>
+Bash is where most people come from and what they are familiar with.
+Cicada is trying to support most common cases that Bash supports, except
+the Bash scripting language.
+
+In following aspects, cicada wants to do a better (sanity) job:
+
+- [Completion](https://github.com/mitnk/cicada/tree/master/docs/completion.md)
+- [History](https://github.com/mitnk/cicada/tree/master/docs/history.md)
+- [Customize Prompt](https://github.com/mitnk/cicada/tree/master/docs/prompt.md)
+
+Compare to shells like zsh/fish, cicada tends to be a simpler shell. Cicada
+does not provide that many features like them. Audience of cicada shell
+should be people that are seeking simplicity and speed, while not full-feature.
 
 ### When will functions get supported in cicada?
 

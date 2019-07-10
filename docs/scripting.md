@@ -194,7 +194,8 @@ counter = 19
 
 As expected, you can combine/nested the above statements together.
 
-One example is set `ls` aliases in `~/.cicadarc`:
+One example is set `ls` aliases in
+[RC-file](https://github.com/mitnk/cicada/blob/master/docs/rc-file.md):
 
 ```sh
 if which exa > /dev/null

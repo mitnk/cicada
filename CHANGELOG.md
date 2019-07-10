@@ -1,6 +1,10 @@
 # Change Logs
 
-## 0.9.8 - master
+## 0.9.9 - master
+
+- Improved error messages for running scripts.
+
+## 0.9.8 - 2019-06-20
 
 - Fixed a double expansion issue: `${1,2}-${foo}`.
 - `source` can take extra args now.

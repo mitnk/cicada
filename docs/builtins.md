@@ -58,7 +58,7 @@ Exit the current progress (the shell). Can exit with an extra code like:
 ## export
 
 Change environment variables for current session. You can also use `export` in
-`~/.cicadarc` file.
+[RC-file](https://github.com/mitnk/cicada/blob/master/docs/rc-file.md).
 
 Examples:
 ```

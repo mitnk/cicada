@@ -1,6 +1,6 @@
 # Cicada Environment Variables
 
-You can modify them in `~/.cicadarc` file.
+You can modify them in [RC-file](https://github.com/mitnk/cicada/blob/master/docs/rc-file.md).
 
 ## CICADA_LOG_FILE
 
