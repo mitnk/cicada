@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{Read, Write, ErrorKind};
 use std::path::Path;
 
 use pest::iterators::Pair;
@@ -44,7 +44,7 @@ pub fn run_script(sh: &mut shell::Shell, args: &Vec<String>) -> i32 {
     match File::open(&full_src_file) {
         Ok(x) => file = x,
         Err(e) => {
-            println_stderr!("cicada: open script file err: {:?}", e);
+            println_stderr!("cicada: {}: failed to open file - {:?}", &full_src_file, e.kind());
             return 1;
         }
     }
@@ -52,7 +52,14 @@ pub fn run_script(sh: &mut shell::Shell, args: &Vec<String>) -> i32 {
     match file.read_to_string(&mut text) {
         Ok(_) => {}
         Err(e) => {
-            println_stderr!("cicada: read_to_string error: {:?}", e);
+            match e.kind() {
+                ErrorKind::InvalidData => {
+                    println_stderr!("cicada: {}: not a valid script file", &full_src_file);
+                }
+                _ => {
+                    println_stderr!("cicada: {}: error: {:?}", &full_src_file, e);
+                }
+            }
             return 1;
         }
     }
