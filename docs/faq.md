@@ -8,7 +8,7 @@
 
 Because we can. ☺
 
-### Compare to bash/zsh/etc?
+### Compare to Other Shells
 
 Bash is where most people come from and what they are familiar with.
 Cicada is trying to support most common cases that Bash supports, except
@@ -23,11 +23,6 @@ In following aspects, cicada wants to do a better (sanity) job:
 Compare to shells like zsh/fish, cicada tends to be a simpler shell. Cicada
 does not provide that many features like them. Audience of cicada shell
 should be people that are seeking simplicity and speed, while not full-feature.
-
-### When will functions get supported in cicada?
-
-<del>Maybe someday in future, and it won't be complex as bash scripting for sure.</del>
-Scripting/functions **have been added** in cicada 0.9.7.
 
 ### Is cicada POSIX-compatible?
 
