@@ -654,31 +654,20 @@ fn expand_home(tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
     let mut buff = Vec::new();
     for (sep, text) in tokens.iter() {
-        if !sep.is_empty() || !needs_expand_home(&text) {
+        if !sep.is_empty() || !text.starts_with("~") {
             idx += 1;
             continue;
         }
 
         let mut s: String = text.clone();
-        let v = vec![
-            r"(?P<head> +)~(?P<tail> +)",
-            r"(?P<head> +)~(?P<tail>/)",
-            r"^(?P<head> *)~(?P<tail>/)",
-            r"(?P<head> +)~(?P<tail> *$)",
-        ];
-        for item in &v {
-            let re;
-            if let Ok(x) = Regex::new(item) {
-                re = x;
-            } else {
-                return;
-            }
-            let home = tools::get_user_home();
-            let ss = s.clone();
-            let to = format!("$head{}$tail", home);
-            let result = re.replace_all(ss.as_str(), to.as_str());
-            s = result.to_string();
-        }
+        let ptn = r"^~(?P<tail>.*)";
+        let re = Regex::new(ptn).expect("invalid re ptn");
+        let home = tools::get_user_home();
+        let ss = s.clone();
+        let to = format!("{}$tail", home);
+        let result = re.replace_all(ss.as_str(), to.as_str());
+        s = result.to_string();
+
         buff.push((idx, s.clone()));
         idx += 1;
     }
@@ -863,10 +852,6 @@ pub fn do_expansion(sh: &mut Shell, tokens: &mut types::Tokens) {
     expand_brace_range(tokens);
 }
 
-pub fn needs_expand_home(line: &str) -> bool {
-    libs::re::re_contains(line, r"( +~ +)|( +~/)|(^ *~/)|( +~ *$)")
-}
-
 #[cfg(test)]
 mod tests {
     use std::env;
@@ -875,23 +860,9 @@ mod tests {
     use super::expand_brace_range;
     use super::expand_env;
     use super::libs;
-    use super::needs_expand_home;
     use super::needs_globbing;
     use super::should_do_dollar_command_extension;
     use super::Shell;
-
-    #[test]
-    fn test_need_expand_home() {
-        assert!(needs_expand_home("ls ~"));
-        assert!(needs_expand_home("ls  ~  "));
-        assert!(needs_expand_home("cat ~/a.py"));
-        assert!(needs_expand_home("echo ~"));
-        assert!(needs_expand_home("echo ~ ~~"));
-        assert!(needs_expand_home("~/bin/py"));
-        assert!(!needs_expand_home("echo '~'"));
-        assert!(!needs_expand_home("echo \"~\""));
-        assert!(!needs_expand_home("echo ~~"));
-    }
 
     #[test]
     fn test_needs_globbing() {

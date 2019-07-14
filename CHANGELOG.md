@@ -3,6 +3,7 @@
 ## 0.9.9 - master
 
 - Improved error messages for running scripts.
+- Fixed issue that `ls ~` does not work.
 
 ## 0.9.8 - 2019-06-20
 

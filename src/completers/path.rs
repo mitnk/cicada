@@ -11,6 +11,7 @@ use linefeed::complete::{Completer, Completion, Suffix};
 use linefeed::terminal::Terminal;
 use linefeed::Prompter;
 
+use crate::libs;
 use crate::parsers;
 use crate::shell;
 use crate::tools;
@@ -62,6 +63,10 @@ impl<Term: Terminal> Completer<Term> for CdCompleter {
     }
 }
 
+fn needs_expand_home(line: &str) -> bool {
+    libs::re::re_contains(line, r"( +~ +)|( +~/)|(^ *~/)|( +~ *$)")
+}
+
 /// Returns a sorted list of paths whose prefix matches the given path.
 pub fn complete_path(word: &str, for_dir: bool) -> Vec<Completion> {
     let mut res = Vec::new();
@@ -77,7 +82,7 @@ pub fn complete_path(word: &str, for_dir: bool) -> Vec<Completion> {
     let (_dir_orig, _) = split_path(&path);
     let dir_orig = if let Some(_dir) = _dir_orig { _dir } else { "" };
     let mut path_extended = path.clone();
-    if shell::needs_expand_home(&path_extended) {
+    if needs_expand_home(&path_extended) {
         shell::expand_home_string(&mut path_extended)
     }
     let (_dir_lookup, file_name) = split_path(&path_extended);
@@ -251,11 +256,25 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
 
 #[cfg(test)]
 mod tests {
+    use super::needs_expand_home;
     use super::split_path;
 
     #[test]
     fn test_split_path() {
         assert_eq!(split_path(""), (None, ""));
         assert_eq!(split_path(""), (None, ""));
+    }
+
+    #[test]
+    fn test_need_expand_home() {
+        assert!(needs_expand_home("ls ~"));
+        assert!(needs_expand_home("ls  ~  "));
+        assert!(needs_expand_home("cat ~/a.py"));
+        assert!(needs_expand_home("echo ~"));
+        assert!(needs_expand_home("echo ~ ~~"));
+        assert!(needs_expand_home("~/bin/py"));
+        assert!(!needs_expand_home("echo '~'"));
+        assert!(!needs_expand_home("echo \"~\""));
+        assert!(!needs_expand_home("echo ~~"));
     }
 }
