@@ -6,6 +6,7 @@
 - Fixed issue that `ls ~` does not work.
 - Fixed filename expansion issue for `2*`.
 - Updated math arithmetic recognize rule.
+- In scripting, test head's status should not be catched.
 
 ## 0.9.8 - 2019-06-20
 

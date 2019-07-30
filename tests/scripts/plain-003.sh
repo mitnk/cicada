@@ -19,6 +19,18 @@ echo 283*
 
 rm -f ~/283b812a.txt
 
+touch 2019-07-29
+touch 2019-07-30
+echo 2019*
+echo 2019-*
+echo 2019-0*
+echo 2019-07*
+echo 2019-07-*
+echo 2019-07-2*
+echo 2019-07-3*
+rm -f 2019-07-29
+rm -f 2019-07-30
+
 31415926 + 1 
 3 - 1
 4 * 5
@@ -27,4 +39,5 @@ rm -f ~/283b812a.txt
 ((1 + 1) ^ (5 + 1) )
 
 # cicada: 31415926: command not found
+# do not put cases below it, not reachable.
 31415926

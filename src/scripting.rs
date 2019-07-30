@@ -235,7 +235,6 @@ fn run_exp_test_br(sh: &mut shell::Shell,
                     test_pass = true;
                 }
             }
-            cr_list.append(&mut _cr_list);
             continue;
         }
 
