@@ -76,20 +76,25 @@ Bring background job into foreground. See also `bg`, `jobs`.
 List your recent history:
 ```
 $ history
-0: touch docs/envs.md
-1: mvim docs/envs.md
-2: find . -name '*.bk' | xargs rm
-3: find . -name '*.bk'
+1: touch docs/envs.md
+2: mvim docs/envs.md
+3: find . -name '*.bk' | xargs rm
+4: find . -name '*.bk'
 ```
 
 Search history items (use `%` from SQL to match "anything"):
 ```
 $ history curl
-0: curl -x http://127.0.0.1:1080 https://hugo.wang/http/ip/
-1: curl -I https://twitter.com/
+1: curl -x http://127.0.0.1:1080 https://hugo.wang/http/ip/
+2: curl -I https://twitter.com/
 
 $ history 'curl%hugo'
-0: curl -x http://127.0.0.1:1080 https://hugo.wang/http/ip/
+1: curl -x http://127.0.0.1:1080 https://hugo.wang/http/ip/
+```
+
+Delete history items
+```
+$ history delete <item-id>
 ```
 
 ## jobs

@@ -23,18 +23,18 @@ doc = false
 chrono = "0.4"
 errno = "0.2.0"
 exec = "0.3.0"
-glob = "0.2.0"
+glob = "0.3.0"
 lazy_static = "1.3.0"
 libc = "0.2.0"
 linefeed = "0.6.0"
-nix = "0.14.0"
+nix = "0.15.0"
 pest = "2.0"
 pest_derive = "2.0"
 regex = "1"
 yaml-rust = "0.4.0"
 
 [dependencies.rusqlite]
-version = "0.16.0"
+version = "0.20.0"
 features = ["bundled"]
 
 [build-dependencies]

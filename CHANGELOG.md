@@ -8,6 +8,7 @@
 - Updated math arithmetic recognize rule.
 - In scripting, test head's status should not be catched.
 - Fixed a completion issue like `echo $USER /App<TAB>`.
+- Upgraded dependency libs.
 
 ## 0.9.8 - 2019-06-20
 

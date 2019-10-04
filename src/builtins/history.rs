@@ -60,20 +60,44 @@ fn list_current_history(conn: &Conn) -> i32 {
             return 1;
         }
     };
-    let rows = match stmt.query_map(NO_PARAMS, |row| (row.get(0), row.get(1))) {
+
+    let mut rows = match stmt.query(NO_PARAMS) {
         Ok(x) => x,
         Err(e) => {
-            println_stderr!("history: query select error: {:?}", e);
+            println_stderr!("history: query error: {:?}", e);
             return 1;
         }
     };
-    for x in rows {
-        if let Ok(xx) = x {
-            let _x: (i32, String) = xx;
-            println!("{}: {}", _x.0, _x.1);
+
+    loop {
+        match rows.next() {
+            Ok(_rows) => {
+                if let Some(row) = _rows {
+                    let row_id: i32 = match row.get(0) {
+                        Ok(x) => x,
+                        Err(e) => {
+                            println_stderr!("history: error: {:?}", e);
+                            return 1;
+                        }
+                    };
+                    let inp: String = match row.get(1) {
+                        Ok(x) => x,
+                        Err(e) => {
+                            println_stderr!("history: error: {:?}", e);
+                            return 1;
+                        }
+                    };
+                    println!("{}: {}", row_id, inp);
+                } else {
+                    return 0;
+                }
+            }
+            Err(e) => {
+                println_stderr!("history: rows next error: {:?}", e);
+                return 1;
+            }
         }
     }
-    0
 }
 
 fn search_history(conn: &Conn, q: &str) {
@@ -91,17 +115,42 @@ fn search_history(conn: &Conn, q: &str) {
             return;
         }
     };
-    let rows = match stmt.query_map(NO_PARAMS, |row| (row.get(0), row.get(1))) {
+
+    let mut rows = match stmt.query(NO_PARAMS) {
         Ok(x) => x,
         Err(e) => {
-            println_stderr!("history: query select error: {:?}", e);
+            println_stderr!("history: query error: {:?}", e);
             return;
         }
     };
-    for x in rows {
-        if let Ok(xx) = x {
-            let _x: (i32, String) = xx;
-            println!("{}: {}", _x.0, _x.1);
+
+    loop {
+        match rows.next() {
+            Ok(_rows) => {
+                if let Some(row) = _rows {
+                    let row_id: i32 = match row.get(0) {
+                        Ok(x) => x,
+                        Err(e) => {
+                            println_stderr!("history: error: {:?}", e);
+                            return;
+                        }
+                    };
+                    let inp: String = match row.get(1) {
+                        Ok(x) => x,
+                        Err(e) => {
+                            println_stderr!("history: error: {:?}", e);
+                            return;
+                        }
+                    };
+                    println!("{}: {}", row_id, inp);
+                } else {
+                    return;
+                }
+            }
+            Err(e) => {
+                println_stderr!("history: rows next error: {:?}", e);
+                return;
+            }
         }
     }
 }
