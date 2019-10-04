@@ -25,7 +25,7 @@ fn for_make(line: &str) -> bool {
 }
 
 fn for_env(line: &str) -> bool {
-    libs::re::re_contains(line, r" *\$[_a-zA-Z0-9]*")
+    libs::re::re_contains(line, r" *\$[_a-zA-Z0-9]*$")
 }
 
 fn for_ssh(line: &str) -> bool {

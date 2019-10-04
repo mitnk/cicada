@@ -1,12 +1,13 @@
 # Change Logs
 
-## 0.9.9 - master
+## 0.9.9 - 2019-10-04
 
 - Improved error messages for running scripts.
 - Fixed issue that `ls ~` does not work.
 - Fixed filename expansion issue for `2*`.
 - Updated math arithmetic recognize rule.
 - In scripting, test head's status should not be catched.
+- Fixed a completion issue like `echo $USER /App<TAB>`.
 
 ## 0.9.8 - 2019-06-20
 
