@@ -1,5 +1,9 @@
 # Change Logs
 
+## 0.9.10 - master
+
+- Updated `rc-file` default path in `cinfo`.
+
 ## 0.9.9 - 2019-10-04
 
 - Improved error messages for running scripts.

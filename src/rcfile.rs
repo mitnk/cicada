@@ -14,7 +14,13 @@ pub fn get_rc_file() -> String {
 
     // fail back to $HOME/.cicadarc
     let home = tools::get_user_home();
-    format!("{}/{}", home, ".cicadarc")
+    let rc_file_home = format!("{}/{}", home, ".cicadarc");
+    if Path::new(&rc_file_home).exists() {
+        return rc_file_home;
+    }
+
+    // use std path if both absent
+    rc_file
 }
 
 pub fn load_rc_files(sh: &mut shell::Shell) {

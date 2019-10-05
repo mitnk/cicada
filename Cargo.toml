@@ -2,10 +2,10 @@
 edition = "2018"
 build = "src/build.rs"
 name = "cicada"
-version = "0.9.9"
+version = "0.9.10"
 authors = ["Hugo Wang <w@mitnk.com>"]
 
-description = "A simple Unix shell."
+description = "A simple Bash-like Unix shell."
 repository = "https://github.com/mitnk/cicada"
 keywords = ["shell", "unix"]
 categories = ["command-line-utilities", "command-line-interface", "development-tools"]
