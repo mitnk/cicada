@@ -275,21 +275,8 @@ pub unsafe fn give_terminal_to(gid: i32) -> bool {
 }
 
 fn needs_globbing(line: &str) -> bool {
-    if tools::is_arithmetic(line) {
-        return false;
-    }
-
     let re = Regex::new(r"\*+").expect("Invalid regex ptn");
-    let tokens = parsers::parser_line::cmd_to_tokens(line);
-    for (sep, token) in tokens {
-        if !sep.is_empty() {
-            continue;
-        }
-        if re.is_match(&token) {
-            return true;
-        }
-    }
-    false
+    return re.is_match(line);
 }
 
 pub fn expand_glob(tokens: &mut types::Tokens) {
@@ -867,10 +854,8 @@ mod tests {
         assert!(needs_globbing("grep -i 'desc' /etc/*release*"));
         assert!(needs_globbing("echo foo\\ 0*"));
         assert!(needs_globbing("echo foo\\ bar\\ 0*"));
-        assert!(!needs_globbing("2 * 3"));
-        assert!(!needs_globbing("ls '*.md'"));
-        assert!(!needs_globbing("ls 'a * b'"));
-        assert!(!needs_globbing("ls foo"));
+        assert!(needs_globbing("*.1"));
+        assert!(!needs_globbing("foo"));
     }
 
     #[test]

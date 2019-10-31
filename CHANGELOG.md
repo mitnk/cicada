@@ -3,6 +3,7 @@
 ## 0.9.10 - master
 
 - Updated `rc-file` default path in `cinfo`.
+- Fixed glob expansion issue: `ls *.1`
 
 ## 0.9.9 - 2019-10-04
 
