@@ -20,7 +20,7 @@ struct OptMain {
     #[structopt(short, long, help = "Search old items first")]
     asc: bool,
 
-    #[structopt(short, long, help = "Only search history items for current dir")]
+    #[structopt(short, long, help = "For current directory only")]
     pwd: bool,
 
     #[structopt(short, long, help = "Only show ROWID")]
