@@ -73,7 +73,8 @@ Bring background job into foreground. See also `bg`, `jobs`.
 
 ## history
 
-List your recent history:
+### List your recent history
+
 ```
 $ history
 1: touch docs/envs.md
@@ -82,7 +83,8 @@ $ history
 4: find . -name '*.bk'
 ```
 
-Search history items (use `%` from SQL to match "anything"):
+### Search history items (use `%` from SQL to match "anything")
+
 ```
 $ history curl
 1: curl -x http://127.0.0.1:1080 https://hugo.wang/http/ip/
@@ -92,7 +94,33 @@ $ history 'curl%hugo'
 1: curl -x http://127.0.0.1:1080 https://hugo.wang/http/ip/
 ```
 
-Delete history items
+### More features
+
+```
+$ history --help
+
+USAGE:
+    history [FLAGS] [OPTIONS] [PATTERN]
+
+FLAGS:
+    -a, --asc          Search old items first
+    -h, --help         Prints help information
+    -n, --no-id        Do not show ROWID
+    -o, --only-id      Only show ROWID
+    -p, --pwd          For current directory only
+    -s, --session      For current session only
+    -d, --show-date    Show date
+    -V, --version      Prints version information
+
+OPTIONS:
+    -l, --limit <limit>     [default: 20]
+
+ARGS:
+    <PATTERN>    You can use % to match anything [default: ]
+```
+
+### Delete history items
+
 ```
 $ history delete <item-id>
 ```
