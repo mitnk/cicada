@@ -20,6 +20,9 @@ struct OptMain {
     #[structopt(short, long, help = "Search old items first")]
     asc: bool,
 
+    #[structopt(short, long, help = "Only search history items for current dir")]
+    pwd: bool,
+
     #[structopt(short, long, help = "Only show ROWID")]
     only_id: bool,
 
@@ -82,6 +85,9 @@ fn list_current_history(sh: &shell::Shell, conn: &Conn, opt: &OptMain) -> i32 {
     }
     if opt.session {
         sql = format!("{} AND sessionid = '{}'", sql, sh.session_id)
+    }
+    if opt.pwd {
+        sql = format!("{} AND info like '%dir:{}|%'", sql, sh.current_dir)
     }
 
     if opt.asc {

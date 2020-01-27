@@ -10,6 +10,7 @@ use rusqlite::Connection as Conn;
 use rusqlite::Error::SqliteFailure;
 use rusqlite::NO_PARAMS;
 
+use crate::shell;
 use crate::tools::{self, clog};
 
 fn init_db(hfile: &str, htable: &str) {
@@ -191,8 +192,8 @@ fn delete_duplicated_histories() {
     }
 }
 
-pub fn add(rl: &mut Interface<DefaultTerminal>, line: &str, status: i32,
-           tsb: f64, tse: f64, session_id: &str) {
+pub fn add(sh: &shell::Shell, rl: &mut Interface<DefaultTerminal>, line: &str,
+           status: i32, tsb: f64, tse: f64) {
     rl.add_history(line.to_string());
 
     let hfile = get_history_file();
@@ -210,14 +211,15 @@ pub fn add(rl: &mut Interface<DefaultTerminal>, line: &str, status: i32,
     };
     let sql = format!(
         "INSERT INTO \
-         {} (inp, rtn, tsb, tse, sessionid) \
-         VALUES('{}', {}, {}, {}, '{}');",
+         {} (inp, rtn, tsb, tse, sessionid, info) \
+         VALUES('{}', {}, {}, {}, '{}', 'dir:{}|');",
         history_table,
         str::replace(line.trim(), "'", "''"),
         status,
         tsb,
         tse,
-        session_id,
+        sh.session_id,
+        sh.current_dir,
     );
     match conn.execute(&sql, NO_PARAMS) {
         Ok(_) => {}
