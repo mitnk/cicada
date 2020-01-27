@@ -31,7 +31,9 @@ nix = "0.15.0"
 pest = "2.0"
 pest_derive = "2.0"
 regex = "1"
+structopt = "0.3"
 yaml-rust = "0.4.0"
+uuid = { version = "0.2", features = ["serde", "v4"] }
 
 [dependencies.rusqlite]
 version = "0.20.0"

@@ -4,6 +4,7 @@
 
 - Updated `rc-file` default path in `cinfo`.
 - Fixed glob expansion issue: `ls *.1`
+- Added more features for builtin `history`.
 
 ## 0.9.9 - 2019-10-04
 

@@ -1,7 +1,7 @@
 use std::env;
 use std::error::Error;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::parsers;
 use crate::shell;
@@ -15,20 +15,9 @@ pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
         println_stderr!("cicada: cd: too many argument");
         return 1;
     }
-    let mut current_dir = PathBuf::new();
-    match env::current_dir() {
-        Ok(x) => current_dir = x,
-        Err(e) => {
-            println_stderr!("current_dir() failed: {}", e.description());
-        }
-    }
-    let mut str_current_dir = "";
-    match current_dir.to_str() {
-        Some(x) => str_current_dir = x,
-        None => {
-            println_stderr!("current_dir to str failed.");
-        }
-    }
+
+    let str_current_dir = tools::get_current_dir();
+
     let mut dir_to = if args.len() == 1 {
         let home = tools::get_user_home();
         home.to_string()
@@ -56,8 +45,9 @@ pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
 
     match env::set_current_dir(&dir_to) {
         Ok(_) => {
+            sh.current_dir = dir_to.clone();
             if str_current_dir != dir_to {
-                sh.previous_dir = str_current_dir.to_string();
+                sh.previous_dir = str_current_dir.clone();
             };
             0
         }

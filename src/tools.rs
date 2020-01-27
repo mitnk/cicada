@@ -4,7 +4,7 @@ use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::os::unix::io::IntoRawFd;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use chrono::prelude::{Local, Datelike, Timelike};
 use libc;
@@ -314,6 +314,24 @@ pub fn escape_path(path: &str) -> String {
         }
     }
     return re.replace_all(path, "\\$c").to_string();
+}
+
+pub fn get_current_dir() -> String {
+    let mut current_dir = PathBuf::new();
+    match env::current_dir() {
+        Ok(x) => current_dir = x,
+        Err(e) => {
+            println_stderr!("env current_dir() failed: {}", e.description());
+        }
+    }
+    let mut str_current_dir = "";
+    match current_dir.to_str() {
+        Some(x) => str_current_dir = x,
+        None => {
+            println_stderr!("current_dir to str failed.");
+        }
+    }
+    str_current_dir.to_string()
 }
 
 #[cfg(test)]
