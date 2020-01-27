@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::env;
-use std::ffi::CString;
+use std::ffi::{CStr, CString};
 use std::fs::File;
 use std::io::{Read, Write};
 use std::os::unix::io::{FromRawFd, RawFd};
@@ -393,6 +393,8 @@ fn run_command(
                 .map(|x| CString::new(x.1.as_str()).expect("CString error"))
                 .collect();
 
+            let c_args: Vec<&CStr> = c_args.iter().map(|x| x.as_c_str()).collect();
+            let c_envs: Vec<&CStr> = c_envs.iter().map(|x| x.as_c_str()).collect();
             match execve(&c_program, &c_args, &c_envs) {
                 Ok(_) => {}
                 Err(e) => match e {

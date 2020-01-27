@@ -1,6 +1,10 @@
 # Change Logs
 
-## 0.9.10 - master
+## 0.9.11 - master
+
+- Upgraded some deps.
+
+## 0.9.10 - 2020-01-27
 
 - Updated `rc-file` default path in `cinfo`.
 - Fixed glob expansion issue: `ls *.1`

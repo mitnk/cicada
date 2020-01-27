@@ -32,7 +32,7 @@ pub struct Shell {
 
 impl Shell {
     pub fn new() -> Shell {
-        let uuid = Uuid::new_v4().hyphenated().to_string();
+        let uuid = Uuid::new_v4().to_hyphenated().to_string();
         let current_dir = tools::get_current_dir();
         let (session_id, _) = uuid.split_at(13);
         Shell {
