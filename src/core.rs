@@ -341,7 +341,7 @@ fn run_command(
 
             let program = &cmd.tokens[0].1;
             if program == "history" {
-                let status = builtins::history::run(&cmd);
+                let status = builtins::history::run(sh, &cmd);
                 process::exit(status);
             } else if program == "vox" {
                 let status = builtins::vox::run(sh, &cmd.tokens);

@@ -191,7 +191,8 @@ fn delete_duplicated_histories() {
     }
 }
 
-pub fn add(rl: &mut Interface<DefaultTerminal>, line: &str, status: i32, tsb: f64, tse: f64) {
+pub fn add(rl: &mut Interface<DefaultTerminal>, line: &str, status: i32,
+           tsb: f64, tse: f64, session_id: &str) {
     rl.add_history(line.to_string());
 
     let hfile = get_history_file();
@@ -216,7 +217,7 @@ pub fn add(rl: &mut Interface<DefaultTerminal>, line: &str, status: i32, tsb: f6
         status,
         tsb,
         tse,
-        "cicada"
+        session_id,
     );
     match conn.execute(&sql, NO_PARAMS) {
         Ok(_) => {}

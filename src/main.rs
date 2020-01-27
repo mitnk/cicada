@@ -136,7 +136,7 @@ fn main() {
                 let tse = Local::now().timestamp_nanos() as f64 / 1000000000.0;
 
                 if !sh.cmd.starts_with(' ') && line != sh.previous_cmd {
-                    history::add(&mut rl, &line, status, tsb, tse);
+                    history::add(&mut rl, &line, status, tsb, tse, &sh.session_id);
                     sh.previous_cmd = line.clone();
                 }
 

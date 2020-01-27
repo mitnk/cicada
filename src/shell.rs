@@ -7,6 +7,7 @@ use std::mem;
 
 use glob;
 use regex::Regex;
+use uuid::Uuid;
 
 use crate::core;
 use crate::libs;
@@ -25,10 +26,13 @@ pub struct Shell {
     pub previous_cmd: String,
     pub previous_status: i32,
     pub is_login: bool,
+    pub session_id: String,
 }
 
 impl Shell {
     pub fn new() -> Shell {
+        let uuid = Uuid::new_v4().hyphenated().to_string();
+        let (session_id, _) = uuid.split_at(13);
         Shell {
             jobs: HashMap::new(),
             alias: HashMap::new(),
@@ -39,6 +43,7 @@ impl Shell {
             previous_cmd: String::new(),
             previous_status: 0,
             is_login: false,
+            session_id: session_id.to_string(),
         }
     }
 
