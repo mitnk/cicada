@@ -1,6 +1,7 @@
 use std::io::Write;
 use std::path::Path;
 
+use chrono::NaiveDateTime;
 use rusqlite::Connection as Conn;
 use rusqlite::NO_PARAMS;
 use structopt::StructOpt;
@@ -19,10 +20,19 @@ struct OptMain {
     #[structopt(short, long, help = "Search old items first")]
     asc: bool,
 
+    #[structopt(short, long, help = "Only show ROWID")]
+    only_id: bool,
+
+    #[structopt(short, long, help = "Do not show ROWID")]
+    no_id: bool,
+
+    #[structopt(short="d", long, help = "Show date")]
+    show_date: bool,
+
     #[structopt(short, long, default_value = "20")]
     limit: i32,
 
-    #[structopt(name = "PATTERN", default_value = "")]
+    #[structopt(name = "PATTERN", default_value = "", help = "You can use % to match anything")]
     pattern: String,
 }
 
@@ -65,32 +75,21 @@ pub fn run(sh: &shell::Shell, cmd: &types::Command) -> i32 {
 
 fn list_current_history(sh: &shell::Shell, conn: &Conn, opt: &OptMain) -> i32 {
     let history_table = history::get_history_table();
-    let sql = format!("SELECT rowid, inp FROM {}", history_table);
-    let mut has_where = false;
-    let sql = if opt.pattern.len() > 0 {
-        has_where = true;
-        format!("{} where inp like '%{}%'", sql, opt.pattern)
-    } else {
-        sql
-    };
+    let mut sql = format!("SELECT ROWID, inp, tsb FROM {} WHERE ROWID > 0",
+                          history_table);
+    if opt.pattern.len() > 0 {
+        sql = format!("{} AND inp LIKE '%{}%'", sql, opt.pattern)
+    }
+    if opt.session {
+        sql = format!("{} AND sessionid = '{}'", sql, sh.session_id)
+    }
 
-    let sql = if opt.session {
-        if has_where {
-            format!("{} AND sessionid = '{}'", sql, sh.session_id)
-        } else {
-            format!("{} where sessionid = '{}'", sql, sh.session_id)
-        }
+    if opt.asc {
+        sql = format!("{} ORDER BY tsb", sql);
     } else {
-        sql
+        sql = format!("{} order by tsb desc", sql);
     };
-
-
-    let sql = if opt.asc {
-        format!("{} order by tsb", sql)
-    } else {
-        format!("{} order by tsb desc", sql)
-    };
-    let sql = format!("{} limit {} ", sql, opt.limit);
+    sql = format!("{} limit {} ", sql, opt.limit);
 
     let mut stmt = match conn.prepare(&sql) {
         Ok(x) => x,
@@ -126,7 +125,24 @@ fn list_current_history(sh: &shell::Shell, conn: &Conn, opt: &OptMain) -> i32 {
                             return 1;
                         }
                     };
-                    println!("{}: {}", row_id, inp);
+
+                    if opt.no_id {
+                        println!("{}", inp);
+                    } else if opt.only_id {
+                        println!("{}", row_id);
+                    } else if opt.show_date {
+                        let tsb: f64 = match row.get(2) {
+                            Ok(x) => x,
+                            Err(e) => {
+                                println_stderr!("history: error: {:?}", e);
+                                return 1;
+                            }
+                        };
+                        let dt = NaiveDateTime::from_timestamp(tsb as i64, 0);
+                        println!("{}: {}: {}", row_id, dt.date(), inp);
+                    } else {
+                        println!("{}: {}", row_id, inp);
+                    }
                 } else {
                     return 0;
                 }
