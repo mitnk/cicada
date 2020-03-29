@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 use std::env;
-use std::error::Error;
 use std::fs::read_dir;
 use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
@@ -90,7 +89,7 @@ pub fn current_dir() -> String {
     match env::current_dir() {
         Ok(x) => _current_dir = x,
         Err(e) => {
-            log!("cicada: PROMPT: env current_dir error: {}", e.description());
+            log!("cicada: PROMPT: env current_dir error: {}", e);
             return String::new();
         }
     }

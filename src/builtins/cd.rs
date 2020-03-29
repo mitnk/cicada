@@ -1,5 +1,4 @@
 use std::env;
-use std::error::Error;
 use std::io::Write;
 use std::path::Path;
 
@@ -52,7 +51,7 @@ pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
             0
         }
         Err(e) => {
-            println_stderr!("cicada: cd: {}", e.description());
+            println_stderr!("cicada: cd: {}", e);
             1
         }
     }

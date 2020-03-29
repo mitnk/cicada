@@ -1,5 +1,4 @@
 use std::env;
-use std::error::Error;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
@@ -141,7 +140,7 @@ fn apply_cwd(prompt: &mut String) {
     match env::current_dir() {
         Ok(x) => _current_dir = x,
         Err(e) => {
-            println_stderr!("cicada: PROMPT: env current_dir error: {}", e.description());
+            println_stderr!("cicada: PROMPT: env current_dir error: {}", e);
             return;
         }
     }

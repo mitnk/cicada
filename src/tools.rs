@@ -1,5 +1,4 @@
 use std::env;
-use std::error::Error;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -295,7 +294,7 @@ pub fn get_fd_from_file(file_name: &str) -> i32 {
     let display = path.display();
     let file = match File::open(&path) {
         Err(why) => {
-            println_stderr!("cicada: could not open {}: {}", display, why.description());
+            println_stderr!("cicada: could not open {}: {}", display, why);
             return 0;
         }
         Ok(file) => file,
@@ -321,7 +320,7 @@ pub fn get_current_dir() -> String {
     match env::current_dir() {
         Ok(x) => current_dir = x,
         Err(e) => {
-            println_stderr!("env current_dir() failed: {}", e.description());
+            println_stderr!("env current_dir() failed: {}", e);
         }
     }
     let mut str_current_dir = "";

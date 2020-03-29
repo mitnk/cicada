@@ -278,7 +278,7 @@ fn run_command(
                         if idx_cmd < pipes_count {
                             let fds = pipes[idx_cmd];
                             libc::dup2(fds.1, 2);
-                        // libc::close(fds.1);
+                            // libc::close(fds.1);
                         } else if !options.capture_output {
                             let fd = libc::dup(1);
                             libc::dup2(fd, 2);
