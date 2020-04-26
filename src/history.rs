@@ -91,10 +91,15 @@ pub fn init(rl: &mut Interface<DefaultTerminal>) {
     if !Path::new(&hfile).exists() {
         init_db(&hfile, &history_table);
     }
+
+    let mut delete_dups = true;
     if let Ok(x) = env::var("HISTORY_DELETE_DUPS") {
-        if x == "1" {
-            delete_duplicated_histories();
+        if x == "0" {
+            delete_dups = false;
         }
+    }
+    if delete_dups {
+        delete_duplicated_histories();
     }
 
     let conn = match Conn::open(&hfile) {

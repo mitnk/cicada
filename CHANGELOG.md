@@ -1,8 +1,9 @@
 # Change Logs
 
-## 0.9.11 - master
+## 0.9.11 - 2020-04-26
 
 - Upgraded some deps.
+- Made `HISTORY_DELETE_DUPS=1` as default.
 
 ## 0.9.10 - 2020-01-27
 

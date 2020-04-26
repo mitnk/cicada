@@ -1,0 +1,1 @@
+export PROMPT="${GITBR}${COLOR_STATUS}$CWD${RESET}$ "

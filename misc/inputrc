@@ -1,0 +1,6 @@
+"\e[1;3D": backward-word
+"\e[1;3C": forward-word
+"\e[1;9D": backward-word
+"\e[1;9C": forward-word
+"\e[A": history-search-backward
+"\e[B": history-search-forward
