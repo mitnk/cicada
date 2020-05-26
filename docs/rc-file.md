@@ -1,4 +1,4 @@
-# cicada RC File
+# RC File
 
 When cicada shell is invoked as an interactive
 [login shell](https://github.com/mitnk/cicada/blob/master/docs/install.md#set-cicada-as-your-login-shell),

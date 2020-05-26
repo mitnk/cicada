@@ -1,4 +1,4 @@
-# Cicada Completions
+# Completions
 
 ## Path Completion
 

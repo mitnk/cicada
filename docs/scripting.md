@@ -1,4 +1,4 @@
-# Scripting in Cicada
+# Scripting & Functions
 
 The goal of cicada is to be a useful daily-use shell and replace Bash.
 It does not intend to compete with shells like zsh, fish, etc. Cicada keeps
