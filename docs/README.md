@@ -1,4 +1,4 @@
-# Cicada Unix Shell Manual
+# Cicada Unix Shell
 
 Cicada is a simple bash-like Unix shell.
 
