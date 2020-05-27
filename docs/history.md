@@ -32,8 +32,31 @@ are immutable. You cannot edit them. But you could delete them.
 
 ## The history builtin command
 
-See details here: [history built-in command](https://github.com/mitnk/cicada/blob/master/docs/builtins.md#history)
+```
+$ history --help
+
+USAGE:
+    history [FLAGS] [OPTIONS] [PATTERN]
+
+FLAGS:
+    -a, --asc          Search old items first
+    -h, --help         Prints help information
+    -n, --no-id        Do not show ROWID
+    -o, --only-id      Only show ROWID
+    -p, --pwd          For current directory only
+    -s, --session      For current session only
+    -d, --show-date    Show date
+    -V, --version      Prints version information
+
+OPTIONS:
+    -l, --limit <limit>     [default: 20]
+
+ARGS:
+    <PATTERN>    You can use % to match anything [default: ]
+```
+
+See more details here: [history built-in command](https://github.com/mitnk/cicada/blob/master/docs/builtins.md#user-content-history)
 
 ## Others
 
-See more on [Environment Variables](https://github.com/mitnk/cicada/blob/master/docs/envs.md#history_size)
+See more on [Environment Variables](https://github.com/mitnk/cicada/blob/master/docs/envs.md#user-content-history_size)

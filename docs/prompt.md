@@ -49,7 +49,7 @@ Note you can also use regular environment variables that not in the list, like `
 
 ## Python Virtual Env in Prompt
 
-See also the [vox](https://github.com/mitnk/cicada/blob/master/docs/builtins.md#vox) builtin.
+See also the [vox](https://github.com/mitnk/cicada/blob/master/docs/builtins.md#user-content-vox) builtin.
 
 When you enter a virtual env, the prompt will prefix by `(pyenv-name)`. e.g.
 `(evn-test)mitnk:mbp: pip$ `.

@@ -11,7 +11,7 @@ default: `""` (empty)
 
 ## CICADA_GITBR_PREFIX
 
-In [prompt item](https://github.com/mitnk/cicada/blob/master/docs/prompt.md#available-prompt-items)
+In [prompt item](https://github.com/mitnk/cicada/blob/master/docs/prompt.md#user-content-available-prompt-items)
 `$GITBR`, works as a prefix if defined.
 
 default: `""` (empty)

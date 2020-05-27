@@ -9,12 +9,12 @@ to use bash (and call them with `$ bash xxx.sh` in cicada), or dynamic
 scripting languages like Python. Scripting with cicada should only be used
 in simple cases.
 
-- [Introduction](#introduction)
-- [If Statements](#if-statements)
-- [For Statements](#for-statements)
-- [While Statements](#while-statements)
-- [Using Builtins](#using-builtins)
-- [Functions](#functions)
+- [Introduction](#user-content-introduction)
+- [If Statements](#user-content-if-statements)
+- [For Statements](#user-content-for-statements)
+- [While Statements](#user-content-while-statements)
+- [Using Builtins](#user-content-using-builtins)
+- [Functions](#user-content-functions)
 
 ## Introduction
 
@@ -248,7 +248,7 @@ counter = 22
 
 ## The source Builtin
 
-> See also [the source builtin](https://github.com/mitnk/cicada/blob/master/docs/builtins.md#source).
+> See also [the source builtin](https://github.com/mitnk/cicada/blob/master/docs/builtins.md#user-content-source).
 
 Command like `$ cicada foo.sh` would create a new session and run the commands
 of file `foo.sh`. If you want to run them in current shell session, you

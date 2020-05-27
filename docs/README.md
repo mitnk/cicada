@@ -6,6 +6,8 @@ Cicada is a simple bash-like Unix shell.
 - [Install cicada](https://github.com/mitnk/cicada/blob/master/docs/install.md)
 - [Environment Variables](https://github.com/mitnk/cicada/tree/master/docs/envs.md)
 - [Cicada Builtins](https://github.com/mitnk/cicada/tree/master/docs/builtins.md)
+- [Shell Expansions](https://github.com/mitnk/cicada/tree/master/docs/expansions.md)
+- [Arithmetic in Cicada](https://github.com/mitnk/cicada/tree/master/docs/arithmetic.md)
 - [Completion](https://github.com/mitnk/cicada/tree/master/docs/completion.md)
 - [RC File](https://github.com/mitnk/cicada/tree/master/docs/rc-file.md)
 - [History](https://github.com/mitnk/cicada/tree/master/docs/history.md)

@@ -23,7 +23,7 @@ $ cicada
 (in-cicada) $ cinfo
 ```
 
-You may want to [set cicada as the default shell](https://github.com/mitnk/cicada/blob/master/docs/install.md#set-cicada-as-your-login-shell).
+You may want to [set cicada as the default shell](https://github.com/mitnk/cicada/blob/master/docs/install.md#user-content-set-cicada-as-your-login-shell).
 
 ### 2) Install via cargo crates
 
