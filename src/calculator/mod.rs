@@ -31,7 +31,13 @@ pub fn eval_int(expression: Pairs<Rule>) -> i64 {
             Rule::add      => lhs + rhs,
             Rule::subtract => lhs - rhs,
             Rule::multiply => lhs * rhs,
-            Rule::divide   => lhs / rhs,
+            Rule::divide   => {
+                if rhs == 0 {
+                    (lhs as f64 / 0.0) as i64
+                } else {
+                    lhs / rhs
+                }
+            }
             Rule::power    => lhs.pow(rhs as u32),
             _ => unreachable!(),
         },

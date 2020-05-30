@@ -1,5 +1,11 @@
 # Change Logs
 
+## 0.9.12 - 2020-05-30
+
+- show full datetime in output of `history -d`.
+- Fixed divide by zero panic in arithmetic (e.g. `2 / 0`).
+- Arithmetic commands change `previous status` too.
+
 ## 0.9.11 - 2020-04-26
 
 - Upgraded some deps.

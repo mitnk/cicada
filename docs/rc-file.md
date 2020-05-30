@@ -16,7 +16,10 @@ first existing file of below list:
 Here is a sample RC file:
 
 ```
-# handle envs
+# customize my prompt on Mac
+export PROMPT="${GITBR}${COLOR_STATUS} $CWD${RESET}$ "
+
+# handle some envs
 export RUST_BACKTRACE='full'
 export COPYFILE_DISABLE=1
 export PATH="/usr/local/bin:$PATH"
@@ -25,6 +28,11 @@ export PATH="/usr/local/bin:$PATH"
 alias ls="ls -G"
 alias ll="ls -lh"
 alias foo='echo foo bar | wc'
+
+# define functions
+function foo-bar() {
+    echo foobar
+}
 
 # run regular commands
 echo "cicada started at `date`" >> /tmp/some-random.log

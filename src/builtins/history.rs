@@ -145,7 +145,7 @@ fn list_current_history(sh: &shell::Shell, conn: &Conn, opt: &OptMain) -> i32 {
                             }
                         };
                         let dt = NaiveDateTime::from_timestamp(tsb as i64, 0);
-                        println!("{}: {}: {}", row_id, dt.date(), inp);
+                        println!("{}: {}: {}", row_id, dt.format("%Y-%m-%d %H:%M:%S"), inp);
                     } else {
                         println!("{}: {}", row_id, inp);
                     }

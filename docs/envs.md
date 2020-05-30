@@ -52,14 +52,3 @@ default: `cicada_history`
 Do not exit cicada on `Ctrl-D`, if this env is set to `1`.
 
 default: `0`
-
-## Other Built-in Variables
-
-```
-$ ls file-not-exist
-$ echo $?  # <-- print exit status of previous command
-1
-
-$ echo $$  # <-- print PID of current process (cicada)
-2173
-```

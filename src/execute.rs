@@ -43,6 +43,7 @@ pub fn run_procs(sh: &mut shell::Shell,
                 } else {
                     println!("{}", result);
                 }
+                sh.previous_status = cr.status;
                 cr_list.push(cr);
                 return cr_list;
             }
@@ -53,6 +54,7 @@ pub fn run_procs(sh: &mut shell::Shell,
                 } else {
                     println_stderr!("cicada: calculator: {}", e);
                 }
+                sh.previous_status = cr.status;
                 cr_list.push(cr);
                 return cr_list;
             }
