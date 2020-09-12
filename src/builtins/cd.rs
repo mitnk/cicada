@@ -47,6 +47,7 @@ pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
             sh.current_dir = dir_to.clone();
             if str_current_dir != dir_to {
                 sh.previous_dir = str_current_dir.clone();
+                env::set_var("PWD", &sh.current_dir);
             };
             0
         }

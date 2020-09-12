@@ -1,5 +1,9 @@
 # Change Logs
 
+## master
+
+- cd: Update `$PWD` when changing directory.
+
 ## 0.9.12 - 2020-05-30
 
 - show full datetime in output of `history -d`.
