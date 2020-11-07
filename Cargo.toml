@@ -2,7 +2,7 @@
 edition = "2018"
 build = "src/build.rs"
 name = "cicada"
-version = "0.9.12"
+version = "0.9.13"
 authors = ["Hugo Wang <w@mitnk.com>"]
 
 description = "A simple Bash-like Unix shell."
@@ -31,12 +31,12 @@ nix = "0.17.0"
 pest = "2.0"
 pest_derive = "2.0"
 regex = "1"
-structopt = "0.3"
 yaml-rust = "0.4.0"
 uuid = { version = "0.8", features = ["serde", "v4"] }
+structopt = { version = "0.3", default-features = false }
 
 [dependencies.rusqlite]
-version = "0.23.1"
+version = "0.24.1"
 features = ["bundled"]
 
 [build-dependencies]

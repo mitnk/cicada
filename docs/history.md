@@ -1,7 +1,8 @@
 # Cicada History
 
-Shell history items are stored with sqlite database. Like bash, you can use
-`Ctrl-R`, `Ctrl-P`, `Ctrl-N`, `Arrow-UP`, `Arrow-DOWN` keys to access history.
+Shell history items are stored with sqlite database. You can find the file
+location with `cinfo` command. Like bash, you can use `Ctrl-R`, `Ctrl-P`,
+`Ctrl-N`, `Arrow-UP`, `Arrow-DOWN` keys to access history.
 
 Recommend that in your `~/.inputrc`, you have:
 
@@ -12,18 +13,41 @@ Recommend that in your `~/.inputrc`, you have:
 "\e[B": history-search-forward
 ```
 
+> With above inputrc setup, you can type a part (prefix) of history, and
+> then hit `<Arrow-Up>` to retrive items start with this prefix:
+> ```
+> $ echo 1.23
+> $ echo foo bar
+> $ echo 1<Arrow-UP>  # will get you `echo 1.23`
+> ```
+
+## Prefixing spaces will suppress history to be saved
+
 You can prevent commands from saving into history by prefixing spaces with
 them.
 
-You can modify the settings of history related value in
-[RC-file](https://github.com/mitnk/cicada/blob/master/docs/rc-file.md).
-These values on the right side are the default ones:
+```
+$ echo foo bar
+$ echo 123
+$  echo secret 235
+  ^ prefix command with a space to make command skip saving to history.
+$ history
+2: echo 123
+1: echo foo bar
+```
+
+## History Environment Variables
+
+There are several environment variables on history.
 
 ```
 export HISTORY_FILE="$HOME/.local/share/cicada/history.sqlite"
 export HISTORY_SIZE=99999
 export HISTORY_TABLE="cicada_history"
 ```
+
+You can modify the settings of history related value in
+[RC-file](https://github.com/mitnk/cicada/blob/master/docs/rc-file.md).
 
 ## History is Immutable
 

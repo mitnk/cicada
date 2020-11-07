@@ -5,4 +5,6 @@ target/
 # cargo fmt backups
 *.bk
 *.txt
+*.diff
+*.patch
 tmpfile-test-cicada-scripts.out

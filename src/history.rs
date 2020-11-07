@@ -197,10 +197,8 @@ fn delete_duplicated_histories() {
     }
 }
 
-pub fn add(sh: &shell::Shell, rl: &mut Interface<DefaultTerminal>, line: &str,
-           status: i32, tsb: f64, tse: f64) {
-    rl.add_history(line.to_string());
-
+pub fn add_raw(sh: &shell::Shell, line: &str, status: i32,
+               tsb: f64, tse: f64) {
     let hfile = get_history_file();
     let history_table = get_history_table();
     if !Path::new(&hfile).exists() {
@@ -230,4 +228,10 @@ pub fn add(sh: &shell::Shell, rl: &mut Interface<DefaultTerminal>, line: &str,
         Ok(_) => {}
         Err(e) => println_stderr!("cicada: failed to save history: {:?}", e),
     }
+}
+
+pub fn add(sh: &shell::Shell, rl: &mut Interface<DefaultTerminal>, line: &str,
+           status: i32, tsb: f64, tse: f64) {
+    add_raw(sh, line, status, tsb, tse);
+    rl.add_history(line.to_string());
 }

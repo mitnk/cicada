@@ -37,6 +37,26 @@ struct OptMain {
 
     #[structopt(name = "PATTERN", default_value = "", help = "You can use % to match anything")]
     pattern: String,
+
+    #[structopt(subcommand)]
+    cmd: Option<SubCommand>
+}
+
+#[derive(StructOpt, Debug)]
+enum SubCommand {
+    #[structopt(about="Add new item into history")]
+    Add {
+        #[structopt(short="t", long, help = "Specify a timestamp for the new item")]
+        timestamp: Option<f64>,
+
+        #[structopt(name="INPUT", help = "input to be added into history")]
+        input: String,
+    },
+    #[structopt(about="Delete item from history")]
+    Delete {
+        #[structopt(name="ROWID", help = "Row IDs of item to delete")]
+        rowid: Vec<usize>,
+    }
 }
 
 pub fn run(sh: &shell::Shell, cmd: &types::Command) -> i32 {
@@ -57,23 +77,28 @@ pub fn run(sh: &shell::Shell, cmd: &types::Command) -> i32 {
     let tokens = &cmd.tokens;
     let args = parsers::parser_line::tokens_to_args(tokens);
 
-    if args.len() >= 2 && args[1] == "delete" {
-        if args.len() != 3 {
-            println_stderr!("USAGE: history delete <row-id>");
-            return 1;
-        }
-
-        if let Ok(rowid) = tokens[2].1.parse::<usize>() {
-            delete_history_item(&conn, rowid);
+    let opt = OptMain::from_iter(args);
+    match opt.cmd {
+        Some(SubCommand::Delete {rowid: rowids}) => {
+            for rowid in rowids {
+                delete_history_item(&conn, rowid);
+            }
             return 0;
-        } else {
-            println_stderr!("history delete: a row number is needed");
-            return 1;
+        }
+        Some(SubCommand::Add {timestamp: ts, input}) => {
+            let ts = ts.unwrap_or(0 as f64);
+            return add_history(sh, ts, &input);
+        }
+        None => {
+            return list_current_history(sh, &conn, &opt);
         }
     }
+}
 
-    let opt = OptMain::from_iter(args);
-    return list_current_history(sh, &conn, &opt);
+fn add_history(sh: &shell::Shell, ts: f64, input: &str) -> i32 {
+    let (tsb, tse) = (ts, ts + 1.0);
+    history::add_raw(sh, input, 0, tsb, tse);
+    0
 }
 
 fn list_current_history(sh: &shell::Shell, conn: &Conn, opt: &OptMain) -> i32 {

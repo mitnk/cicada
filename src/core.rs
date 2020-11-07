@@ -43,16 +43,26 @@ pub fn run_pipeline(
 
     let line = parsers::parser_line::tokens_to_line(tokens);
     if tools::is_arithmetic(&line) {
-        let mut cr = CommandResult::new();
         match run_calculator(&line) {
-            Ok(x) => {
-                cr.stdout = x;
+            Ok(result) => {
+                let mut cr = CommandResult::new();
+                if capture_output {
+                    cr.stdout = result.clone();
+                } else {
+                    println!("{}", result);
+                }
+                return (false, cr);
             }
             Err(e) => {
-                cr.stderr = e.to_string();
+                let mut cr = CommandResult::from_status(0, 1);
+                if capture_output {
+                    cr.stderr = e.to_string();
+                } else {
+                    println_stderr!("cicada: calculator: {}", e);
+                }
+                return (false, cr);
             }
         }
-        return (true, cr);
     }
 
     if let Some(func_body) = sh.get_func(&tokens[0].1) {

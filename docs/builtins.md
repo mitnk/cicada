@@ -121,7 +121,13 @@ ARGS:
 ### Delete history items
 
 ```
-$ history delete <item-id>
+$ history delete <item-id> [item-id, ...]
+```
+
+### Add history items
+
+```
+$ history add '<the command input>'
 ```
 
 ## jobs

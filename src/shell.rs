@@ -12,6 +12,7 @@ use uuid::Uuid;
 use crate::core;
 use crate::libs;
 use crate::parsers;
+use crate::shell;
 use crate::tools::{self, clog};
 use crate::types;
 
@@ -355,15 +356,9 @@ pub fn expand_glob(tokens: &mut types::Tokens) {
 }
 
 pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
-    let re;
-    if let Ok(x) = Regex::new(r"^(.*?)\$\{?([A-Za-z0-9_]+|\$|\?)\}?(.*)$") {
-        re = x;
-    } else {
-        println!("cicada: re new error");
-        return String::new();
-    }
-
-    if !re.is_match(token) {
+    let re1 = Regex::new(r"^(.*?)\$([A-Za-z0-9_]+|\$|\?)(.*)$").unwrap();
+    let re2 = Regex::new(r"(.*?)\$\{([A-Za-z0-9_]+|\$|\?)\}(.*)$").unwrap();
+    if !re1.is_match(token) && !re2.is_match(token) {
         return token.to_string();
     }
 
@@ -373,14 +368,20 @@ pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
     let mut _output = String::new();
     let mut _tail = String::new();
     loop {
-        if !re.is_match(&_token) {
+        let match_re1 = re1.is_match(&_token);
+        let match_re2 = re2.is_match(&_token);
+        if !match_re1 && !match_re2 {
             if !_token.is_empty() {
                 result.push_str(&_token);
             }
             break;
         }
 
-        let cap_results = re.captures_iter(&_token);
+        let cap_results = if match_re1 {
+            re1.captures_iter(&_token)
+        } else {
+            re2.captures_iter(&_token)
+        };
 
         for cap in cap_results {
             _head = cap[1].to_string();
@@ -667,6 +668,16 @@ fn expand_home(tokens: &mut types::Tokens) {
 }
 
 fn env_in_token(token: &str) -> bool {
+    // do not expand env in a command substitution, e.g.:
+    // - echo $(echo '$HOME')
+    // - VERSION=$(foobar -h | grep 'version: v' | awk '{print $NF}')
+    if libs::re::re_contains(token, r"^[a-zA-Z_][a-zA-Z0-9_]*=`.*`$")
+        || libs::re::re_contains(token, r"^[a-zA-Z_][a-zA-Z0-9_]*=\$\(.*\)$")
+        || libs::re::re_contains(token, r"^\$\(.+\)$")
+    {
+        return false;
+    }
+
     if libs::re::re_contains(token, r"\$\{?[a-zA-Z][a-zA-Z0-9_]*\}?") {
         return !libs::re::re_contains(token, r"='.*\$\{?[a-zA-Z][a-zA-Z0-9_]*\}?.*'$");
     }
@@ -680,7 +691,12 @@ pub fn expand_env(sh: &Shell, tokens: &mut types::Tokens) {
     let mut buff = Vec::new();
 
     for (sep, token) in tokens.iter() {
-        if sep == "`" || sep == "'" || !env_in_token(token) {
+        if sep == "`" || sep == "'" {
+            idx += 1;
+            continue;
+        }
+
+        if !env_in_token(token) {
             idx += 1;
             continue;
         }
@@ -727,8 +743,9 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
                 }
             }
 
-            log!("run subcmd: {:?}", &cmd);
-            let _args = parsers::parser_line::cmd_to_tokens(&cmd);
+            log!("run subcmd 1: {:?}", &cmd);
+            let mut _args = parsers::parser_line::cmd_to_tokens(&cmd);
+            shell::do_expansion(sh, &mut _args);
             let (_, cmd_result) =
                 core::run_pipeline(sh, &_args, "", false, false, true, false, None);
             let output_txt = cmd_result.stdout.trim();
@@ -762,8 +779,9 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
     for (sep, token) in tokens.iter() {
         let new_token: String;
         if sep == "`" {
-            log!("run subcmd: {:?}", token);
-            let _args = parsers::parser_line::cmd_to_tokens(&token);
+            log!("run subcmd 2: {:?}", token);
+            let mut _args = parsers::parser_line::cmd_to_tokens(&token);
+            shell::do_expansion(sh, &mut _args);
             let (_, cr) = core::run_pipeline(sh, &_args, "", false, false, true, false, None);
             new_token = cr.stdout.trim().to_string();
         } else if sep == "\"" || sep.is_empty() {
@@ -793,8 +811,9 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
                 for cap in re.captures_iter(&_token) {
                     _head = cap[1].to_string();
                     _tail = cap[3].to_string();
-                    log!("run subcmd: {:?}", &cap[2]);
-                    let _args = parsers::parser_line::cmd_to_tokens(&cap[2]);
+                    log!("run subcmd 3: {:?}", &cap[2]);
+                    let mut _args = parsers::parser_line::cmd_to_tokens(&cap[2]);
+                    shell::do_expansion(sh, &mut _args);
                     let (_, cr) =
                         core::run_pipeline(sh, &_args, "", false, false, true, false, None);
                     _output = cr.stdout.trim().to_string();
@@ -826,6 +845,11 @@ fn do_command_substitution(sh: &mut Shell, tokens: &mut types::Tokens) {
 }
 
 pub fn do_expansion(sh: &mut Shell, tokens: &mut types::Tokens) {
+    let line = parsers::parser_line::tokens_to_line(tokens);
+    if tools::is_arithmetic(&line) {
+        return
+    }
+
     if tokens.len() >= 2 {
         if tokens[0].1 == "export" && tokens[1].1.starts_with("PROMPT=") {
             return;
@@ -901,6 +925,15 @@ mod tests {
         ]);
         let exp_tokens = vec![
             ("", "alias"), ("", "foo=\'echo $PWD\'")
+        ];
+        expand_env(&sh, &mut tokens);
+        assert_vec_eq(tokens, exp_tokens);
+
+        let mut tokens = make_tokens(&vec![
+            ("", "awk"), ("\"", "{print $NF}")
+        ]);
+        let exp_tokens = vec![
+            ("", "awk"), ("\"", "{print }")
         ];
         expand_env(&sh, &mut tokens);
         assert_vec_eq(tokens, exp_tokens);

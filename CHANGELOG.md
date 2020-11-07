@@ -1,8 +1,10 @@
 # Change Logs
 
-## master
+## 0.9.13 - 2020-11-07
 
 - cd: Update `$PWD` when changing directory.
+- Added `history add` sub-command.
+- Fixed an ENV expension issue.
 
 ## 0.9.12 - 2020-05-30
 
