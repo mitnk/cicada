@@ -31,7 +31,7 @@ fn get_envs_home() -> String {
 
 fn list_envs() -> i32 {
     let home_envs = get_envs_home();
-    if home_envs == "" {
+    if home_envs.is_empty() {
         println_stderr!("you need to set VIRTUALENV_HOME to use vox");
         return 1;
     }
@@ -71,6 +71,7 @@ fn enter_env(sh: &shell::Shell, path: &str) -> i32 {
         println_stderr!("no such env: {}", full_path);
         return 1;
     }
+
     let path_env = format!("{}/{}", home_envs, path);
     env::set_var("VIRTUAL_ENV", &path_env);
     let path_new = String::from("${VIRTUAL_ENV}/bin:$PATH");

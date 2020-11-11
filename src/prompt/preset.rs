@@ -93,13 +93,33 @@ fn apply_color_status(sh: &shell::Shell, prompt: &mut String) {
     }
 }
 
-fn apply_gitbr(prompt: &mut String) {
+fn _find_git_root() -> String {
     let current_dir = libs::path::current_dir();
     let dir_git = format!("{}/.git", current_dir);
-    if !Path::new(&dir_git).exists() {
+    if Path::new(&dir_git).exists() {
+        return current_dir;
+    }
+
+    let mut _dir = current_dir.clone();
+    while Path::new(&_dir).parent().is_some() {
+        // FIXME: there's a tiny possibility of the unwrap below crashing
+        _dir = Path::new(&_dir).parent().unwrap().to_string_lossy().to_string();
+        let dir_git = format!("{}/.git", _dir);
+        if Path::new(&dir_git).exists() {
+            return _dir;
+        }
+    }
+
+    String::new()
+}
+
+fn apply_gitbr(prompt: &mut String) {
+    let git_root = _find_git_root();
+    if git_root.is_empty() {
         return;
     }
-    let file_head = format!("{}/.git/HEAD", current_dir);
+
+    let file_head = format!("{}/.git/HEAD", git_root);
     if !Path::new(&file_head).exists() {
         return;
     }

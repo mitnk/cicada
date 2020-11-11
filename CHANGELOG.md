@@ -1,5 +1,10 @@
 # Change Logs
 
+## 0.9.14 - 2020-11-11
+
+- Fixed an env extension bug introduced in 0.9.13
+- Made `$gitbr` prompt item searching parent dirs too.
+
 ## 0.9.13 - 2020-11-07
 
 - cd: Update `$PWD` when changing directory.

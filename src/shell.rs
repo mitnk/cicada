@@ -355,7 +355,7 @@ pub fn expand_glob(tokens: &mut types::Tokens) {
     }
 }
 
-pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
+fn expand_one_env(sh: &Shell, token: &str) -> String {
     let re1 = Regex::new(r"^(.*?)\$([A-Za-z0-9_]+|\$|\?)(.*)$").unwrap();
     let re2 = Regex::new(r"(.*?)\$\{([A-Za-z0-9_]+|\$|\?)\}(.*)$").unwrap();
     if !re1.is_match(token) && !re2.is_match(token) {
@@ -363,51 +363,39 @@ pub fn extend_env_blindly(sh: &Shell, token: &str) -> String {
     }
 
     let mut result = String::new();
-    let mut _token = token.to_string();
-    let mut _head = String::new();
-    let mut _output = String::new();
-    let mut _tail = String::new();
-    loop {
-        let match_re1 = re1.is_match(&_token);
-        let match_re2 = re2.is_match(&_token);
-        if !match_re1 && !match_re2 {
-            if !_token.is_empty() {
-                result.push_str(&_token);
-            }
-            break;
-        }
-
-        let cap_results = if match_re1 {
-            re1.captures_iter(&_token)
-        } else {
-            re2.captures_iter(&_token)
-        };
-
-        for cap in cap_results {
-            _head = cap[1].to_string();
-            _tail = cap[3].to_string();
-            let _key = cap[2].to_string();
-            if _key == "?" {
-                result.push_str(format!("{}{}", _head, sh.previous_status).as_str());
-            } else if _key == "$" {
-                unsafe {
-                    let val = libc::getpid();
-                    result.push_str(format!("{}{}", _head, val).as_str());
-                }
-            } else if let Ok(val) = env::var(&_key) {
-                result.push_str(format!("{}{}", _head, val).as_str());
-            } else if let Some(val) = sh.get_env(&_key) {
-                result.push_str(format!("{}{}", _head, val).as_str());
-            } else {
-                result.push_str(&_head);
-            }
-        }
-
-        if _tail.is_empty() {
-            break;
-        }
-        _token = _tail.clone();
+    let match_re1 = re1.is_match(&token);
+    let match_re2 = re2.is_match(&token);
+    if !match_re1 && !match_re2 {
+        return token.to_string();
     }
+
+    let cap_results = if match_re1 {
+        re1.captures_iter(&token)
+    } else {
+        re2.captures_iter(&token)
+    };
+
+    for cap in cap_results {
+        let head = cap[1].to_string();
+        let tail = cap[3].to_string();
+        let key = cap[2].to_string();
+        if key == "?" {
+            result.push_str(format!("{}{}", head, sh.previous_status).as_str());
+        } else if key == "$" {
+            unsafe {
+                let val = libc::getpid();
+                result.push_str(format!("{}{}", head, val).as_str());
+            }
+        } else if let Ok(val) = env::var(&key) {
+            result.push_str(format!("{}{}", head, val).as_str());
+        } else if let Some(val) = sh.get_env(&key) {
+            result.push_str(format!("{}{}", head, val).as_str());
+        } else {
+            result.push_str(&head);
+        }
+        result.push_str(&tail);
+    }
+
     result
 }
 
@@ -701,7 +689,10 @@ pub fn expand_env(sh: &Shell, tokens: &mut types::Tokens) {
             continue;
         }
 
-        let _token = extend_env_blindly(sh, token);
+        let mut _token = token.clone();
+        while env_in_token(&_token) {
+            _token = expand_one_env(sh, &_token);
+        }
         buff.push((idx, _token));
         idx += 1;
     }
