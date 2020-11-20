@@ -2,7 +2,7 @@
 edition = "2018"
 build = "src/build.rs"
 name = "cicada"
-version = "0.9.14"
+version = "0.9.15"
 authors = ["Hugo Wang <w@mitnk.com>"]
 
 description = "A simple Bash-like Unix shell."
