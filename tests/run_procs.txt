@@ -10,9 +10,6 @@ ls.*foo\.txt.*such file
 ls foo.txt | wc
 ^0.*0.*0$
 ^$
-ls foo.txt 2>&1 | wc  # cannot both do redirect and capture output
-^1.*\d+.*\d+$
-
 echo hi
 hi
 

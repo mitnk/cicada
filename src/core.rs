@@ -190,13 +190,6 @@ pub fn run_pipeline(
         }
     }
 
-    unsafe {
-        for fds in pipes {
-            libc::close(fds.0);
-            libc::close(fds.1);
-        }
-    }
-
     if cmd_result.status == types::STOPPED {
         jobc::mark_job_as_stopped(sh, pgid);
     }
@@ -257,6 +250,7 @@ fn run_command(
                 unsafe {
                     libc::dup2(fds_prev.0, 0);
                     libc::close(fds_prev.0);
+                    libc::close(fds_prev.1);
                 }
             }
 
@@ -265,7 +259,8 @@ fn run_command(
                 let fds = pipes[idx_cmd];
                 unsafe {
                     libc::dup2(fds.1, 1);
-                    // libc::close(fds.1);
+                    libc::close(fds.1);
+                    libc::close(fds.0);
                 }
             }
 
@@ -463,6 +458,14 @@ fn run_command(
                 }
             }
 
+            if idx_cmd > 0 {
+                unsafe {
+                    // close one pipe after both ends assigned to the children
+                    let fds = pipes[idx_cmd - 1];
+                    libc::close(fds.0);
+                }
+            }
+
             if idx_cmd == pipes_count && options.capture_output {
                 unsafe {
                     libc::close(fds_capture_stdout.1);
@@ -493,6 +496,7 @@ fn run_command(
 
             return pid;
         }
+
         Err(_) => {
             println_stderr!("Fork failed");
             *cmd_result = CommandResult::error();

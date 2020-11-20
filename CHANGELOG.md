@@ -1,5 +1,9 @@
 # Change Logs
 
+## 0.9.15 - master
+
+- Fixed pipeline stuck when right hand commands finish first.
+
 ## 0.9.14 - 2020-11-11
 
 - Fixed an env extension bug introduced in 0.9.13
