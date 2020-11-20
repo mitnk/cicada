@@ -110,7 +110,6 @@ pub fn run_pipeline(
                 return (false, CommandResult::error());
             }
         }
-        log!("created a pipe: {:?}", fds);
         pipes.push(fds);
     }
     if pipes.len() + 1 != length {
@@ -250,13 +249,8 @@ fn run_command(
                 let fds_prev = pipes[idx_cmd - 1];
                 unsafe {
                     libc::dup2(fds_prev.0, 0);
-                    log!("[idx: {}] dup-ed pipe fd: {} to 0", idx_cmd, fds_prev.0);
                     libc::close(fds_prev.0);
-                    log!("[idx: {}] closed pipe fd: {}", idx_cmd, fds_prev.0);
-
                     libc::close(fds_prev.1);
-                    // new
-                    log!("[idx: {}] closed pipe fd: {}", idx_cmd, fds_prev.1);
                 }
             }
 
@@ -265,13 +259,8 @@ fn run_command(
                 let fds = pipes[idx_cmd];
                 unsafe {
                     libc::dup2(fds.1, 1);
-                    log!("[idx: {}] dup-ed pipe fd: {} to 1", idx_cmd, fds.1);
                     libc::close(fds.1);
-                    log!("[idx: {}] closed pipe fd: {}", idx_cmd, fds.1);
-
-                    // new:
                     libc::close(fds.0);
-                    log!("[idx: {}] closed pipe fd: {}", idx_cmd, fds.0);
                 }
             }
 
@@ -466,7 +455,14 @@ fn run_command(
                 let fds = pipes[idx_cmd];
                 unsafe {
                     libc::close(fds.1);
-                    log!("[idx: {}][P] closed pipe fd: {}", idx_cmd, fds.1);
+                }
+            }
+
+            if idx_cmd > 0 {
+                unsafe {
+                    // close one pipe after both ends assigned to the children
+                    let fds = pipes[idx_cmd - 1];
+                    libc::close(fds.0);
                 }
             }
 
@@ -488,15 +484,6 @@ fn run_command(
                     status: 0,
                     stdout: s_out.clone(),
                     stderr: s_err.clone(),
-                }
-            }
-
-            if idx_cmd > 0 {
-                unsafe {
-                    // close one pipe after both ends assigned to the children
-                    let fds = pipes[idx_cmd - 1];
-                    libc::close(fds.0);
-                    log!("[idx: {}][P] closed pipe fd: {}", idx_cmd, fds.0);
                 }
             }
 
