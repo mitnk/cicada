@@ -46,6 +46,8 @@ use crate::tools::clog;
 // #[allow(clippy::cast_lossless)]
 fn main() {
     unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+
         // to make cicada a job-control shell
         libc::signal(libc::SIGTSTP, libc::SIG_DFL);
     }
