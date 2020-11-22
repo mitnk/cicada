@@ -1,8 +1,9 @@
 # Change Logs
 
-## 0.9.15 - master
+## 0.9.15 - 2020-11-22
 
 - Fixed pipeline stuck when right hand commands finish first.
+- Fixed an cd/pwd issue.
 
 ## 0.9.14 - 2020-11-11
 
