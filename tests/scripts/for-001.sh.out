@@ -16,3 +16,80 @@ append ',' into file
 append ' ' into file
 append 'xy' into file
 bye
+===1===
+hi
+foo
+bar
+baz
+hello
+a
+hello
+b
+args kwargs
+sh script
+bye
+===2===
+before for-if
+found it
+after for-if
+
+before for-while
+hello foo
+counter = 18
+counter = 19
+bye foo
+hello bar
+bye bar
+after for-while
+===3===
+xxx begins with 
+xxx now is wip
+xxx now is final
+===4===
+1
+3
+5
+6
+8
+9
+a
+b
+===5===
+zero round
+a1
+b1
+c1
+a2
+b2
+c2
+a3
+b3
+c3
+first round
+a1
+b1
+c1
+a3
+b3
+c3
+second round
+a1
+c1
+a2
+c2
+a3
+c3
+===6===
+foo
+first round
+a1
+b1
+c1
+a3
+b3
+c3
+second round
+a1
+a2
+a3
+===7===

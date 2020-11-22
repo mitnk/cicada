@@ -249,7 +249,6 @@ fn run_command(
                 let fds_prev = pipes[idx_cmd - 1];
                 unsafe {
                     libc::dup2(fds_prev.0, 0);
-                    libc::close(fds_prev.0);
                     libc::close(fds_prev.1);
                 }
             }
@@ -259,7 +258,6 @@ fn run_command(
                 let fds = pipes[idx_cmd];
                 unsafe {
                     libc::dup2(fds.1, 1);
-                    libc::close(fds.1);
                     libc::close(fds.0);
                 }
             }
@@ -283,7 +281,6 @@ fn run_command(
                         if idx_cmd < pipes_count {
                             let fds = pipes[idx_cmd];
                             libc::dup2(fds.1, 2);
-                            // libc::close(fds.1);
                         } else if !options.capture_output {
                             let fd = libc::dup(1);
                             libc::dup2(fd, 2);

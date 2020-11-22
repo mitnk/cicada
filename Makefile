@@ -18,7 +18,7 @@ test:
 
 scripting-test:
 	cargo build
-	./tests/test_scripts.sh
+	./tests/test_scripts.sh 2>/dev/null
 
 clippy:
 	cargo clippy -- -A clippy::needless_return -A clippy::ptr_arg

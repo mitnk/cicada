@@ -3,3 +3,31 @@ found foo
 found baz
 no a and no b
 bye
+=1=
+not found
+bye
+=2=
+hi
+counter = 17
+counter = 18
+counter = 19
+counter = 20
+counter = 21
+counter = 22
+found bar
+bye
+=3=
+hi
+before printing continue
+after printing continue
+end of outer if
+bye
+bye bye
+=4=
+hi
+before printing break
+after printing break
+end of outer if
+bye
+bye bye
+=5=

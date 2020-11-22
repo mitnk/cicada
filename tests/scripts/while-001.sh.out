@@ -3,3 +3,33 @@ counter = 17
 counter = 18
 counter = 19
 bye
+=1=
+hi
+counter = 17
+counter = 18
+counter = 19
+bye
+=2=
+hi
+found foo 19
+found foo 20
+not found 21
+not found 22
+bye
+=3=
+counter = 17
+counter = 19
+counter = 26
+counter = 28
+counter = 29
+counter = 36
+counter = 39
+=4=
+counter = 17
+counter = 26
+counter = 36
+foo
+counter = 48
+foo
+counter = 49
+=5=

@@ -10,6 +10,9 @@ ls.*foo\.txt.*such file
 ls foo.txt | wc
 ^0.*0.*0$
 ^$
+ls foo.txt 2>&1 | wc
+^1.*\d+.*\d+$
+
 echo hi
 hi
 
@@ -19,10 +22,10 @@ foo bar
 echo foo | wc
 1\s+1\s+4
 
-echo foo 1>&2 | wc  # cannot both do redirect and capture output
+echo foo 1>&2 | wc
 0\s+0\s+0
 
-echo foo >&2 | wc  # cannot both do redirect and capture output
+echo foo >&2 | wc
 0\s+0\s+0
 
 echo foo 2>&1 | wc
