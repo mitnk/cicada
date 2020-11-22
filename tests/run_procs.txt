@@ -103,37 +103,37 @@ echo foo`which ls`
 echo --author='Hugo Wang <w@mitnk.com>'
 --author=Hugo Wang <w@mitnk.com>
 
-FOO=123  # define a shell variable
+VAR_RANDOM_135=123  # define a shell variable
 
 
-echo $FOO  # test the shell variable
+echo $VAR_RANDOM_135  # test the shell variable
 ^123$
 
-echo ${FOO}  # test the shell variable
+echo ${VAR_RANDOM_135}  # test the shell variable
 ^123$
 
-echo 'echo $FOO' > foo.sh
+echo 'echo $VAR_RANDOM_135' > foo.sh
 
 
-sh foo.sh  # child cannot see $FOO
+sh foo.sh  # child cannot see $VAR_RANDOM_135
 
 
-FOO=357 sh foo.sh  # but can see its prefixing envs
+VAR_RANDOM_135=357 sh foo.sh  # but can see its prefixing envs
 ^357$
 
-A=1 FOO="abc 123" sh foo.sh  # testing quotes
+A=1 VAR_RANDOM_135="abc 123" sh foo.sh  # testing quotes
 ^abc 123$
 
-FOO=a${HOME}c sh foo.sh
+VAR_RANDOM_135=a${HOME}c sh foo.sh
 ^a/.*c$
 
-FOO="a${HOME}c" sh foo.sh
+VAR_RANDOM_135="a${HOME}c" sh foo.sh
 ^a/.*c$
 
-# FOO='a${HOME}c' sh foo.sh  # TODO: should not expend envs with strong quotes
+# VAR_RANDOM_135='a${HOME}c' sh foo.sh  # TODO: should not expend envs with strong quotes
 
 
-echo $FOO  # the above inline env settings won't change the shell variable
+echo $VAR_RANDOM_135  # the above inline env settings won't change the shell variable
 ^123$
 
 rm -f foo.sh  # clean up
