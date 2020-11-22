@@ -102,11 +102,17 @@ fn _find_git_root() -> String {
 
     let mut _dir = current_dir.clone();
     while Path::new(&_dir).parent().is_some() {
-        // FIXME: there's a tiny possibility of the unwrap below crashing
-        _dir = Path::new(&_dir).parent().unwrap().to_string_lossy().to_string();
-        let dir_git = format!("{}/.git", _dir);
-        if Path::new(&dir_git).exists() {
-            return _dir;
+        match Path::new(&_dir).parent() {
+            Some(p) => {
+                _dir = p.to_string_lossy().to_string();
+                let dir_git = format!("{}/.git", _dir);
+                if Path::new(&dir_git).exists() {
+                    return _dir;
+                }
+            }
+            None => {
+                break;
+            }
         }
     }
 

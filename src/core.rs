@@ -244,7 +244,7 @@ fn run_command(
                 }
             }
 
-            // read from pipe instead of stdin
+            // (in child) replace stdin/stdout with read/write ends of pipe
             if idx_cmd > 0 {
                 let fds_prev = pipes[idx_cmd - 1];
                 unsafe {
@@ -252,8 +252,6 @@ fn run_command(
                     libc::close(fds_prev.1);
                 }
             }
-
-            // all processes except the last one need to get stdout piped
             if idx_cmd < pipes_count {
                 let fds = pipes[idx_cmd];
                 unsafe {
@@ -365,8 +363,8 @@ fn run_command(
                 process::exit(status);
             }
 
-            // We are certain that our string doesn't have 0 bytes in the
-            // middle, so we can use CString::new().expect()
+            // our strings do not have '\x00' bytes in them,
+            // we can use CString::new().expect() safely.
             let mut c_envs: Vec<_> = env::vars()
                 .map(|(k, v)| {
                     CString::new(format!("{}={}", k, v).as_str()).expect("CString error")
@@ -448,16 +446,16 @@ fn run_command(
                 sh.insert_job(*pgid, pid, &_cmd, "Running", options.background);
             }
 
+            // (in parent) close unused pipe ends
             if idx_cmd < pipes_count {
                 let fds = pipes[idx_cmd];
                 unsafe {
                     libc::close(fds.1);
                 }
             }
-
             if idx_cmd > 0 {
                 unsafe {
-                    // close one pipe after both ends assigned to the children
+                    // close pipe end only after dupped in the child
                     let fds = pipes[idx_cmd - 1];
                     libc::close(fds.0);
                 }
