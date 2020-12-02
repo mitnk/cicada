@@ -233,6 +233,12 @@ fn run_command(
     let pipes_count = pipes.len();
     match fork() {
         Ok(ForkResult::Child) => {
+            unsafe {
+                // child processes need to handle ctrl-Z
+                libc::signal(libc::SIGTSTP, libc::SIG_DFL);
+                libc::signal(libc::SIGQUIT, libc::SIG_DFL);
+            }
+
             if idx_cmd == 0 {
                 unsafe {
                     let pid = libc::getpid();

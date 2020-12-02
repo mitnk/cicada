@@ -11,15 +11,21 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
         return 0;
     }
 
-    let mut job_id = 0;
+    let mut job_id = -1;
     if tokens.len() == 1 {
         for (gid, _) in sh.jobs.iter() {
             job_id = *gid;
             break;
         }
     }
+
     if tokens.len() >= 2 {
-        match tokens[1].1.parse::<i32>() {
+        let mut job_str = tokens[1].1.clone();
+        if job_str.starts_with("%") {
+            job_str = job_str.trim_start_matches('%').to_string();
+        }
+
+        match job_str.parse::<i32>() {
             Ok(n) => job_id = n,
             Err(_) => {
                 println_stderr!("cicada: bg: invalid job id");
@@ -27,7 +33,7 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
             }
         }
     }
-    if job_id == 0 {
+    if job_id == -1 {
         println_stderr!("cicada: not job id found");
     }
 
