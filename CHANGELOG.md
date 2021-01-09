@@ -1,9 +1,10 @@
 # Change Logs
 
-## 0.9.16 - master
+## 0.9.16 - 2021-01-09
 
 - The shell now ignores signal SIGQUIT and SIGTSTP.
 - Added support of `fg %1`, `bg %1` syntax.
+- Added builtin `ulimit`.
 
 ## 0.9.15 - 2020-11-22
 

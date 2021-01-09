@@ -12,6 +12,7 @@
     - [history](#user-content-history)
     - [jobs](#user-content-jobs)
     - [source](#user-content-source)
+    - [ulimit](#user-content-ulimit)
     - [unalias](#user-content-unalias)
     - [vox](#user-content-vox)
 
@@ -151,6 +152,25 @@ parameters when filename is executed. The return status is the exit status
 of the last command executed, or zero if no commands are executed. If
 `filename` is not found, or cannot be read, the return status is non-zero.
 Like in Bash, **this builtin is equivalent to `.` (a period)**.
+
+## ulimit
+
+Show shell limits:
+```
+$ ulimit -a
+open files		256
+core file size		0
+```
+
+Change limit of open files to 10240
+```
+$ ulimit -n 10240
+
+$ ulimit -n  # check the new value
+10240
+```
+
+Currently, only `-n` (open files) and `-c` (core file size) is supported.
 
 ## unalias
 

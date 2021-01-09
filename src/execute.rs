@@ -170,6 +170,9 @@ fn run_proc(sh: &mut shell::Shell,
     } else if (cmd == "source" || cmd == ".") && tokens.len() <= 2 {
         let status = builtins::source::run(sh, &tokens);
         return CommandResult::from_status(0, status);
+    } else if cmd == "ulimit" {
+        let status = builtins::ulimit::run(sh, &tokens);
+        return CommandResult::from_status(0, status);
     } else if cmd == "unalias" {
         let status = builtins::unalias::run(sh, &tokens);
         return CommandResult::from_status(0, status);

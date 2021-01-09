@@ -11,6 +11,8 @@ extern crate rusqlite;
 extern crate chrono;
 extern crate yaml_rust;
 
+extern crate clap;
+
 #[macro_use]
 extern crate lazy_static;
 extern crate pest;

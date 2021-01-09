@@ -35,6 +35,10 @@ yaml-rust = "0.4.0"
 uuid = { version = "0.8", features = ["serde", "v4"] }
 structopt = { version = "0.3", default-features = false }
 
+[dependencies.clap]
+version = "~2.33.0"
+default-features = false
+
 [dependencies.rusqlite]
 version = "0.24.1"
 features = ["bundled"]
