@@ -155,6 +155,8 @@ Like in Bash, **this builtin is equivalent to `.` (a period)**.
 
 ## ulimit
 
+> See `ulimit --help` for more usage.
+
 Show shell limits:
 ```
 $ ulimit -a
@@ -164,10 +166,21 @@ core file size		0
 
 Change limit of open files to 10240
 ```
-$ ulimit -n 10240
+$ ulimit -n 1024
 
 $ ulimit -n  # check the new value
-10240
+1024
+```
+
+Set hard limits instead of the default soft limits
+```
+$ ulimit -c -H  # check the new value of the hard limit
+unlimited
+
+$ ulimit -c 65535
+
+$ ulimit -c -H  # check the new value of the hard limit
+65535
 ```
 
 Currently, only `-n` (open files) and `-c` (core file size) is supported.

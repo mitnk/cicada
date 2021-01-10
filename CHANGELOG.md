@@ -1,5 +1,9 @@
 # Change Logs
 
+## 0.9.17 - 2021-01-10
+
+- Fix & improved the builtin `ulimit`.
+
 ## 0.9.16 - 2021-01-10
 
 - The shell now ignores signal SIGQUIT and SIGTSTP.
