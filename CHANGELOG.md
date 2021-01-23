@@ -1,5 +1,9 @@
 # Change Logs
 
+## 0.9.18 - master
+
+- fix compiling issue on 32bit systems.
+
 ## 0.9.17 - 2021-01-10
 
 - Fix & improved the builtin `ulimit`.

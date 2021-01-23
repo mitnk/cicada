@@ -126,10 +126,17 @@ fn set_limit(limit_name: &str, value: u64, for_hard: bool) -> bool {
     }
 
     if for_hard {
-        rlp.rlim_max = value;
+        #[cfg(target_pointer_width = "32")]
+        { rlp.rlim_max = value as u32; }
+        #[cfg(target_pointer_width = "64")]
+        { rlp.rlim_max = value; }
     } else {
-        rlp.rlim_cur = value;
+        #[cfg(target_pointer_width = "32")]
+        { rlp.rlim_cur = value as u32; }
+        #[cfg(target_pointer_width = "64")]
+        { rlp.rlim_cur = value; }
     }
+
     unsafe {
         let res = libc::setrlimit(limit_id, rlim);
         if res != 0 {
