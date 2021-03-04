@@ -7,7 +7,7 @@ use std::os::unix::io::{FromRawFd, RawFd};
 use std::process;
 
 use libc;
-use nix::unistd::{execve, fork, pipe, ForkResult};
+use nix::unistd::{execve, pipe, ForkResult};
 use nix::errno::Errno;
 use nix::Error;
 
@@ -231,7 +231,7 @@ fn run_command(
     }
 
     let pipes_count = pipes.len();
-    match fork() {
+    match libs::fork::fork() {
         Ok(ForkResult::Child) => {
             unsafe {
                 // child processes need to handle ctrl-Z
