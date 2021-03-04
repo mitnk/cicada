@@ -1,7 +1,7 @@
 use std::io::Write;
 use std::path::Path;
 
-use chrono::NaiveDateTime;
+use chrono::{DateTime, NaiveDateTime, Local, Utc};
 use rusqlite::Connection as Conn;
 use rusqlite::NO_PARAMS;
 use structopt::StructOpt;
@@ -169,7 +169,9 @@ fn list_current_history(sh: &shell::Shell, conn: &Conn, opt: &OptMain) -> i32 {
                                 return 1;
                             }
                         };
-                        let dt = NaiveDateTime::from_timestamp(tsb as i64, 0);
+                        let dt = DateTime::<Utc>::from_utc(
+                            NaiveDateTime::from_timestamp(tsb as i64, 0), Utc
+                        ).with_timezone(&Local);
                         println!("{}: {}: {}", row_id, dt.format("%Y-%m-%d %H:%M:%S"), inp);
                     } else {
                         println!("{}: {}", row_id, inp);

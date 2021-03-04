@@ -3,6 +3,7 @@
 ## 0.9.18 - master
 
 - fix compiling issue on 32bit systems.
+- Make `history -d` shows local date time.
 
 ## 0.9.17 - 2021-01-10
 
