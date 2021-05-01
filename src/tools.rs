@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -331,6 +332,23 @@ pub fn get_current_dir() -> String {
         }
     }
     str_current_dir.to_string()
+}
+
+pub fn split_into_fields(line: &str, envs: &HashMap<String, String>) -> Vec<String> {
+    let ifs_chars;
+    if envs.contains_key("IFS") {
+        ifs_chars = envs[&"IFS".to_string()].chars().collect();
+    } else if let Ok(x) = env::var("IFS") {
+        ifs_chars = x.chars().collect();
+    } else {
+        ifs_chars = vec![];
+    }
+
+    if ifs_chars.is_empty() {
+        return line.split(&[' ', '\t', '\n'][..]).map(|x| x.to_string()).collect();
+    } else {
+        return line.split(&ifs_chars[..]).map(|x| x.to_string()).collect();
+    }
 }
 
 #[cfg(test)]

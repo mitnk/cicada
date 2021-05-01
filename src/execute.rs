@@ -164,6 +164,9 @@ fn run_proc(sh: &mut shell::Shell,
     } else if cmd == "fg" {
         let status = builtins::fg::run(sh, &tokens);
         return CommandResult::from_status(0, status);
+    } else if cmd == "read" {
+        let status = builtins::read::run(sh, &tokens, &envs);
+        return CommandResult::from_status(0, status);
     } else if cmd == "vox" && tokens.len() > 1 && (tokens[1].1 == "enter" || tokens[1].1 == "exit") {
         let status = builtins::vox::run(sh, &tokens);
         return CommandResult::from_status(0, status);

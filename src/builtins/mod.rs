@@ -8,6 +8,7 @@ pub mod export;
 pub mod fg;
 pub mod history;
 pub mod jobs;
+pub mod read;
 pub mod source;
 pub mod unalias;
 pub mod vox;

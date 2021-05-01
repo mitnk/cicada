@@ -5,10 +5,11 @@
 - fix compiling issue on 32bit systems.
 - Make `history -d` shows local date time.
 - Can add optional `; then`, `; do` in heads of `if`, `for`, `while` in scripting.
+- Added a new builtin: `read`.
 
 ## 0.9.17 - 2021-01-10
 
-- Fix & improved the builtin `ulimit`.
+- Fix & improve the builtin `ulimit`.
 
 ## 0.9.16 - 2021-01-10
 

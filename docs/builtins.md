@@ -11,6 +11,7 @@
     - [fg](#user-content-fg)
     - [history](#user-content-history)
     - [jobs](#user-content-jobs)
+    - [read](#user-content-read)
     - [source](#user-content-source)
     - [ulimit](#user-content-ulimit)
     - [unalias](#user-content-unalias)
@@ -135,6 +136,30 @@ $ history add '<the command input>'
 
 Listing all jobs in [job control](https://github.com/mitnk/cicada/blob/master/docs/jobc.md).
 See also `bg`, `fg`.
+
+## read
+
+```
+read [name ...]
+```
+
+Read a line from the standard input and split it into fields.
+
+Reads a single line from the standard input. The line is split into fields as
+with word splitting, and the first word is assigned to the first NAME, the
+second word to the second NAME, and so on, with any leftover words assigned to
+the last NAME.  Only the characters found in `$IFS` are recognized as word
+delimiters.
+
+If no NAMEs are supplied, the line read is stored in the `REPLY` variable.
+
+The following example prints `bar foo`:
+
+```sh
+$ read v1 v2
+foo bar<hit ENTER>
+$ echo $v2 $1
+```
 
 ## source
 
