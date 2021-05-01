@@ -168,3 +168,9 @@ for x in 1 2 3
 done
 
 echo ===7===
+
+for x210501 in foo bar; do
+    echo "-" $x210501
+done
+
+echo ===8===

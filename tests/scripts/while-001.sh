@@ -132,3 +132,11 @@ while echo "$counter" | grep -iq "^4.$"
 done
 
 echo =5=
+
+counter=58
+while echo "$counter" | grep -iq "^5.$"; do
+    echo "counter = $counter"
+    counter=$(expr $counter + 1)
+done
+
+echo =6=

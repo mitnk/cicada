@@ -4,6 +4,7 @@
 
 - fix compiling issue on 32bit systems.
 - Make `history -d` shows local date time.
+- Can add optional `; then`, `; do` in heads of `if`, `for`, `while` in scripting.
 
 ## 0.9.17 - 2021-01-10
 

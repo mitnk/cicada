@@ -120,3 +120,13 @@ break
 echo bye bye
 
 echo =5=
+
+if true; then
+    echo 'found foo!'
+fi
+
+if echo 'true; then' | grep -q then; then
+    echo bye
+fi
+
+echo =6=
