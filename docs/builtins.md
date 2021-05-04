@@ -161,6 +161,13 @@ foo bar<hit ENTER>
 $ echo $v2 $1
 ```
 
+and the following example prints `5 3 1`:
+```sh
+$ IFS=:@ read a b c
+1 3 5<hit ENTER>
+$ echo $c $b $a
+```
+
 ## source
 
 Read and execute commands from the `filename` argument in the current shell
