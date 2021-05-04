@@ -3,8 +3,10 @@ use std::env;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::os::unix::io::IntoRawFd;
+use std::os::unix::io::{IntoRawFd, RawFd};
 use std::path::{Path, PathBuf};
+
+use nix::unistd::pipe;
 
 use chrono::prelude::{Local, Datelike, Timelike};
 use libc;
@@ -350,6 +352,18 @@ pub fn split_into_fields(sh: &shell::Shell, line: &str, envs: &HashMap<String, S
         return line.split(&[' ', '\t', '\n'][..]).map(|x| x.to_string()).collect();
     } else {
         return line.split(&ifs_chars[..]).map(|x| x.to_string()).collect();
+    }
+}
+
+pub fn create_fds() -> Option<(RawFd, RawFd)> {
+    match pipe() {
+        Ok(x) => {
+            return Some(x);
+        }
+        Err(e) => {
+            println_stderr!("cicada: pipe error: {:?}", e);
+            return None;
+        }
     }
 }
 
