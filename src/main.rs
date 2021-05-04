@@ -77,7 +77,7 @@ fn main() {
         if args[1] == "-c" {
             let line = tools::env_args_to_command_line();
             log!("run with -c args: {}", &line);
-            execute::run_procs(&mut sh, &line, false, false);
+            execute::run_command_line(&mut sh, &line, false, false);
             return;
         }
 
@@ -130,11 +130,11 @@ fn main() {
                 let mut line = line.clone();
 
                 // since `!!` expansion is only meaningful in an interactive
-                // shell we extend it here, instead of in `run_procs()`.
+                // shell we extend it here, instead of in `run_command_line()`.
                 tools::extend_bangbang(&sh, &mut line);
 
                 let mut status = 0;
-                let cr_list = execute::run_procs(&mut sh, &line, true, false);
+                let cr_list = execute::run_command_line(&mut sh, &line, true, false);
                 if let Some(last) = cr_list.last() {
                     status = last.status;
                 }

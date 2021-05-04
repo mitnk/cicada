@@ -30,6 +30,9 @@ bar foo
 $ ls file-not-exist 2>&1 | wc > e.txt
 $ cat e.txt
        1       7      46
+
+$ cat <<< 'here string'
+here string
 ```
 
 ### Command substitution

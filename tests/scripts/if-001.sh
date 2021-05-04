@@ -4,6 +4,10 @@ if echo foo | grep -iq o
     echo found foo
 fi
 
+if grep -iq ere <<< here; then
+    echo found here string
+fi
+
 if echo foo | grep -iq ar
     echo found bar
 fi

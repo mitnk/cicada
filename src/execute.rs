@@ -4,23 +4,22 @@ use std::io::{self, Read, Write};
 use libc;
 use regex::Regex;
 
-use crate::builtins;
 use crate::core;
 use crate::libs;
 use crate::parsers;
-use crate::shell;
-use crate::tools::{self, clog};
-use crate::types::{CommandResult, Tokens};
+use crate::shell::{self, Shell};
+use crate::tools::clog;
+use crate::types::{CommandLine, CommandResult, Tokens};
 
 /// Entry point for non-ttys (e.g. Cmd-N on MacVim)
-pub fn run_procs_for_non_tty(sh: &mut shell::Shell) {
+pub fn run_procs_for_non_tty(sh: &mut Shell) {
     let mut buffer = String::new();
     let stdin = io::stdin();
     let mut handle = stdin.lock();
     match handle.read_to_string(&mut buffer) {
         Ok(_) => {
             log!("run non tty command: {}", &buffer);
-            run_procs(sh, &buffer, false, false);
+            run_command_line(sh, &buffer, false, false);
         }
         Err(e) => {
             println!("cicada: stdin.read_to_string() failed: {:?}", e);
@@ -28,39 +27,9 @@ pub fn run_procs_for_non_tty(sh: &mut shell::Shell) {
     }
 }
 
-pub fn run_procs(sh: &mut shell::Shell,
-                 line: &str,
-                 tty: bool,
-                 capture: bool) -> Vec<CommandResult> {
+pub fn run_command_line(sh: &mut Shell, line: &str, tty: bool,
+                        capture: bool) -> Vec<CommandResult> {
     let mut cr_list = Vec::new();
-
-    if tools::is_arithmetic(line) {
-        match core::run_calculator(line) {
-            Ok(result) => {
-                let mut cr = CommandResult::new();
-                if capture {
-                    cr.stdout = result.clone();
-                } else {
-                    println!("{}", result);
-                }
-                sh.previous_status = cr.status;
-                cr_list.push(cr);
-                return cr_list;
-            }
-            Err(e) => {
-                let mut cr = CommandResult::from_status(0, 1);
-                if capture {
-                    cr.stderr = e.to_string();
-                } else {
-                    println_stderr!("cicada: calculator: {}", e);
-                }
-                sh.previous_status = cr.status;
-                cr_list.push(cr);
-                return cr_list;
-            }
-        }
-    }
-
     let mut status = 0;
     let mut sep = String::new();
     for token in parsers::parser_line::line_to_cmds(&line) {
@@ -106,175 +75,80 @@ fn drain_env_tokens(tokens: &mut Tokens) -> HashMap<String, String> {
     envs
 }
 
-fn line_to_tokens(sh: &mut shell::Shell, line: &str) -> (Tokens, HashMap<String, String>) {
+fn line_to_tokens(sh: &mut Shell, line: &str) -> (Tokens, HashMap<String, String>) {
     let mut tokens = parsers::parser_line::cmd_to_tokens(line);
     shell::do_expansion(sh, &mut tokens);
     let envs = drain_env_tokens(&mut tokens);
-
-    if tokens.is_empty() {
-        for (name, value) in envs.iter() {
-            sh.set_env(name, value);
-        }
-        return (Vec::new(), HashMap::new());
-    }
     return (tokens, envs);
 }
 
-fn with_pipeline(tokens: &Tokens) -> bool {
-    for item in tokens {
-        if item.1 == "|" || item.1 == ">" {
-            return true;
-        }
+fn set_shell_vars(sh: &mut Shell, envs: &HashMap<String, String>) {
+    for (name, value) in envs.iter() {
+        sh.set_env(name, value);
     }
-    false
 }
 
 /// Run simple command or pipeline without using `&&`, `||`, `;`.
 /// example 1: `ls`
 /// example 2: `ls | wc`
-fn run_proc(sh: &mut shell::Shell,
-            line: &str,
-            tty: bool,
+fn run_proc(sh: &mut Shell, line: &str, tty: bool,
             capture: bool) -> CommandResult {
-    let (mut tokens, envs) = line_to_tokens(sh, line);
+    let (tokens, envs) = line_to_tokens(sh, line);
     if tokens.is_empty() {
-        return CommandResult::new();
-    }
-
-    let cmd = tokens[0].1.clone();
-    // for builtins
-    if cmd == "alias" && !with_pipeline(&tokens) {
-        let status = builtins::alias::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "bg" {
-        let status = builtins::bg::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "cd" {
-        let status = builtins::cd::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "export" {
-        let status = builtins::export::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "exec" {
-        let status = builtins::exec::run(&tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "exit" {
-        let status = builtins::exit::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "fg" {
-        let status = builtins::fg::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "read" {
-        let status = builtins::read::run(sh, &tokens, &envs);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "vox" && tokens.len() > 1 && (tokens[1].1 == "enter" || tokens[1].1 == "exit") {
-        let status = builtins::vox::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if (cmd == "source" || cmd == ".") && tokens.len() <= 2 {
-        let status = builtins::source::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "ulimit" {
-        let status = builtins::ulimit::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "unalias" {
-        let status = builtins::unalias::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    }
-
-    // for any other situations
-    let mut background = false;
-    let mut len = tokens.len();
-    if len > 1 && tokens[len - 1].1 == "&" {
-        background = true;
-        tokens.pop();
-        len -= 1;
-    }
-    let mut redirect_from = String::new();
-    let has_redirect_from = tokens.iter().any(|x| x.1 == "<");
-    if has_redirect_from {
-        if let Some(idx) = tokens.iter().position(|x| x.1 == "<") {
-            tokens.remove(idx);
-            len -= 1;
-            if len > idx {
-                redirect_from = tokens.remove(idx).1;
-                len -= 1;
-            } else {
-                println_stderr!("cicada: invalid command: cannot get redirect from");
-                return CommandResult::from_status(0, 1);
-            }
-        }
-    }
-    if len == 0 {
+        // empty tokens means, only envs are exising e.g.
+        // $ FOO=1 BAR=2
+        // then we need to define these **Shell Variables**.
+        set_shell_vars(sh, &envs);
         return CommandResult::new();
     }
 
     let log_cmd = !sh.cmd.starts_with(' ');
-    let (term_given, cr) = core::run_pipeline(
-        sh,
-        &tokens,
-        &redirect_from,
-        background,
-        tty,
-        capture,
-        log_cmd,
-        Some(envs),
-    );
-
-    if term_given {
-        unsafe {
-            let gid = libc::getpgid(0);
-            shell::give_terminal_to(gid);
+    match CommandLine::from_line(&line, sh) {
+        Ok(cl) => {
+            let (term_given, cr) = core::run_pipeline(sh, &cl, tty, capture, log_cmd);
+            if term_given {
+                unsafe {
+                    let gid = libc::getpgid(0);
+                    shell::give_terminal_to(gid);
+                }
+            }
+            return cr;
+        }
+        Err(e) => {
+            println_stderr!("cicada: {}", e);
+            return CommandResult::from_status(0, 1);
         }
     }
-
-    cr
 }
 
-fn run_with_shell<'a, 'b>(sh: &'a mut shell::Shell, line: &'b str) -> CommandResult {
-    let (mut tokens, envs) = line_to_tokens(sh, &line);
+fn run_with_shell<'a, 'b>(sh: &'a mut Shell, line: &'b str) -> CommandResult {
+    let (tokens, envs) = line_to_tokens(sh, &line);
     if tokens.is_empty() {
+        set_shell_vars(sh, &envs);
         return CommandResult::new();
     }
 
-    let mut len = tokens.len();
-    if len > 1 && tokens[len - 1].1 == "&" {
-        tokens.pop();
-        len -= 1;
-    }
-    let mut redirect_from = String::new();
-    let has_redirect_from = tokens.iter().any(|x| x.1 == "<");
-    if has_redirect_from {
-        if let Some(idx) = tokens.iter().position(|x| x.1 == "<") {
-            tokens.remove(idx);
-            len -= 1;
-            if len > idx {
-                redirect_from = tokens.remove(idx).1;
-                len -= 1;
-            } else {
-                println_stderr!("cicada: invalid command: cannot get redirect from");
-                return CommandResult::error();
+    match CommandLine::from_line(&line, sh) {
+        Ok(c) => {
+            let (term_given, cr) = core::run_pipeline(sh, &c, false, true, false);
+            if term_given {
+                unsafe {
+                    let gid = libc::getpgid(0);
+                    shell::give_terminal_to(gid);
+                }
             }
+
+            return cr;
+        }
+        Err(e) => {
+            println_stderr!("cicada: {}", e);
+            return CommandResult::from_status(0, 1);
         }
     }
-    if len == 0 {
-        return CommandResult::new();
-    }
-
-    let (_, cmd_result) = core::run_pipeline(
-        sh,
-        &tokens,
-        redirect_from.as_str(),
-        false,
-        false,
-        true,
-        false,
-        Some(envs),
-    );
-    cmd_result
 }
 
 pub fn run(line: &str) -> CommandResult {
-    let mut sh = shell::Shell::new();
+    let mut sh = Shell::new();
     return run_with_shell(&mut sh, line);
 }
 
