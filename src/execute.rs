@@ -8,8 +8,8 @@ use crate::builtins;
 use crate::core;
 use crate::libs;
 use crate::parsers;
-use crate::shell;
-use crate::tools::{self, clog};
+use crate::shell::{self, Shell};
+use crate::tools::clog;
 use crate::types::{CommandLine, CommandResult, Tokens};
 
 /// Entry point for non-ttys (e.g. Cmd-N on MacVim)
@@ -28,39 +28,9 @@ pub fn run_procs_for_non_tty(sh: &mut shell::Shell) {
     }
 }
 
-pub fn run_command_line(sh: &mut shell::Shell,
-                 line: &str,
-                 tty: bool,
-                 capture: bool) -> Vec<CommandResult> {
+pub fn run_command_line(sh: &mut shell::Shell, line: &str, tty: bool,
+                        capture: bool) -> Vec<CommandResult> {
     let mut cr_list = Vec::new();
-
-    if tools::is_arithmetic(line) {
-        match core::run_calculator(line) {
-            Ok(result) => {
-                let mut cr = CommandResult::new();
-                if capture {
-                    cr.stdout = result.clone();
-                } else {
-                    println!("{}", result);
-                }
-                sh.previous_status = cr.status;
-                cr_list.push(cr);
-                return cr_list;
-            }
-            Err(e) => {
-                let mut cr = CommandResult::from_status(0, 1);
-                if capture {
-                    cr.stderr = e.to_string();
-                } else {
-                    println_stderr!("cicada: calculator: {}", e);
-                }
-                sh.previous_status = cr.status;
-                cr_list.push(cr);
-                return cr_list;
-            }
-        }
-    }
-
     let mut status = 0;
     let mut sep = String::new();
     for token in parsers::parser_line::line_to_cmds(&line) {
@@ -128,12 +98,53 @@ fn set_shell_vars(sh: &mut shell::Shell, envs: &HashMap<String, String>) {
     }
 }
 
+fn try_run_builtin(sh: &mut Shell, tokens: &Tokens,
+                   envs: &HashMap<String, String>) -> Option<CommandResult> {
+    let cmd = tokens[0].1.clone();
+    if cmd == "alias" && !with_pipeline(&tokens) {
+        let status = builtins::alias::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "bg" {
+        let status = builtins::bg::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "cd" {
+        let status = builtins::cd::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "export" {
+        let status = builtins::export::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "exec" {
+        let status = builtins::exec::run(&tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "exit" {
+        let status = builtins::exit::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "fg" {
+        let status = builtins::fg::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "read" {
+        let status = builtins::read::run(sh, &tokens, &envs);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "vox" && tokens.len() > 1 && (tokens[1].1 == "enter" || tokens[1].1 == "exit") {
+        let status = builtins::vox::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if (cmd == "source" || cmd == ".") && tokens.len() <= 2 {
+        let status = builtins::source::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "ulimit" {
+        let status = builtins::ulimit::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "unalias" {
+        let status = builtins::unalias::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    }
+    None
+}
+
 /// Run simple command or pipeline without using `&&`, `||`, `;`.
 /// example 1: `ls`
 /// example 2: `ls | wc`
-fn run_proc(sh: &mut shell::Shell,
-            line: &str,
-            tty: bool,
+fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool,
             capture: bool) -> CommandResult {
     let (tokens, envs) = line_to_tokens(sh, line);
     if tokens.is_empty() {
@@ -144,63 +155,20 @@ fn run_proc(sh: &mut shell::Shell,
         return CommandResult::new();
     }
 
-    let cmd = tokens[0].1.clone();
-    // for builtins
-    if cmd == "alias" && !with_pipeline(&tokens) {
-        let status = builtins::alias::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "bg" {
-        let status = builtins::bg::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "cd" {
-        let status = builtins::cd::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "export" {
-        let status = builtins::export::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "exec" {
-        let status = builtins::exec::run(&tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "exit" {
-        let status = builtins::exit::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "fg" {
-        let status = builtins::fg::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "read" {
-        let status = builtins::read::run(sh, &tokens, &envs);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "vox" && tokens.len() > 1 && (tokens[1].1 == "enter" || tokens[1].1 == "exit") {
-        let status = builtins::vox::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if (cmd == "source" || cmd == ".") && tokens.len() <= 2 {
-        let status = builtins::source::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "ulimit" {
-        let status = builtins::ulimit::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
-    } else if cmd == "unalias" {
-        let status = builtins::unalias::run(sh, &tokens);
-        return CommandResult::from_status(0, status);
+    if let Some(cr) = try_run_builtin(sh, &tokens, &envs) {
+        return cr;
     }
 
     let log_cmd = !sh.cmd.starts_with(' ');
     match CommandLine::from_line(&line, sh) {
-        Ok(c) => {
-            let (term_given, cr) = core::run_pipeline_x(
-                sh,
-                &c,
-                tty,
-                capture,
-                log_cmd,
-            );
+        Ok(cl) => {
+            let (term_given, cr) = core::run_pipeline(sh, &cl, tty, capture, log_cmd);
             if term_given {
                 unsafe {
                     let gid = libc::getpgid(0);
                     shell::give_terminal_to(gid);
                 }
             }
-
             return cr;
         }
         Err(e) => {
@@ -219,13 +187,7 @@ fn run_with_shell<'a, 'b>(sh: &'a mut shell::Shell, line: &'b str) -> CommandRes
 
     match CommandLine::from_line(&line, sh) {
         Ok(c) => {
-            let (term_given, cr) = core::run_pipeline_x(
-                sh,
-                &c,
-                false,
-                true,
-                false,
-            );
+            let (term_given, cr) = core::run_pipeline(sh, &c, false, true, false);
             if term_given {
                 unsafe {
                     let gid = libc::getpgid(0);

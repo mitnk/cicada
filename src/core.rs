@@ -16,7 +16,7 @@ use crate::jobc;
 use crate::libs;
 use crate::parsers;
 use crate::scripting;
-use crate::shell;
+use crate::shell::{self, Shell};
 use crate::tools::{self, clog};
 use crate::types;
 
@@ -24,68 +24,27 @@ use crate::types::CommandLine;
 use crate::types::CommandOptions;
 use crate::types::CommandResult;
 
-pub fn run_pipeline_x(
-    sh: &mut shell::Shell,
-    cl: &CommandLine,
-    tty: bool,
-    capture_output: bool,
-    log_cmd: bool,
-) -> (bool, CommandResult) {
-    if cl.background && capture_output {
-        println_stderr!("cicada: cannot capture output of background cmd");
-        return (false, CommandResult::error());
-    }
-
-    if tools::is_arithmetic(&cl.line) {
-        match run_calculator(&cl.line) {
-            Ok(result) => {
-                let mut cr = CommandResult::new();
-                if capture_output {
-                    cr.stdout = result.clone();
-                } else {
-                    println!("{}", result);
-                }
-                return (false, cr);
-            }
-            Err(e) => {
-                let mut cr = CommandResult::from_status(0, 1);
-                if capture_output {
-                    cr.stderr = e.to_string();
-                } else {
-                    println_stderr!("cicada: calculator: {}", e);
-                }
-                return (false, cr);
-            }
-        }
-    }
-
-    // FIXME: move func running into _run_single_command()
-    let command = &cl.commands[0];
-    if let Some(func_body) = sh.get_func(&command.tokens[0].1) {
-        let mut args = vec!["cicada".to_string()];
-        for token in &command.tokens {
-            args.push(token.1.to_string());
-        }
-        log!("run func: {:?}", &args);
-        let cr_list = scripting::run_lines(sh, &func_body, &args, capture_output);
-        let mut stdout = String::new();
-        let mut stderr = String::new();
-        for cr in cr_list {
-            stdout.push_str(&cr.stdout.trim());
-            stdout.push(' ');
-            stderr.push_str(&cr.stderr.trim());
-            stderr.push(' ');
-        }
-        let mut cr = CommandResult::new();
-        cr.stdout = stdout;
-        cr.stderr = stderr;
-        return (false, cr);
-    }
-
-    // the defaults to return
+/// Run a pipeline (e.g. `echo hi | wc -l`)
+/// returns: (is-terminal-given, command-result)
+pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
+                    capture: bool, log_cmd: bool) -> (bool, CommandResult) {
     let mut term_given = false;
-    let mut cmd_result = CommandResult::new();
 
+    if cl.background && capture {
+        println_stderr!("cicada: cannot capture output of background cmd");
+        return (term_given, CommandResult::error());
+    }
+
+    if let Some(cr) = try_run_calculator(&cl.line, capture) {
+        return (term_given, cr);
+    }
+
+    // FIXME: move func-run into _run_single_command()
+    if let Some(cr) = try_run_func(sh, &cl, capture, log_cmd) {
+        return (term_given, cr);
+    }
+
+    let mut cmd_result = CommandResult::new();
     if log_cmd {
         log!("run: {}", cl.line);
     }
@@ -123,7 +82,7 @@ pub fn run_pipeline_x(
 
     let options = CommandOptions {
         isatty: isatty,
-        capture_output: capture_output,
+        capture_output: capture,
         background: cl.background,
         envs: cl.envs.clone(),
     };
@@ -153,7 +112,7 @@ pub fn run_pipeline_x(
 
     for pid in &children {
         let status = jobc::wait_process(sh, pgid, *pid, true);
-        if capture_output {
+        if capture {
             cmd_result.status = status;
         } else {
             cmd_result = CommandResult::from_status(pgid, status);
@@ -167,16 +126,10 @@ pub fn run_pipeline_x(
     (term_given, cmd_result)
 }
 
-fn _run_single_command(
-    sh: &mut shell::Shell,
-    cl: &CommandLine,
-    idx_cmd: usize,
-    options: &CommandOptions,
-    pgid: &mut i32,
-    term_given: &mut bool,
-    cmd_result: &mut CommandResult,
-    pipes: &Vec<(RawFd, RawFd)>,
-) -> i32 {
+fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
+                       options: &CommandOptions, pgid: &mut i32,
+                       term_given: &mut bool, cmd_result: &mut CommandResult,
+                       pipes: &Vec<(RawFd, RawFd)>) -> i32 {
     let fds_capture_stdout: (RawFd, RawFd);
     let fds_capture_stderr: (RawFd, RawFd);
     match pipe() {
@@ -513,6 +466,60 @@ fn _run_single_command(
             0
         }
     }
+}
+
+fn try_run_func(sh: &mut Shell, cl: &CommandLine, capture: bool,
+                log_cmd: bool) -> Option<CommandResult> {
+    let command = &cl.commands[0];
+    if let Some(func_body) = sh.get_func(&command.tokens[0].1) {
+        let mut args = vec!["cicada".to_string()];
+        for token in &command.tokens {
+            args.push(token.1.to_string());
+        }
+        if log_cmd {
+            log!("run func: {:?}", &args);
+        }
+        let cr_list = scripting::run_lines(sh, &func_body, &args, capture);
+        let mut stdout = String::new();
+        let mut stderr = String::new();
+        for cr in cr_list {
+            stdout.push_str(&cr.stdout.trim());
+            stdout.push(' ');
+            stderr.push_str(&cr.stderr.trim());
+            stderr.push(' ');
+        }
+        let mut cr = CommandResult::new();
+        cr.stdout = stdout;
+        cr.stderr = stderr;
+        return Some(cr);
+    }
+    None
+}
+
+fn try_run_calculator(line: &str, capture: bool) -> Option<CommandResult> {
+    if tools::is_arithmetic(line) {
+        match run_calculator(line) {
+            Ok(result) => {
+                let mut cr = CommandResult::new();
+                if capture {
+                    cr.stdout = result.clone();
+                } else {
+                    println!("{}", result);
+                }
+                return Some(cr);
+            }
+            Err(e) => {
+                let mut cr = CommandResult::from_status(0, 1);
+                if capture {
+                    cr.stderr = e.to_string();
+                } else {
+                    println_stderr!("cicada: calculator: {}", e);
+                }
+                return Some(cr);
+            }
+        }
+    }
+    None
 }
 
 pub fn run_calculator(line: &str) -> Result<String, &str> {

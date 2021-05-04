@@ -741,7 +741,7 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
             let cmd_result;
             match CommandLine::from_line(&cmd, sh) {
                 Ok(c) => {
-                    let (term_given, _cr) = core::run_pipeline_x(sh, &c, false, true, false);
+                    let (term_given, _cr) = core::run_pipeline(sh, &c, false, true, false);
                     if term_given {
                         unsafe {
                             let gid = libc::getpgid(0);
@@ -791,7 +791,7 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
             let cr;
             match CommandLine::from_line(&token, sh) {
                 Ok(c) => {
-                    let (term_given, _cr) = core::run_pipeline_x(sh, &c, false, true, false);
+                    let (term_given, _cr) = core::run_pipeline(sh, &c, false, true, false);
                     if term_given {
                         unsafe {
                             let gid = libc::getpgid(0);
@@ -840,7 +840,7 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
                     let cr;
                     match CommandLine::from_line(&cap[2], sh) {
                         Ok(c) => {
-                            let (term_given, _cr) = core::run_pipeline_x(sh, &c, false, true, false);
+                            let (term_given, _cr) = core::run_pipeline(sh, &c, false, true, false);
                             if term_given {
                                 unsafe {
                                     let gid = libc::getpgid(0);
