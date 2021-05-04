@@ -229,7 +229,7 @@ fn run_exp_test_br(sh: &mut shell::Shell,
             let pair_test = &pairs_test[0];
             let line = pair_test.as_str().trim();
             let line_new = expand_args(line, &args[1..]);
-            let mut _cr_list = execute::run_procs(sh, &line_new, true, capture);
+            let mut _cr_list = execute::run_command_line(sh, &line_new, true, capture);
             if let Some(last) = _cr_list.last() {
                 if last.status == 0 {
                     test_pass = true;
@@ -413,7 +413,7 @@ fn run_exp(sh: &mut shell::Shell,
             }
 
             let line_new = expand_args(line, &args[1..]);
-            let mut _cr_list = execute::run_procs(sh, &line_new, true, capture);
+            let mut _cr_list = execute::run_command_line(sh, &line_new, true, capture);
             cr_list.append(&mut _cr_list);
             if let Some(last) = cr_list.last() {
                 let status = last.status;

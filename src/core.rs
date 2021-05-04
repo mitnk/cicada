@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::env;
 use std::ffi::{CStr, CString};
 use std::fs::File;
@@ -16,34 +15,29 @@ use crate::calculator;
 use crate::jobc;
 use crate::libs;
 use crate::parsers;
-use crate::shell;
 use crate::scripting;
+use crate::shell;
 use crate::tools::{self, clog};
 use crate::types;
 
+use crate::types::CommandLine;
 use crate::types::CommandOptions;
 use crate::types::CommandResult;
-use crate::types::Tokens;
 
-// #[allow(clippy::cyclomatic_complexity)]
-pub fn run_pipeline(
+pub fn run_pipeline_x(
     sh: &mut shell::Shell,
-    tokens: &Tokens,
-    redirect_from: &str,
-    background: bool,
+    cl: &CommandLine,
     tty: bool,
     capture_output: bool,
     log_cmd: bool,
-    envs: Option<HashMap<String, String>>,
 ) -> (bool, CommandResult) {
-    if background && capture_output {
+    if cl.background && capture_output {
         println_stderr!("cicada: cannot capture output of background cmd");
         return (false, CommandResult::error());
     }
 
-    let line = parsers::parser_line::tokens_to_line(tokens);
-    if tools::is_arithmetic(&line) {
-        match run_calculator(&line) {
+    if tools::is_arithmetic(&cl.line) {
+        match run_calculator(&cl.line) {
             Ok(result) => {
                 let mut cr = CommandResult::new();
                 if capture_output {
@@ -65,9 +59,11 @@ pub fn run_pipeline(
         }
     }
 
-    if let Some(func_body) = sh.get_func(&tokens[0].1) {
+    // FIXME: move func running into _run_single_command()
+    let command = &cl.commands[0];
+    if let Some(func_body) = sh.get_func(&command.tokens[0].1) {
         let mut args = vec!["cicada".to_string()];
-        for token in tokens {
+        for token in &command.tokens {
             args.push(token.1.to_string());
         }
         log!("run func: {:?}", &args);
@@ -90,12 +86,11 @@ pub fn run_pipeline(
     let mut term_given = false;
     let mut cmd_result = CommandResult::new();
 
-    let cmds = tokens_to_cmd_tokens(&tokens);
     if log_cmd {
-        log_cmd_info(&cmds);
+        log!("run: {}", cl.line);
     }
 
-    let length = cmds.len();
+    let length = cl.commands.len();
     if length == 0 {
         println!("cicada: invalid command: cmds with empty length");
         return (false, CommandResult::error());
@@ -122,44 +117,21 @@ pub fn run_pipeline(
     } else {
         false
     };
-    let mut i = 0;
+
     let mut pgid: i32 = 0;
     let mut children: Vec<i32> = Vec::new();
 
-    let mut _envs: HashMap<String, String> = HashMap::new();
-    if let Some(x) = envs {
-        _envs = x;
-    }
+    let options = CommandOptions {
+        isatty: isatty,
+        capture_output: capture_output,
+        background: cl.background,
+        envs: cl.envs.clone(),
+    };
 
-    for cmd in &cmds {
-        let cmd_new;
-        match parsers::parser_line::cmd_to_with_redirects(&cmd) {
-            Ok(x) => {
-                cmd_new = x;
-            }
-            Err(e) => {
-                println!("cicada: cmd_to_with_redirects failed: {:?}", e);
-                return (false, CommandResult::error());
-            }
-        }
-
-        let cmd_ = parsers::parser_line::tokens_to_args(&cmd_new.tokens);
-        if cmd_.is_empty() {
-            println!("cicada: cmd_ is empty");
-            return (false, CommandResult::error());
-        }
-
-        let options = CommandOptions {
-            redirect_from: redirect_from.to_string(),
-            isatty: isatty,
-            capture_output: capture_output,
-            background: background,
-            envs: _envs.clone(),
-        };
-
-        let child_id: i32 = run_command(
+    for i in 0..length {
+        let child_id: i32 = _run_single_command(
             sh,
-            &cmd_new,
+            cl,
             i,
             &options,
             &mut pgid,
@@ -168,14 +140,12 @@ pub fn run_pipeline(
             &pipes,
         );
 
-        if child_id > 0 && !background {
+        if child_id > 0 && !cl.background {
             children.push(child_id);
         }
-
-        i += 1;
     }
 
-    if background {
+    if cl.background {
         if let Some(job) = sh.get_job_by_gid(pgid) {
             println_stderr!("[{}] {}", job.id, job.gid);
         }
@@ -197,9 +167,9 @@ pub fn run_pipeline(
     (term_given, cmd_result)
 }
 
-fn run_command(
+fn _run_single_command(
     sh: &mut shell::Shell,
-    cmd: &types::Command,
+    cl: &CommandLine,
     idx_cmd: usize,
     options: &CommandOptions,
     pgid: &mut i32,
@@ -230,6 +200,19 @@ fn run_command(
         }
     }
 
+    let fds_stdin: (RawFd, RawFd);
+    match pipe() {
+        Ok(x) => {
+            fds_stdin = x;
+        }
+        Err(e) => {
+            println_stderr!("cicada: pipe error: {:?}", e);
+            *cmd_result = CommandResult::error();
+            return 0;
+        }
+    }
+
+    let cmd = cl.commands.get(idx_cmd).unwrap();
     let pipes_count = pipes.len();
     match libs::fork::fork() {
         Ok(ForkResult::Child) => {
@@ -266,17 +249,27 @@ fn run_command(
                 }
             }
 
-            if idx_cmd == 0 && !options.redirect_from.is_empty() {
-                let fd = tools::get_fd_from_file(&options.redirect_from);
-                unsafe {
-                    libc::dup2(fd, 0);
-                    libc::close(fd);
+            if idx_cmd == 0 {
+                if cmd.has_redirect_from() {
+                    let fd = tools::get_fd_from_file(&cmd.redirect_from.clone().unwrap().1);
+                    unsafe {
+                        libc::dup2(fd, 0);
+                        libc::close(fd);
+                    }
+                }
+
+                if cmd.has_here_string() {
+                    unsafe {
+                        libc::dup2(fds_stdin.0, 0);
+                        libc::close(fds_stdin.1);
+                        libc::close(fds_stdin.0);
+                    }
                 }
             }
 
             let mut stdout_redirected = false;
             let mut stderr_redirected = false;
-            for item in &cmd.redirects {
+            for item in &cmd.redirects_to {
                 let from_ = &item.0;
                 let op_ = &item.1;
                 let to_ = &item.2;
@@ -376,7 +369,7 @@ fn run_command(
                     CString::new(format!("{}={}", k, v).as_str()).expect("CString error")
                 })
                 .collect();
-            for (key, value) in options.envs.iter() {
+            for (key, value) in cl.envs.iter() {
                 c_envs.push(
                     CString::new(format!("{}={}", key, value).as_str()).expect("CString error"),
                 );
@@ -441,7 +434,7 @@ fn run_command(
                         }
                     }
 
-                    if !options.background {
+                    if !cl.background {
                         *term_given = shell::give_terminal_to(pid);
                     }
                 }
@@ -449,7 +442,21 @@ fn run_command(
 
             if options.isatty && !options.capture_output {
                 let _cmd = parsers::parser_line::tokens_to_line(&cmd.tokens);
-                sh.insert_job(*pgid, pid, &_cmd, "Running", options.background);
+                sh.insert_job(*pgid, pid, &_cmd, "Running", cl.background);
+            }
+
+            if let Some(redirect_from) = &cmd.redirect_from {
+                unsafe {
+                    if redirect_from.0 == "<<<" {
+                        libc::close(fds_stdin.0);
+
+                        let mut f = File::from_raw_fd(fds_stdin.1);
+                        f.write_all(redirect_from.1.clone().as_bytes()).unwrap();
+                        f.write_all(b"\n").unwrap();
+
+                        libc::close(fds_stdin.1);
+                    }
+                }
             }
 
             // (in parent) close unused pipe ends
@@ -493,6 +500,8 @@ fn run_command(
                 libc::close(fds_capture_stdout.1);
                 libc::close(fds_capture_stderr.0);
                 libc::close(fds_capture_stderr.1);
+                libc::close(fds_stdin.0);
+                libc::close(fds_stdin.1);
             }
 
             return pid;
@@ -520,47 +529,4 @@ pub fn run_calculator(line: &str) -> Result<String, &str> {
             return Err("syntax error");
         }
     }
-}
-
-// TODO: write tests
-fn tokens_to_cmd_tokens(tokens: &Tokens) -> Vec<Tokens> {
-    let mut cmd = Vec::new();
-    let mut cmds = Vec::new();
-    for token in tokens {
-        let sep = &token.0;
-        let value = &token.1;
-        if sep.is_empty() && value == "|" {
-            if cmd.is_empty() {
-                return Vec::new();
-            }
-            cmds.push(cmd.clone());
-            cmd = Vec::new();
-        } else {
-            cmd.push(token.clone());
-        }
-    }
-    if cmd.is_empty() {
-        return Vec::new();
-    }
-    cmds.push(cmd.clone());
-    cmds
-}
-
-fn log_cmd_info(cmds: &Vec<Tokens>) {
-    let length = cmds.len();
-    let mut info = String::new();
-    for (i, cmd) in cmds.iter().enumerate() {
-        for item in cmd {
-            let sep = &item.0;
-            let token = &item.1;
-            info.push_str(sep);
-            info.push_str(token);
-            info.push_str(sep);
-            info.push(' ');
-        }
-        if length > 1 && i < length - 1 {
-            info.push_str("| ")
-        }
-    }
-    log!("run: {}", info.trim());
 }

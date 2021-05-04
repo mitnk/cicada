@@ -10,7 +10,7 @@ use crate::libs;
 use crate::parsers;
 use crate::shell;
 use crate::tools::{self, clog};
-use crate::types::{CommandResult, Tokens};
+use crate::types::{CommandLine, CommandResult, Tokens};
 
 /// Entry point for non-ttys (e.g. Cmd-N on MacVim)
 pub fn run_procs_for_non_tty(sh: &mut shell::Shell) {
@@ -20,7 +20,7 @@ pub fn run_procs_for_non_tty(sh: &mut shell::Shell) {
     match handle.read_to_string(&mut buffer) {
         Ok(_) => {
             log!("run non tty command: {}", &buffer);
-            run_procs(sh, &buffer, false, false);
+            run_command_line(sh, &buffer, false, false);
         }
         Err(e) => {
             println!("cicada: stdin.read_to_string() failed: {:?}", e);
@@ -28,7 +28,7 @@ pub fn run_procs_for_non_tty(sh: &mut shell::Shell) {
     }
 }
 
-pub fn run_procs(sh: &mut shell::Shell,
+pub fn run_command_line(sh: &mut shell::Shell,
                  line: &str,
                  tty: bool,
                  capture: bool) -> Vec<CommandResult> {
@@ -110,13 +110,6 @@ fn line_to_tokens(sh: &mut shell::Shell, line: &str) -> (Tokens, HashMap<String,
     let mut tokens = parsers::parser_line::cmd_to_tokens(line);
     shell::do_expansion(sh, &mut tokens);
     let envs = drain_env_tokens(&mut tokens);
-
-    if tokens.is_empty() {
-        for (name, value) in envs.iter() {
-            sh.set_env(name, value);
-        }
-        return (Vec::new(), HashMap::new());
-    }
     return (tokens, envs);
 }
 
@@ -129,6 +122,12 @@ fn with_pipeline(tokens: &Tokens) -> bool {
     false
 }
 
+fn set_shell_vars(sh: &mut shell::Shell, envs: &HashMap<String, String>) {
+    for (name, value) in envs.iter() {
+        sh.set_env(name, value);
+    }
+}
+
 /// Run simple command or pipeline without using `&&`, `||`, `;`.
 /// example 1: `ls`
 /// example 2: `ls | wc`
@@ -136,8 +135,12 @@ fn run_proc(sh: &mut shell::Shell,
             line: &str,
             tty: bool,
             capture: bool) -> CommandResult {
-    let (mut tokens, envs) = line_to_tokens(sh, line);
+    let (tokens, envs) = line_to_tokens(sh, line);
     if tokens.is_empty() {
+        // empty tokens means, only envs are exising e.g.
+        // $ FOO=1 BAR=2
+        // then we need to define these **Shell Variables**.
+        set_shell_vars(sh, &envs);
         return CommandResult::new();
     }
 
@@ -181,96 +184,62 @@ fn run_proc(sh: &mut shell::Shell,
         return CommandResult::from_status(0, status);
     }
 
-    // for any other situations
-    let mut background = false;
-    let mut len = tokens.len();
-    if len > 1 && tokens[len - 1].1 == "&" {
-        background = true;
-        tokens.pop();
-        len -= 1;
-    }
-    let mut redirect_from = String::new();
-    let has_redirect_from = tokens.iter().any(|x| x.1 == "<");
-    if has_redirect_from {
-        if let Some(idx) = tokens.iter().position(|x| x.1 == "<") {
-            tokens.remove(idx);
-            len -= 1;
-            if len > idx {
-                redirect_from = tokens.remove(idx).1;
-                len -= 1;
-            } else {
-                println_stderr!("cicada: invalid command: cannot get redirect from");
-                return CommandResult::from_status(0, 1);
-            }
-        }
-    }
-    if len == 0 {
-        return CommandResult::new();
-    }
-
     let log_cmd = !sh.cmd.starts_with(' ');
-    let (term_given, cr) = core::run_pipeline(
-        sh,
-        &tokens,
-        &redirect_from,
-        background,
-        tty,
-        capture,
-        log_cmd,
-        Some(envs),
-    );
+    match CommandLine::from_line(&line, sh) {
+        Ok(c) => {
+            let (term_given, cr) = core::run_pipeline_x(
+                sh,
+                &c,
+                tty,
+                capture,
+                log_cmd,
+            );
+            if term_given {
+                unsafe {
+                    let gid = libc::getpgid(0);
+                    shell::give_terminal_to(gid);
+                }
+            }
 
-    if term_given {
-        unsafe {
-            let gid = libc::getpgid(0);
-            shell::give_terminal_to(gid);
+            return cr;
+        }
+        Err(e) => {
+            println_stderr!("cicada: {}", e);
+            return CommandResult::from_status(0, 1);
         }
     }
-
-    cr
 }
 
 fn run_with_shell<'a, 'b>(sh: &'a mut shell::Shell, line: &'b str) -> CommandResult {
-    let (mut tokens, envs) = line_to_tokens(sh, &line);
+    let (tokens, envs) = line_to_tokens(sh, &line);
     if tokens.is_empty() {
+        set_shell_vars(sh, &envs);
         return CommandResult::new();
     }
 
-    let mut len = tokens.len();
-    if len > 1 && tokens[len - 1].1 == "&" {
-        tokens.pop();
-        len -= 1;
-    }
-    let mut redirect_from = String::new();
-    let has_redirect_from = tokens.iter().any(|x| x.1 == "<");
-    if has_redirect_from {
-        if let Some(idx) = tokens.iter().position(|x| x.1 == "<") {
-            tokens.remove(idx);
-            len -= 1;
-            if len > idx {
-                redirect_from = tokens.remove(idx).1;
-                len -= 1;
-            } else {
-                println_stderr!("cicada: invalid command: cannot get redirect from");
-                return CommandResult::error();
+    match CommandLine::from_line(&line, sh) {
+        Ok(c) => {
+            let (term_given, cr) = core::run_pipeline_x(
+                sh,
+                &c,
+                false,
+                true,
+                false,
+            );
+            if term_given {
+                unsafe {
+                    let gid = libc::getpgid(0);
+                    shell::give_terminal_to(gid);
+                }
             }
+
+            return cr;
+        }
+        Err(e) => {
+            println_stderr!("cicada: {}", e);
+            return CommandResult::from_status(0, 1);
         }
     }
-    if len == 0 {
-        return CommandResult::new();
-    }
-
-    let (_, cmd_result) = core::run_pipeline(
-        sh,
-        &tokens,
-        redirect_from.as_str(),
-        false,
-        false,
-        true,
-        false,
-        Some(envs),
-    );
-    cmd_result
 }
 
 pub fn run(line: &str) -> CommandResult {

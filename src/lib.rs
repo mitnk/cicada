@@ -7,14 +7,14 @@
 //!
 //! **Add cicada into Cargo.toml**
 //!
-//! ```no-run
+//! ```no_run
 //! [dependencies]
 //! cicada = "0.9.0"
 //! ```
 //!
 //! **Use cicada functions**
 //!
-//! ```no-run
+//! ```no_run
 //! extern crate cicada;
 //!
 //! fn main() {

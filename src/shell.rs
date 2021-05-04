@@ -14,7 +14,7 @@ use crate::libs;
 use crate::parsers;
 use crate::shell;
 use crate::tools::{self, clog};
-use crate::types;
+use crate::types::{self, CommandLine};
 
 #[derive(Debug, Clone)]
 pub struct Shell {
@@ -187,6 +187,9 @@ impl Shell {
         None
     }
 
+    /// Update existing *ENV Variable* if such name exists in ENVs,
+    /// otherwise, we define a local *Shell Variable*, which would not
+    /// be exported into child processes.
     pub fn set_env(&mut self, name: &str, value: &str) {
         if env::var(name).is_ok() {
             env::set_var(name, value);
@@ -735,10 +738,24 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
             }
 
             log!("run subcmd 1: {:?}", &cmd);
-            let mut _args = parsers::parser_line::cmd_to_tokens(&cmd);
-            shell::do_expansion(sh, &mut _args);
-            let (_, cmd_result) =
-                core::run_pipeline(sh, &_args, "", false, false, true, false, None);
+            let cmd_result;
+            match CommandLine::from_line(&cmd, sh) {
+                Ok(c) => {
+                    let (term_given, _cr) = core::run_pipeline_x(sh, &c, false, true, false);
+                    if term_given {
+                        unsafe {
+                            let gid = libc::getpgid(0);
+                            shell::give_terminal_to(gid);
+                        }
+                    }
+
+                    cmd_result = _cr;
+                }
+                Err(e) => {
+                    println_stderr!("cicada: {}", e);
+                    continue;
+                }
+            }
             let output_txt = cmd_result.stdout.trim();
 
             let ptn = r"(?P<head>[^\$]*)\$\(.+\)(?P<tail>.*)";
@@ -771,9 +788,25 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
         let new_token: String;
         if sep == "`" {
             log!("run subcmd 2: {:?}", token);
-            let mut _args = parsers::parser_line::cmd_to_tokens(&token);
-            shell::do_expansion(sh, &mut _args);
-            let (_, cr) = core::run_pipeline(sh, &_args, "", false, false, true, false, None);
+            let cr;
+            match CommandLine::from_line(&token, sh) {
+                Ok(c) => {
+                    let (term_given, _cr) = core::run_pipeline_x(sh, &c, false, true, false);
+                    if term_given {
+                        unsafe {
+                            let gid = libc::getpgid(0);
+                            shell::give_terminal_to(gid);
+                        }
+                    }
+
+                    cr = _cr;
+                }
+                Err(e) => {
+                    println_stderr!("cicada: {}", e);
+                    continue;
+                }
+            }
+
             new_token = cr.stdout.trim().to_string();
         } else if sep == "\"" || sep.is_empty() {
             let re;
@@ -803,10 +836,26 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
                     _head = cap[1].to_string();
                     _tail = cap[3].to_string();
                     log!("run subcmd 3: {:?}", &cap[2]);
-                    let mut _args = parsers::parser_line::cmd_to_tokens(&cap[2]);
-                    shell::do_expansion(sh, &mut _args);
-                    let (_, cr) =
-                        core::run_pipeline(sh, &_args, "", false, false, true, false, None);
+
+                    let cr;
+                    match CommandLine::from_line(&cap[2], sh) {
+                        Ok(c) => {
+                            let (term_given, _cr) = core::run_pipeline_x(sh, &c, false, true, false);
+                            if term_given {
+                                unsafe {
+                                    let gid = libc::getpgid(0);
+                                    shell::give_terminal_to(gid);
+                                }
+                            }
+
+                            cr = _cr;
+                        }
+                        Err(e) => {
+                            println_stderr!("cicada: {}", e);
+                            continue;
+                        }
+                    }
+
                     _output = cr.stdout.trim().to_string();
                 }
                 _item = format!("{}{}{}", _item, _head, _output);

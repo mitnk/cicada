@@ -1,8 +1,8 @@
 use regex::Regex;
 
 use crate::libs;
-use crate::types::Command;
 use crate::types::Tokens;
+use crate::types::Redirection;
 use crate::tools;
 
 pub fn line_to_plain_tokens(line: &str) -> Vec<String> {
@@ -441,7 +441,7 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
     result
 }
 
-pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
+pub fn tokens_to_redirections(tokens: &Tokens) -> Result<(Tokens, Vec<Redirection>), String> {
     let mut tokens_new = Vec::new();
     let mut redirects = Vec::new();
     let mut to_be_continued = false;
@@ -535,10 +535,7 @@ pub fn cmd_to_with_redirects(tokens: &Tokens) -> Result<Command, String> {
         return Err(String::from("redirection syntax error"));
     }
 
-    Ok(Command {
-        tokens: tokens_new,
-        redirects,
-    })
+    Ok((tokens_new, redirects))
 }
 
 pub fn unquote(text: &str) -> String {
@@ -556,7 +553,6 @@ pub fn unquote(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::cmd_to_tokens;
-    use super::cmd_to_with_redirects;
     use super::line_to_cmds;
     use super::line_to_plain_tokens;
     use super::Tokens;
@@ -909,104 +905,6 @@ mod tests {
         for (left, right) in v {
             _assert_vec_str_eq(line_to_cmds(left), right);
         }
-    }
-
-    #[test]
-    fn test_cmd_to_with_redirects() {
-        let tokens = vec![
-            ("".to_string(), "echo".to_string()),
-            ("".to_string(), "foo".to_string()),
-        ];
-        let crs = cmd_to_with_redirects(&tokens).unwrap();
-        assert_eq!(crs.tokens, tokens);
-        assert_eq!(crs.redirects.len(), 0);
-
-        let tokens = vec![
-            ("".to_string(), "echo".to_string()),
-            ("".to_string(), "foo".to_string()),
-            ("".to_string(), ">".to_string()),
-            ("".to_string(), "bar".to_string()),
-        ];
-        let tokens_expect = vec![
-            ("".to_string(), "echo".to_string()),
-            ("".to_string(), "foo".to_string()),
-        ];
-        let redirects_expect = vec![
-            ("1".to_string(), ">".to_string(), "bar".to_string()),
-        ];
-        let crs = cmd_to_with_redirects(&tokens).unwrap();
-        assert_eq!(crs.tokens, tokens_expect);
-        assert_eq!(crs.redirects, redirects_expect);
-
-        let tokens = vec![
-            ("".to_string(), "echo".to_string()),
-            ("".to_string(), "foo".to_string()),
-            ("".to_string(), "2>&1".to_string()),
-        ];
-        let tokens_expect = vec![
-            ("".to_string(), "echo".to_string()),
-            ("".to_string(), "foo".to_string()),
-        ];
-        let redirects_expect = vec![
-            ("2".to_string(), ">".to_string(), "&1".to_string()),
-        ];
-        let crs = cmd_to_with_redirects(&tokens).unwrap();
-        assert_eq!(crs.tokens, tokens_expect);
-        assert_eq!(crs.redirects, redirects_expect);
-
-        let tokens = vec![
-            ("".to_string(), "echo".to_string()),
-            ("".to_string(), "foo".to_string()),
-            ("".to_string(), "2>&1".to_string()),
-            ("".to_string(), ">/dev/null".to_string()),
-        ];
-        let tokens_expect = vec![
-            ("".to_string(), "echo".to_string()),
-            ("".to_string(), "foo".to_string()),
-        ];
-        let redirects_expect = vec![
-            ("2".to_string(), ">".to_string(), "&1".to_string()),
-            ("1".to_string(), ">".to_string(), "/dev/null".to_string()),
-        ];
-        let crs = cmd_to_with_redirects(&tokens).unwrap();
-        assert_eq!(crs.tokens, tokens_expect);
-        assert_eq!(crs.redirects, redirects_expect);
-
-        let tokens = vec![
-            ("".to_string(), "echo".to_string()),
-            ("".to_string(), "foo".to_string()),
-            ("".to_string(), "2>&1".to_string()),
-            ("".to_string(), ">".to_string()),
-            ("".to_string(), "/dev/null".to_string()),
-        ];
-        let tokens_expect = vec![
-            ("".to_string(), "echo".to_string()),
-            ("".to_string(), "foo".to_string()),
-        ];
-        let redirects_expect = vec![
-            ("2".to_string(), ">".to_string(), "&1".to_string()),
-            ("1".to_string(), ">".to_string(), "/dev/null".to_string()),
-        ];
-        let crs = cmd_to_with_redirects(&tokens).unwrap();
-        assert_eq!(crs.tokens, tokens_expect);
-        assert_eq!(crs.redirects, redirects_expect);
-
-        let tokens = vec![
-            ("".to_string(), "echo".to_string()),
-            ("".to_string(), "foo".to_string()),
-            ("".to_string(), ">".to_string()),
-            ("'".to_string(), "foo>bar baz".to_string()),
-        ];
-        let tokens_expect = vec![
-            ("".to_string(), "echo".to_string()),
-            ("".to_string(), "foo".to_string()),
-        ];
-        let redirects_expect = vec![
-            ("1".to_string(), ">".to_string(), "foo>bar baz".to_string()),
-        ];
-        let crs = cmd_to_with_redirects(&tokens).unwrap();
-        assert_eq!(crs.tokens, tokens_expect);
-        assert_eq!(crs.redirects, redirects_expect);
     }
 
     #[test]

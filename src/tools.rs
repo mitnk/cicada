@@ -98,7 +98,7 @@ pub fn get_user_home() -> String {
     match env::var("HOME") {
         Ok(x) => x,
         Err(e) => {
-            println!("cicada: env HOME error: {:?}", e);
+            println_stderr!("cicada: env HOME error: {:?}", e);
             String::new()
         }
     }
@@ -334,10 +334,12 @@ pub fn get_current_dir() -> String {
     str_current_dir.to_string()
 }
 
-pub fn split_into_fields(line: &str, envs: &HashMap<String, String>) -> Vec<String> {
+pub fn split_into_fields(sh: &shell::Shell, line: &str, envs: &HashMap<String, String>) -> Vec<String> {
     let ifs_chars;
     if envs.contains_key("IFS") {
         ifs_chars = envs[&"IFS".to_string()].chars().collect();
+    } else if let Some(x) = sh.get_env("IFS") {
+        ifs_chars = x.chars().collect();
     } else if let Ok(x) = env::var("IFS") {
         ifs_chars = x.chars().collect();
     } else {

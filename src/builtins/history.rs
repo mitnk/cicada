@@ -9,7 +9,7 @@ use structopt::StructOpt;
 use crate::history;
 use crate::parsers;
 use crate::shell;
-use crate::types;
+use crate::types::Command;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "history", about = "History in cicada shell")]
@@ -59,7 +59,7 @@ enum SubCommand {
     }
 }
 
-pub fn run(sh: &shell::Shell, cmd: &types::Command) -> i32 {
+pub fn run(sh: &shell::Shell, cmd: &Command) -> i32 {
     let hfile = history::get_history_file();
     let path = Path::new(hfile.as_str());
     if !path.exists() {

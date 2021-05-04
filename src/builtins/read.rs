@@ -36,7 +36,7 @@ pub fn run(sh: &mut shell::Shell, tokens: &Tokens, envs: &HashMap<String, String
         }
     }
 
-    let value_list = tools::split_into_fields(buffer.trim(), envs);
+    let value_list = tools::split_into_fields(sh, buffer.trim(), envs);
 
     let idx_2rd_last = name_list.len() - 1;
     for i in 0..idx_2rd_last {
