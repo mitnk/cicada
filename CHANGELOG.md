@@ -1,6 +1,6 @@
 # Change Logs
 
-## 0.9.18 - master
+## 0.9.18 - 2021-05-04
 
 - fix compiling issue on 32bit systems.
 - Make `history -d` shows local date time.
