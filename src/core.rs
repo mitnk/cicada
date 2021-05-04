@@ -18,13 +18,69 @@ use crate::parsers;
 use crate::scripting;
 use crate::shell::{self, Shell};
 use crate::tools::{self, clog};
-use crate::types::{self, CommandLine, CommandOptions, CommandResult};
+use crate::types::{self, CommandLine, CommandOptions, CommandResult, Tokens};
+
+fn with_pipeline(tokens: &Tokens) -> bool {
+    for item in tokens {
+        if item.1 == "|" || item.1 == ">" {
+            return true;
+        }
+    }
+    false
+}
+
+fn try_run_builtin(sh: &mut Shell, cl: &CommandLine) -> Option<CommandResult> {
+    let tokens = cl.commands[0].tokens.clone();
+    let cmd = tokens[0].1.clone();
+    if cmd == "alias" && !with_pipeline(&tokens) {
+        let status = builtins::alias::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "bg" {
+        let status = builtins::bg::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "cd" {
+        let status = builtins::cd::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "export" {
+        let status = builtins::export::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "exec" {
+        let status = builtins::exec::run(&tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "exit" {
+        let status = builtins::exit::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "fg" {
+        let status = builtins::fg::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "read" {
+        let status = builtins::read::run(sh, cl);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "vox" && tokens.len() > 1 && (tokens[1].1 == "enter" || tokens[1].1 == "exit") {
+        let status = builtins::vox::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if (cmd == "source" || cmd == ".") && tokens.len() <= 2 {
+        let status = builtins::source::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "ulimit" {
+        let status = builtins::ulimit::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "unalias" {
+        let status = builtins::unalias::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    }
+    None
+}
 
 /// Run a pipeline (e.g. `echo hi | wc -l`)
 /// returns: (is-terminal-given, command-result)
 pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
                     capture: bool, log_cmd: bool) -> (bool, CommandResult) {
     let mut term_given = false;
+
+    if let Some(cr) = try_run_builtin(sh, cl) {
+        return (term_given, cr);
+    }
 
     if cl.background && capture {
         println_stderr!("cicada: cannot capture output of background cmd");

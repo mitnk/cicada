@@ -4,7 +4,6 @@ use std::io::{self, Read, Write};
 use libc;
 use regex::Regex;
 
-use crate::builtins;
 use crate::core;
 use crate::libs;
 use crate::parsers;
@@ -13,7 +12,7 @@ use crate::tools::clog;
 use crate::types::{CommandLine, CommandResult, Tokens};
 
 /// Entry point for non-ttys (e.g. Cmd-N on MacVim)
-pub fn run_procs_for_non_tty(sh: &mut shell::Shell) {
+pub fn run_procs_for_non_tty(sh: &mut Shell) {
     let mut buffer = String::new();
     let stdin = io::stdin();
     let mut handle = stdin.lock();
@@ -28,7 +27,7 @@ pub fn run_procs_for_non_tty(sh: &mut shell::Shell) {
     }
 }
 
-pub fn run_command_line(sh: &mut shell::Shell, line: &str, tty: bool,
+pub fn run_command_line(sh: &mut Shell, line: &str, tty: bool,
                         capture: bool) -> Vec<CommandResult> {
     let mut cr_list = Vec::new();
     let mut status = 0;
@@ -76,75 +75,23 @@ fn drain_env_tokens(tokens: &mut Tokens) -> HashMap<String, String> {
     envs
 }
 
-fn line_to_tokens(sh: &mut shell::Shell, line: &str) -> (Tokens, HashMap<String, String>) {
+fn line_to_tokens(sh: &mut Shell, line: &str) -> (Tokens, HashMap<String, String>) {
     let mut tokens = parsers::parser_line::cmd_to_tokens(line);
     shell::do_expansion(sh, &mut tokens);
     let envs = drain_env_tokens(&mut tokens);
     return (tokens, envs);
 }
 
-fn with_pipeline(tokens: &Tokens) -> bool {
-    for item in tokens {
-        if item.1 == "|" || item.1 == ">" {
-            return true;
-        }
-    }
-    false
-}
-
-fn set_shell_vars(sh: &mut shell::Shell, envs: &HashMap<String, String>) {
+fn set_shell_vars(sh: &mut Shell, envs: &HashMap<String, String>) {
     for (name, value) in envs.iter() {
         sh.set_env(name, value);
     }
 }
 
-fn try_run_builtin(sh: &mut Shell, tokens: &Tokens,
-                   envs: &HashMap<String, String>) -> Option<CommandResult> {
-    let cmd = tokens[0].1.clone();
-    if cmd == "alias" && !with_pipeline(&tokens) {
-        let status = builtins::alias::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "bg" {
-        let status = builtins::bg::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "cd" {
-        let status = builtins::cd::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "export" {
-        let status = builtins::export::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "exec" {
-        let status = builtins::exec::run(&tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "exit" {
-        let status = builtins::exit::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "fg" {
-        let status = builtins::fg::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "read" {
-        let status = builtins::read::run(sh, &tokens, &envs);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "vox" && tokens.len() > 1 && (tokens[1].1 == "enter" || tokens[1].1 == "exit") {
-        let status = builtins::vox::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if (cmd == "source" || cmd == ".") && tokens.len() <= 2 {
-        let status = builtins::source::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "ulimit" {
-        let status = builtins::ulimit::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "unalias" {
-        let status = builtins::unalias::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    }
-    None
-}
-
 /// Run simple command or pipeline without using `&&`, `||`, `;`.
 /// example 1: `ls`
 /// example 2: `ls | wc`
-fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool,
+fn run_proc(sh: &mut Shell, line: &str, tty: bool,
             capture: bool) -> CommandResult {
     let (tokens, envs) = line_to_tokens(sh, line);
     if tokens.is_empty() {
@@ -153,10 +100,6 @@ fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool,
         // then we need to define these **Shell Variables**.
         set_shell_vars(sh, &envs);
         return CommandResult::new();
-    }
-
-    if let Some(cr) = try_run_builtin(sh, &tokens, &envs) {
-        return cr;
     }
 
     let log_cmd = !sh.cmd.starts_with(' ');
@@ -178,7 +121,7 @@ fn run_proc(sh: &mut shell::Shell, line: &str, tty: bool,
     }
 }
 
-fn run_with_shell<'a, 'b>(sh: &'a mut shell::Shell, line: &'b str) -> CommandResult {
+fn run_with_shell<'a, 'b>(sh: &'a mut Shell, line: &'b str) -> CommandResult {
     let (tokens, envs) = line_to_tokens(sh, &line);
     if tokens.is_empty() {
         set_shell_vars(sh, &envs);
@@ -205,7 +148,7 @@ fn run_with_shell<'a, 'b>(sh: &'a mut shell::Shell, line: &'b str) -> CommandRes
 }
 
 pub fn run(line: &str) -> CommandResult {
-    let mut sh = shell::Shell::new();
+    let mut sh = Shell::new();
     return run_with_shell(&mut sh, line);
 }
 

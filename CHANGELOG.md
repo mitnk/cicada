@@ -6,6 +6,7 @@
 - Make `history -d` shows local date time.
 - Can add optional `; then`, `; do` in heads of `if`, `for`, `while` in scripting.
 - Added a new builtin: `read`.
+- Added [here string](https://tldp.org/LDP/abs/html/x17837.html).
 
 ## 0.9.17 - 2021-01-10
 
