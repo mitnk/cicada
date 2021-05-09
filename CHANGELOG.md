@@ -1,5 +1,9 @@
 # Change Logs
 
+## 0.9.19 - master
+
+- Refine redirections of aliases.
+
 ## 0.9.18 - 2021-05-04
 
 - fix compiling issue on 32bit systems.

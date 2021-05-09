@@ -367,6 +367,13 @@ pub fn create_fds() -> Option<(RawFd, RawFd)> {
     }
 }
 
+pub fn is_builtin(s: &str) -> bool {
+    let builtins = vec!["alias", "bg", "cd", "cinfo", "exec", "exit",
+        "export", "fg", "history", "jobs", "read", "source", "ulimit",
+        "unalias", "vox"];
+    builtins.contains(&s)
+}
+
 #[cfg(test)]
 mod tests {
     use super::escape_path;

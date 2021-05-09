@@ -1,8 +1,10 @@
+use crate::builtins::utils::print_stdout;
 use crate::history;
 use crate::libs;
 use crate::rcfile;
+use crate::types::{Command, CommandLine};
 
-pub fn run() -> i32 {
+pub fn run(cmd: &Command, cl: &CommandLine) -> i32 {
     let mut info = vec![];
     const VERSION: &str = env!("CARGO_PKG_VERSION");
     info.push(("version", VERSION));
@@ -35,9 +37,12 @@ pub fn run() -> i32 {
     info.push(("built-with", env!("BUILD_RUSTC_VERSION")));
     info.push(("built-at", env!("BUILD_DATE")));
 
+    let mut lines = Vec::new();
     for (k, v) in &info {
         // longest key above is 12-char length
-        println!("{: >12}: {}", k, v);
+        lines.push(format!("{: >12}: {}", k, v));
     }
+    let buffer = lines.join("\n");
+    print_stdout(&buffer, cmd, cl);
     0
 }

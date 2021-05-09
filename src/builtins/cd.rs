@@ -34,22 +34,19 @@ pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
         dir_to = format!("{}/{}", str_current_dir, dir_to);
     }
 
+    if !Path::new(&dir_to).exists() {
+        println_stderr!("cicada: cd: {}: No such file or directory", &args[1]);
+        return 1;
+    }
+
     match Path::new(&dir_to).canonicalize() {
         Ok(p) => {
             dir_to = p.as_path().to_string_lossy().to_string();
         }
         Err(e) => {
-            println_stderr!("cicada: cd: error: {:?}", e);
+            println_stderr!("cicada: cd: error: {}", e);
             return 1;
         }
-    }
-
-    if !Path::new(&dir_to).exists() {
-        println_stderr!(
-            "cicada: cd: {}: No such file or directory",
-            args[1..].join("")
-        );
-        return 1;
     }
 
     match env::set_current_dir(&dir_to) {

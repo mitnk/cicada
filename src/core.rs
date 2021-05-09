@@ -18,28 +18,23 @@ use crate::parsers;
 use crate::scripting;
 use crate::shell::{self, Shell};
 use crate::tools::{self, clog};
-use crate::types::{self, CommandLine, CommandOptions, CommandResult, Tokens};
+use crate::types::{self, CommandLine, CommandOptions, CommandResult};
 
-fn with_pipeline(tokens: &Tokens) -> bool {
-    for item in tokens {
-        if item.1 == "|" || item.1 == ">" {
-            return true;
-        }
-    }
-    false
-}
-
-fn try_run_builtin(sh: &mut Shell, cl: &CommandLine) -> Option<CommandResult> {
+fn try_run_builtin(sh: &mut Shell, cl: &CommandLine, idx_cmd: usize) -> Option<CommandResult> {
     let tokens = cl.commands[0].tokens.clone();
     let cmd = tokens[0].1.clone();
-    if cmd == "alias" && !with_pipeline(&tokens) {
-        let status = builtins::alias::run(sh, &tokens);
+    if cmd == "alias" {
+        let status = builtins::alias::run(sh, cl, idx_cmd);
         return Some(CommandResult::from_status(0, status));
     } else if cmd == "bg" {
         let status = builtins::bg::run(sh, &tokens);
         return Some(CommandResult::from_status(0, status));
     } else if cmd == "cd" {
         let status = builtins::cd::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "cinfo" {
+        let _cmd = &cl.commands[idx_cmd];
+        let status = builtins::cinfo::run(_cmd, cl);
         return Some(CommandResult::from_status(0, status));
     } else if cmd == "export" {
         let status = builtins::export::run(sh, &tokens);
@@ -52,6 +47,10 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine) -> Option<CommandResult> {
         return Some(CommandResult::from_status(0, status));
     } else if cmd == "fg" {
         let status = builtins::fg::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "history" {
+        let _cmd = &cl.commands[idx_cmd];
+        let status = builtins::history::run(sh, _cmd, cl);
         return Some(CommandResult::from_status(0, status));
     } else if cmd == "read" {
         let status = builtins::read::run(sh, cl);
@@ -78,9 +77,11 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
                     capture: bool, log_cmd: bool) -> (bool, CommandResult) {
     let mut term_given = false;
 
+    /*
     if let Some(cr) = try_run_builtin(sh, cl) {
         return (term_given, cr);
     }
+    */
 
     if cl.background && capture {
         println_stderr!("cicada: cannot capture output of background cmd");
@@ -148,6 +149,10 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
         }
     }
 
+    if cl.is_builtin() {
+        return (false, cmd_result);
+    }
+
     if cl.background {
         if let Some(job) = sh.get_job_by_gid(pgid) {
             println_stderr!("[{}] {}", job.id, job.gid);
@@ -177,7 +182,6 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                        term_given: &mut bool, cmd_result: &mut CommandResult,
                        pipes: &Vec<(RawFd, RawFd)>) -> i32 {
     let cmd = cl.commands.get(idx_cmd).unwrap();
-    // log!(" - run cmd: {:?}", &cmd.tokens);
     let pipes_count = pipes.len();
     let mut fds_capture_stdout = None;
     let mut fds_capture_stderr = None;
@@ -188,6 +192,13 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
     }
     if cmd.has_here_string() {
         fds_stdin = tools::create_fds();
+    }
+
+    if cl.is_builtin() {
+        if let Some(cr) = try_run_builtin(sh, cl, idx_cmd) {
+            *cmd_result = cr;
+            return unsafe { libc::getpid() };
+        }
     }
 
     match libs::fork::fork() {
@@ -321,13 +332,13 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
 
             let program = &cmd.tokens[0].1;
             if program == "history" {
-                let status = builtins::history::run(sh, &cmd);
+                let status = builtins::history::run(sh, &cmd, cl);
                 process::exit(status);
             } else if program == "vox" {
                 let status = builtins::vox::run(sh, &cmd.tokens);
                 process::exit(status);
             } else if program == "cinfo" {
-                let status = builtins::cinfo::run();
+                let status = builtins::cinfo::run(&cmd, cl);
                 process::exit(status);
             } else if program == "jobs" {
                 let status = builtins::jobs::run(sh);
@@ -337,9 +348,6 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                 // which may not get correct results (e.g. `echo $$`),
                 // (e.g. cannot make new $PROMPT take effects).
                 let status = builtins::source::run(sh, &cmd.tokens);
-                process::exit(status);
-            } else if program == "alias" {
-                let status = builtins::alias::run(sh, &cmd.tokens);
                 process::exit(status);
             }
 

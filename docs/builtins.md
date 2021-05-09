@@ -139,11 +139,11 @@ See also `bg`, `fg`.
 
 ## read
 
+Read a line from the standard input and split it into fields.
+
 ```
 read [name ...]
 ```
-
-Read a line from the standard input and split it into fields.
 
 Reads a single line from the standard input. The line is split into fields as
 with word splitting, and the first word is assigned to the first NAME, the
