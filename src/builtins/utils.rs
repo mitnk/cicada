@@ -3,44 +3,86 @@ use std::io::Write;
 use std::os::unix::io::{FromRawFd, RawFd};
 
 use crate::tools;
-use crate::types::{Command, CommandLine};
+use crate::types::{Command, CommandLine, Redirection};
+
+// alias foo 1>/dev/null 2>&1
+fn _get_std_fds(redirects: &[Redirection]) -> (Option<RawFd>, Option<RawFd>) {
+    if redirects.is_empty() {
+        return (None, None);
+    }
+
+    let mut fd_out = None;
+    let mut fd_err = None;
+
+    for i in 0..redirects.len() {
+        let item = &redirects[i];
+        if item.0 == "1" {
+            // 1>&2
+            let mut _fd_candidate = None;
+
+            if item.2 == "&2" {
+                let (_fd_out, _fd_err) = _get_std_fds(&redirects[i+1..]);
+                if let Some(fd) = _fd_err {
+                    _fd_candidate = Some(fd);
+                } else {
+                    _fd_candidate = unsafe { Some(libc::dup(2)) };
+                }
+            } else {  // 1> foo.log
+                let append = item.1 == ">>";
+                if let Ok(fd) = tools::create_raw_fd_from_file(&item.2, append) {
+                    _fd_candidate = Some(fd);
+                }
+            }
+
+            // for command like this: `alias > a.txt > b.txt > c.txt`,
+            // we need to return the last one, but close the previous two.
+            if let Some(fd) = fd_out {
+                unsafe { libc::close(fd); }
+            }
+
+            fd_out = _fd_candidate;
+        }
+
+        if item.0 == "2" {
+            // 2>&1
+            let mut _fd_candidate = None;
+
+            if item.2 == "&1" {
+                if let Some(fd) = fd_out {
+                    _fd_candidate = unsafe { Some(libc::dup(fd)) };
+                }
+            } else {  // 2>foo.log
+                let append = item.1 == ">>";
+                if let Ok(fd) = tools::create_raw_fd_from_file(&item.2, append) {
+                    _fd_candidate = Some(fd);
+                }
+            }
+
+            if let Some(fd) = fd_err {
+                unsafe { libc::close(fd); }
+            }
+
+            fd_err = _fd_candidate;
+        }
+    }
+
+    (fd_out, fd_err)
+}
 
 fn _get_dupped_stderr_fd(cmd: &Command, cl: &CommandLine) -> RawFd {
     if cl.with_pipeline() {
         return 2;
     }
 
-    if cmd.redirects_to.is_empty() {
-        let _fd = unsafe { libc::dup(2) };
-        return _fd;
+    let (_fd_out, _fd_err) = _get_std_fds(&cmd.redirects_to);
+    if let Some(fd) = _fd_out {
+        unsafe { libc::close(fd); }
     }
 
-    let mut handled = false;
-
-    let mut fd = 2;
-    for item in &cmd.redirects_to {
-        if item.0 != "2" {
-            continue;
-        }
-
-        let append = item.1 == ">>";
-        if &item.2 == "&1" {
-            let _fd = _get_dupped_stdout_fd(cmd, cl);
-            fd = _fd;
-            handled = true;
-        } else {
-            if let Ok(_fd) = tools::create_raw_fd_from_file(&item.2, append) {
-                fd = _fd;
-                handled = true;
-            }
-        }
-    }
-
-    if handled {
-        return fd;
+    if let Some(fd) = _fd_err {
+        fd
     } else {
-        let _fd = unsafe { libc::dup(2) };
-        return _fd;
+        unsafe { libc::dup(2) }
     }
 }
 
@@ -49,43 +91,20 @@ fn _get_dupped_stdout_fd(cmd: &Command, cl: &CommandLine) -> RawFd {
         return 1;
     }
 
-    if cmd.redirects_to.is_empty() {
-        let _fd = unsafe { libc::dup(1) };
-        return _fd;
+    let (_fd_out, _fd_err) = _get_std_fds(&cmd.redirects_to);
+    if let Some(fd) = _fd_err {
+        unsafe { libc::close(fd); }
     }
-
-    let mut handled = false;
-
-    let mut fd = 1;
-    for item in &cmd.redirects_to {
-        if item.0 != "1" {
-            continue;
-        }
-
-        let append = item.1 == ">>";
-        if &item.2 == "&2" {
-            let _fd = _get_dupped_stderr_fd(cmd, cl);
-            fd = _fd;
-            handled = true;
-        } else {
-            if let Ok(_fd) = tools::create_raw_fd_from_file(&item.2, append) {
-                fd = _fd;
-                handled = true;
-            }
-        }
-    }
-
-    if handled {
-        return fd;
+    if let Some(fd) = _fd_out {
+        fd
     } else {
-        let _fd = unsafe { libc::dup(1) };
-        return _fd;
+        unsafe { libc::dup(1) }
     }
 }
 
 pub fn print_stdout(info: &str, cmd: &Command, cl: &CommandLine) {
     let fd = _get_dupped_stdout_fd(cmd, cl);
-    // log!("created stdout fd: {}", fd);
+    // log!("created stdout fd: {:?}", fd);
 
     unsafe {
         let mut f = File::from_raw_fd(fd);
