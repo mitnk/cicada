@@ -248,7 +248,7 @@ impl CommandLine {
         self.commands.len() > 1
     }
 
-    pub fn is_builtin(&self) -> bool {
+    pub fn is_single_and_builtin(&self) -> bool {
         self.commands.len() == 1 && self.commands[0].is_builtin()
     }
 }

@@ -417,7 +417,7 @@ fn run_exp(sh: &mut shell::Shell,
             cr_list.append(&mut _cr_list);
             if let Some(last) = cr_list.last() {
                 let status = last.status;
-                if status != 0 {
+                if status != 0 && sh.exit_on_error {
                     return (cr_list, false, false);
                 }
             }

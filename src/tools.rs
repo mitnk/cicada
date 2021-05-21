@@ -369,8 +369,8 @@ pub fn create_fds() -> Option<(RawFd, RawFd)> {
 
 pub fn is_builtin(s: &str) -> bool {
     let builtins = vec!["alias", "bg", "cd", "cinfo", "exec", "exit",
-        "export", "fg", "history", "jobs", "read", "source", "ulimit",
-        "unalias", "vox"];
+        "export", "fg", "history", "jobs", "minfd", "read", "source", "ulimit",
+        "unalias", "vox", "set"];
     builtins.contains(&s)
 }
 

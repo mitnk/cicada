@@ -28,6 +28,7 @@ pub struct Shell {
     pub previous_cmd: String,
     pub previous_status: i32,
     pub is_login: bool,
+    pub exit_on_error: bool,
     pub session_id: String,
 }
 
@@ -47,6 +48,7 @@ impl Shell {
             previous_cmd: String::new(),
             previous_status: 0,
             is_login: false,
+            exit_on_error: false,
             session_id: session_id.to_string(),
         }
     }

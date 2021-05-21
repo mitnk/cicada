@@ -3,9 +3,16 @@ use std::io::Write;
 use std::os::unix::io::{FromRawFd, RawFd};
 
 use crate::tools;
+use crate::tools::clog;
 use crate::types::{Command, CommandLine, Redirection};
 
-// alias foo 1>/dev/null 2>&1
+/// Helper function to get (stdout, stderr) pairs for redirections,
+/// e.g. `alias foo 1>/dev/null 2>&1 > foo.txt`
+/// (i.e. [
+///      ("1", ">", "/dev/null"),
+///      ("2", ">", "&1"),
+///      ("1", ">", "foo.txt"),
+///  ])
 fn _get_std_fds(redirects: &[Redirection]) -> (Option<RawFd>, Option<RawFd>) {
     if redirects.is_empty() {
         return (None, None);
@@ -69,6 +76,25 @@ fn _get_std_fds(redirects: &[Redirection]) -> (Option<RawFd>, Option<RawFd>) {
     (fd_out, fd_err)
 }
 
+fn _get_dupped_stdout_fd(cmd: &Command, cl: &CommandLine) -> RawFd {
+    // if with pipeline, e.g. `history | grep foo`, then we don't need to
+    // dup stdout since it is running in a sperated process, whose fd can
+    // be dropped after use.
+    if cl.with_pipeline() {
+        return 1;
+    }
+
+    let (_fd_out, _fd_err) = _get_std_fds(&cmd.redirects_to);
+    if let Some(fd) = _fd_err {
+        unsafe { libc::close(fd); }
+    }
+    if let Some(fd) = _fd_out {
+        fd
+    } else {
+        unsafe { libc::dup(1) }
+    }
+}
+
 fn _get_dupped_stderr_fd(cmd: &Command, cl: &CommandLine) -> RawFd {
     if cl.with_pipeline() {
         return 2;
@@ -86,25 +112,9 @@ fn _get_dupped_stderr_fd(cmd: &Command, cl: &CommandLine) -> RawFd {
     }
 }
 
-fn _get_dupped_stdout_fd(cmd: &Command, cl: &CommandLine) -> RawFd {
-    if cl.with_pipeline() {
-        return 1;
-    }
-
-    let (_fd_out, _fd_err) = _get_std_fds(&cmd.redirects_to);
-    if let Some(fd) = _fd_err {
-        unsafe { libc::close(fd); }
-    }
-    if let Some(fd) = _fd_out {
-        fd
-    } else {
-        unsafe { libc::dup(1) }
-    }
-}
-
 pub fn print_stdout(info: &str, cmd: &Command, cl: &CommandLine) {
     let fd = _get_dupped_stdout_fd(cmd, cl);
-    // log!("created stdout fd: {:?}", fd);
+    log!("created stdout fd: {:?}", fd);
 
     unsafe {
         let mut f = File::from_raw_fd(fd);
@@ -115,7 +125,7 @@ pub fn print_stdout(info: &str, cmd: &Command, cl: &CommandLine) {
 
 pub fn print_stderr(info: &str, cmd: &Command, cl: &CommandLine) {
     let fd = _get_dupped_stderr_fd(cmd, cl);
-    // log!("created stderr fd: {}", fd);
+    log!("created stderr fd: {}", fd);
 
     unsafe {
         let mut f = File::from_raw_fd(fd);

@@ -52,11 +52,18 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine, idx_cmd: usize) -> Option<C
         let _cmd = &cl.commands[idx_cmd];
         let status = builtins::history::run(sh, _cmd, cl);
         return Some(CommandResult::from_status(0, status));
+    } else if cmd == "minfd" {
+        let status = builtins::minfd::run(sh, cl, idx_cmd);
+        return Some(CommandResult::from_status(0, status));
     } else if cmd == "read" {
         let status = builtins::read::run(sh, cl);
         return Some(CommandResult::from_status(0, status));
     } else if cmd == "vox" && tokens.len() > 1 && (tokens[1].1 == "enter" || tokens[1].1 == "exit") {
         let status = builtins::vox::run(sh, &tokens);
+        return Some(CommandResult::from_status(0, status));
+    } else if cmd == "set" {
+        let _cmd = &cl.commands[idx_cmd];
+        let status = builtins::set::run(sh, _cmd, cl);
         return Some(CommandResult::from_status(0, status));
     } else if (cmd == "source" || cmd == ".") && tokens.len() <= 2 {
         let status = builtins::source::run(sh, &tokens);
@@ -76,12 +83,6 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine, idx_cmd: usize) -> Option<C
 pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
                     capture: bool, log_cmd: bool) -> (bool, CommandResult) {
     let mut term_given = false;
-
-    /*
-    if let Some(cr) = try_run_builtin(sh, cl) {
-        return (term_given, cr);
-    }
-    */
 
     if cl.background && capture {
         println_stderr!("cicada: cannot capture output of background cmd");
@@ -149,7 +150,7 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
         }
     }
 
-    if cl.is_builtin() {
+    if cl.is_single_and_builtin() {
         return (false, cmd_result);
     }
 
@@ -194,11 +195,16 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
         fds_stdin = tools::create_fds();
     }
 
-    if cl.is_builtin() {
+    log!("before checking is builtin for: {:?}", cl);
+    if cl.is_single_and_builtin() {
         if let Some(cr) = try_run_builtin(sh, cl, idx_cmd) {
             *cmd_result = cr;
             return unsafe { libc::getpid() };
         }
+
+        println_stderr!("cicada: error when run singler builtin");
+        log!("error when run singler builtin: {:?}", cl);
+        return 1;
     }
 
     match libs::fork::fork() {
