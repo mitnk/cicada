@@ -60,6 +60,9 @@ echo after check bar2
 
 rm -f bar*-alias.txt
 
+# run some random pipeline before minfd to cover pipes closing
+echo hi | wc -l | wc | cat | cat >/dev/null 2>&1
+
 echo check minfd err
 minfd  # check min fd
 

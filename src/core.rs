@@ -20,7 +20,17 @@ use crate::shell::{self, Shell};
 use crate::tools::{self, clog};
 use crate::types::{self, CommandLine, CommandOptions, CommandResult};
 
-fn try_run_builtin(sh: &mut Shell, cl: &CommandLine, idx_cmd: usize) -> Option<CommandResult> {
+fn try_run_builtin_in_subprocess(sh: &mut Shell, cl: &CommandLine,
+                                 idx_cmd: usize) -> Option<i32> {
+    log!("run builtin in subprocess: {:?}", idx_cmd);
+    if let Some(cr) = try_run_builtin(sh, cl, idx_cmd) {
+        return Some(cr.status);
+    }
+    None
+}
+
+fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
+                   idx_cmd: usize) -> Option<CommandResult> {
     let tokens = cl.commands[0].tokens.clone();
     let cmd = tokens[0].1.clone();
     if cmd == "alias" {
@@ -52,6 +62,9 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine, idx_cmd: usize) -> Option<C
         let _cmd = &cl.commands[idx_cmd];
         let status = builtins::history::run(sh, _cmd, cl);
         return Some(CommandResult::from_status(0, status));
+    } else if cmd == "jobs" {
+        let status = builtins::jobs::run(sh);
+        return Some(CommandResult::from_status(0, status));
     } else if cmd == "minfd" {
         let status = builtins::minfd::run(sh, cl, idx_cmd);
         return Some(CommandResult::from_status(0, status));
@@ -62,8 +75,7 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine, idx_cmd: usize) -> Option<C
         let status = builtins::vox::run(sh, &tokens);
         return Some(CommandResult::from_status(0, status));
     } else if cmd == "set" {
-        let _cmd = &cl.commands[idx_cmd];
-        let status = builtins::set::run(sh, _cmd, cl);
+        let status = builtins::set::run(sh, cl, idx_cmd);
         return Some(CommandResult::from_status(0, status));
     } else if (cmd == "source" || cmd == ".") && tokens.len() <= 2 {
         let status = builtins::source::run(sh, &tokens);
@@ -336,25 +348,10 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                 }
             }
 
-            let program = &cmd.tokens[0].1;
-            if program == "history" {
-                let status = builtins::history::run(sh, &cmd, cl);
-                process::exit(status);
-            } else if program == "vox" {
-                let status = builtins::vox::run(sh, &cmd.tokens);
-                process::exit(status);
-            } else if program == "cinfo" {
-                let status = builtins::cinfo::run(&cmd, cl);
-                process::exit(status);
-            } else if program == "jobs" {
-                let status = builtins::jobs::run(sh);
-                process::exit(status);
-            } else if program == "source" || program == "." {
-                // NOTE: do pipeline on source would make processes forked,
-                // which may not get correct results (e.g. `echo $$`),
-                // (e.g. cannot make new $PROMPT take effects).
-                let status = builtins::source::run(sh, &cmd.tokens);
-                process::exit(status);
+            if cmd.is_builtin() {
+                if let Some(status) = try_run_builtin_in_subprocess(sh, cl, idx_cmd) {
+                    process::exit(status);
+                }
             }
 
             // our strings do not have '\x00' bytes in them,
@@ -370,6 +367,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                 );
             }
 
+            let program = &cmd.tokens[0].1;
             let path = if program.contains('/') {
                 program.clone()
             } else {

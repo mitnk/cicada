@@ -78,20 +78,35 @@ pub fn run(sh: &shell::Shell, cmd: &Command, cl: &CommandLine) -> i32 {
     let tokens = &cmd.tokens;
     let args = parsers::parser_line::tokens_to_args(tokens);
 
-    let opt = OptMain::from_iter(args);
-    match opt.cmd {
-        Some(SubCommand::Delete {rowid: rowids}) => {
-            for rowid in rowids {
-                delete_history_item(&conn, rowid, cmd, cl);
+    let show_usage = args.len() > 1 && (args[1] == "-h" || args[1] == "--help");
+    let opt = OptMain::from_iter_safe(args);
+    match opt {
+        Ok(opt) => {
+            match opt.cmd {
+                Some(SubCommand::Delete {rowid: rowids}) => {
+                    for rowid in rowids {
+                        delete_history_item(&conn, rowid, cmd, cl);
+                    }
+                    return 0;
+                }
+                Some(SubCommand::Add {timestamp: ts, input}) => {
+                    let ts = ts.unwrap_or(0 as f64);
+                    return add_history(sh, ts, &input);
+                }
+                None => {
+                    return list_current_history(sh, &conn, &opt, cmd, cl);
+                }
             }
-            return 0;
         }
-        Some(SubCommand::Add {timestamp: ts, input}) => {
-            let ts = ts.unwrap_or(0 as f64);
-            return add_history(sh, ts, &input);
-        }
-        None => {
-            return list_current_history(sh, &conn, &opt, cmd, cl);
+        Err(e) => {
+            let info = format!("{}", e);
+            if show_usage {
+                print_stdout(&info, cmd, cl);
+            } else {
+                print_stderr(&info, cmd, cl);
+            }
+            let status = if show_usage { 0 } else { 1 };
+            return status;
         }
     }
 }
