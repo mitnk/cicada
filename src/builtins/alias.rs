@@ -3,10 +3,12 @@ use regex::Regex;
 use crate::shell;
 use crate::tools;
 use crate::types::{Command, CommandLine, CommandResult};
-use crate::builtins::utils::{print_stderr, print_stdout};
+use crate::builtins::utils::print_stderr_with_capture;
+use crate::builtins::utils::print_stdout_with_capture;
 
 pub fn run(sh: &mut shell::Shell, cl: &CommandLine, cmd: &Command,
            capture: bool) -> CommandResult {
+    let mut cr = CommandResult::new();
     let tokens = cmd.tokens.clone();
 
     if tokens.len() == 1 {
@@ -15,12 +17,7 @@ pub fn run(sh: &mut shell::Shell, cl: &CommandLine, cmd: &Command,
 
     if tokens.len() > 2 {
         let info = "alias syntax error: usage: alias foo='echo foo'";
-        let mut cr = CommandResult::error();
-        if capture {
-            cr.stderr = info.to_string();
-        } else {
-            print_stderr(info, cmd, cl);
-        }
+        print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
         return cr;
     }
 
@@ -56,33 +53,19 @@ fn show_alias_list(sh: &shell::Shell, cmd: &Command,
     }
     let buffer = lines.join("\n");
     let mut cr = CommandResult::new();
-    if capture {
-        cr.stdout = buffer;
-    } else {
-        print_stdout(&buffer, cmd, cl);
-    }
+    print_stdout_with_capture(&buffer, &mut cr, cl, cmd, capture);
     cr
 }
 
 fn show_single_alias(sh: &shell::Shell, name_to_find: &str, cmd: &Command,
                      cl: &CommandLine, capture: bool) -> CommandResult {
+    let mut cr = CommandResult::new();
     if let Some(content) = sh.get_alias_content(name_to_find) {
-        let mut cr = CommandResult::new();
         let info = format!("alias {}='{}'", name_to_find, content);
-        if capture {
-            cr.stdout = info;
-        } else {
-            print_stdout(&info, cmd, cl);
-        }
-        cr
+        print_stdout_with_capture(&info, &mut cr, cl, cmd, capture);
     } else {
-        let mut cr = CommandResult::error();
         let info = format!("cicada: alias: {}: not found", name_to_find);
-        if capture {
-            cr.stderr = info;
-        } else {
-            print_stderr(&info, cmd, cl);
-        }
-        cr
+        print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
     }
+    cr
 }

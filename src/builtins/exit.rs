@@ -1,14 +1,18 @@
 #![allow(unreachable_code)]
-use std::io::Write;
 use std::process;
 
-use crate::shell;
-use crate::types::Tokens;
+use crate::builtins::utils::print_stderr_with_capture;
+use crate::shell::Shell;
+use crate::types::{CommandResult, CommandLine, Command};
 
-pub fn run(sh: &shell::Shell, tokens: &Tokens) -> i32 {
+pub fn run(sh: &Shell, cl: &CommandLine, cmd: &Command,
+           capture: bool) -> CommandResult {
+    let mut cr = CommandResult::new();
+    let tokens = cmd.tokens.clone();
     if tokens.len() > 2 {
-        println_stderr!("cicada: exit: too many arguments");
-        return 1;
+        let info = "cicada: exit: too many arguments";
+        print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
+        return cr;
     }
 
     if tokens.len() == 2 {
@@ -18,7 +22,8 @@ pub fn run(sh: &shell::Shell, tokens: &Tokens) -> i32 {
                 process::exit(x);
             }
             Err(_) => {
-                println_stderr!("cicada: exit: {}: numeric argument required", _code);
+                let info = format!("cicada: exit: {}: numeric argument required", _code);
+                print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
                 process::exit(255);
             }
         }
@@ -26,11 +31,14 @@ pub fn run(sh: &shell::Shell, tokens: &Tokens) -> i32 {
 
     for (_i, job) in sh.jobs.iter() {
         if !job.cmd.starts_with("nohup ") {
-            println_stderr!("There are background jobs.");
-            println_stderr!("Run `jobs` to see details; `exit 1` to force quit.");
-            return 0;
+            let mut info = String::new();
+            info.push_str("There are background jobs.");
+            info.push_str("Run `jobs` to see details; `exit 1` to force quit.");
+            print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+            return cr;
         }
     }
 
     process::exit(0);
+    cr
 }

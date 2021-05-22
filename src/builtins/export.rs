@@ -8,7 +8,13 @@ use crate::shell;
 use crate::tools;
 use crate::types::Tokens;
 
-pub fn run(_sh: &shell::Shell, tokens: &Tokens) -> i32 {
+use crate::builtins::utils::print_stderr_with_capture;
+use crate::builtins::utils::print_stdout_with_capture;
+use crate::shell::Shell;
+use crate::types::{CommandResult, CommandLine, Command};
+
+pub fn run(_sh: &Shell, cl: &CommandLine, cmd: &Command,
+           capture: bool) -> CommandResult {
     for (_, text) in tokens.iter() {
         if text == "export" {
             continue;

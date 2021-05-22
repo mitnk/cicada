@@ -43,23 +43,22 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
         let cr = builtins::alias::run(sh, cl, cmd, capture);
         return Some(cr);
     } else if cname == "bg" {
-        let status = builtins::bg::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
+        let cr = builtins::bg::run(sh, cl, cmd, capture);
+        return Some(cr);
     } else if cname == "cd" {
-        let status = builtins::cd::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
+        let cr = builtins::cd::run(sh, cl, cmd, capture);
+        return Some(cr);
     } else if cname == "cinfo" {
-        let _cmd = &cl.commands[idx_cmd];
-        let status = builtins::cinfo::run(_cmd, cl);
-        return Some(CommandResult::from_status(0, status));
+        let cr = builtins::cinfo::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "exec" {
+        let cr = builtins::exec::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "exit" {
+        let cr = builtins::exit::run(sh, cl, cmd, capture);
+        return Some(cr);
     } else if cname == "export" {
         let status = builtins::export::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cname == "exec" {
-        let status = builtins::exec::run(&tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cname == "exit" {
-        let status = builtins::exit::run(sh, &tokens);
         return Some(CommandResult::from_status(0, status));
     } else if cname == "fg" {
         let status = builtins::fg::run(sh, &tokens);

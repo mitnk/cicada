@@ -37,3 +37,12 @@ xsec51
 check minfd err
 4
 ==5==
+sec6
+no job
+sec6_foo
+os-name
+No such
+too many
+check minfd err 6
+4
+==6==

@@ -4,7 +4,7 @@ use std::os::unix::io::{FromRawFd, RawFd};
 
 use crate::tools;
 use crate::tools::clog;
-use crate::types::{Command, CommandLine, Redirection};
+use crate::types::{Command, CommandLine, CommandResult, Redirection};
 
 /// Helper function to get (stdout, stderr) pairs for redirections,
 /// e.g. `alias foo 1>/dev/null 2>&1 > foo.txt`
@@ -135,5 +135,27 @@ pub fn print_stderr(info: &str, cmd: &Command, cl: &CommandLine) {
         if !info.is_empty() {
             f.write_all(b"\n").unwrap();
         }
+    }
+}
+
+pub fn print_stderr_with_capture(info: &str, cr: &mut CommandResult,
+                                 cl: &CommandLine, cmd: &Command,
+                                 capture: bool) {
+    cr.status = 1;
+    if capture {
+        cr.stderr = info.to_string();
+    } else {
+        print_stderr(info, cmd, cl);
+    }
+}
+
+pub fn print_stdout_with_capture(info: &str, cr: &mut CommandResult,
+                                 cl: &CommandLine, cmd: &Command,
+                                 capture: bool) {
+    cr.status = 0;
+    if capture {
+        cr.stdout = info.to_string();
+    } else {
+        print_stdout(info, cmd, cl);
     }
 }

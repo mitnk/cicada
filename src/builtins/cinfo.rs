@@ -1,10 +1,12 @@
-use crate::builtins::utils::print_stdout;
+use crate::builtins::utils::print_stdout_with_capture;
 use crate::history;
 use crate::libs;
 use crate::rcfile;
-use crate::types::{Command, CommandLine};
+use crate::shell::Shell;
+use crate::types::{Command, CommandLine, CommandResult};
 
-pub fn run(cmd: &Command, cl: &CommandLine) -> i32 {
+pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command,
+           capture: bool) -> CommandResult {
     let mut info = vec![];
     const VERSION: &str = env!("CARGO_PKG_VERSION");
     info.push(("version", VERSION));
@@ -43,6 +45,7 @@ pub fn run(cmd: &Command, cl: &CommandLine) -> i32 {
         lines.push(format!("{: >12}: {}", k, v));
     }
     let buffer = lines.join("\n");
-    print_stdout(&buffer, cmd, cl);
-    0
+    let mut cr = CommandResult::new();
+    print_stdout_with_capture(&buffer, &mut cr, cl, cmd, capture);
+    cr
 }
