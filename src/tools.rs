@@ -50,7 +50,7 @@ pub fn clog(s: &str) {
     let pid = unsafe { libc::getpid() };
     let now = Local::now();
     let s = format!(
-        "[{:04}-{:02}-{:02} {:02}:{:02}:{:02}][{}]{}",
+        "[{:04}-{:02}-{:02} {:02}:{:02}:{:02}][{}] {}",
         now.year(),
         now.month(),
         now.day(),

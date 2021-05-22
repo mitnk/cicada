@@ -21,16 +21,16 @@ use crate::tools::{self, clog};
 use crate::types::{self, CommandLine, CommandOptions, CommandResult};
 
 fn try_run_builtin_in_subprocess(sh: &mut Shell, cl: &CommandLine,
-                                 idx_cmd: usize) -> Option<i32> {
+                                 idx_cmd: usize, capture: bool) -> Option<i32> {
     log!("run builtin in subprocess: {:?}", idx_cmd);
-    if let Some(cr) = try_run_builtin(sh, cl, idx_cmd) {
+    if let Some(cr) = try_run_builtin(sh, cl, idx_cmd, capture) {
         return Some(cr.status);
     }
     None
 }
 
 fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
-                   idx_cmd: usize) -> Option<CommandResult> {
+                   idx_cmd: usize, capture: bool) -> Option<CommandResult> {
     let tokens = cl.commands[0].tokens.clone();
     let cmd = tokens[0].1.clone();
     if cmd == "alias" {
@@ -66,8 +66,8 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
         let status = builtins::jobs::run(sh);
         return Some(CommandResult::from_status(0, status));
     } else if cmd == "minfd" {
-        let status = builtins::minfd::run(sh, cl, idx_cmd);
-        return Some(CommandResult::from_status(0, status));
+        let cr = builtins::minfd::run(sh, cl, idx_cmd, capture);
+        return Some(cr);
     } else if cmd == "read" {
         let status = builtins::read::run(sh, cl);
         return Some(CommandResult::from_status(0, status));
@@ -95,7 +95,6 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
 pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
                     capture: bool, log_cmd: bool) -> (bool, CommandResult) {
     let mut term_given = false;
-
     if cl.background && capture {
         println_stderr!("cicada: cannot capture output of background cmd");
         return (term_given, CommandResult::error());
@@ -194,7 +193,18 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                        options: &CommandOptions, pgid: &mut i32,
                        term_given: &mut bool, cmd_result: &mut CommandResult,
                        pipes: &Vec<(RawFd, RawFd)>) -> i32 {
-    let cmd = cl.commands.get(idx_cmd).unwrap();
+    let capture = options.capture_output;
+    if cl.is_single_and_builtin() {
+        if let Some(cr) = try_run_builtin(sh, cl, idx_cmd, capture) {
+            *cmd_result = cr;
+            return unsafe { libc::getpid() };
+        }
+
+        println_stderr!("cicada: error when run singler builtin");
+        log!("error when run singler builtin: {:?}", cl);
+        return 1;
+    }
+
     let pipes_count = pipes.len();
     let mut fds_capture_stdout = None;
     let mut fds_capture_stderr = None;
@@ -203,20 +213,10 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
         fds_capture_stdout = tools::create_fds();
         fds_capture_stderr = tools::create_fds();
     }
+
+    let cmd = cl.commands.get(idx_cmd).unwrap();
     if cmd.has_here_string() {
         fds_stdin = tools::create_fds();
-    }
-
-    log!("before checking is builtin for: {:?}", cl);
-    if cl.is_single_and_builtin() {
-        if let Some(cr) = try_run_builtin(sh, cl, idx_cmd) {
-            *cmd_result = cr;
-            return unsafe { libc::getpid() };
-        }
-
-        println_stderr!("cicada: error when run singler builtin");
-        log!("error when run singler builtin: {:?}", cl);
-        return 1;
     }
 
     match libs::fork::fork() {
@@ -349,7 +349,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
             }
 
             if cmd.is_builtin() {
-                if let Some(status) = try_run_builtin_in_subprocess(sh, cl, idx_cmd) {
+                if let Some(status) = try_run_builtin_in_subprocess(sh, cl, idx_cmd, capture) {
                     process::exit(status);
                 }
             }
@@ -522,6 +522,10 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
 
 fn try_run_func(sh: &mut Shell, cl: &CommandLine, capture: bool,
                 log_cmd: bool) -> Option<CommandResult> {
+    if cl.is_empty() {
+        return None;
+    }
+
     let command = &cl.commands[0];
     if let Some(func_body) = sh.get_func(&command.tokens[0].1) {
         let mut args = vec!["cicada".to_string()];

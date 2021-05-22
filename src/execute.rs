@@ -93,18 +93,20 @@ fn set_shell_vars(sh: &mut Shell, envs: &HashMap<String, String>) {
 /// example 2: `ls | wc`
 fn run_proc(sh: &mut Shell, line: &str, tty: bool,
             capture: bool) -> CommandResult {
-    let (tokens, envs) = line_to_tokens(sh, line);
-    if tokens.is_empty() {
-        // empty tokens means, only envs are exising e.g.
-        // $ FOO=1 BAR=2
-        // then we need to define these **Shell Variables**.
-        set_shell_vars(sh, &envs);
-        return CommandResult::new();
-    }
-
+    log!("[execute] run_proc: line: {:?}", line);
     let log_cmd = !sh.cmd.starts_with(' ');
     match CommandLine::from_line(&line, sh) {
         Ok(cl) => {
+            if cl.is_empty() {
+                // for commands with only envs, e.g.
+                // $ FOO=1 BAR=2
+                // we need to define these **Shell Variables**.
+                if !cl.envs.is_empty() {
+                    set_shell_vars(sh, &cl.envs);
+                }
+                return CommandResult::new();
+            }
+
             let (term_given, cr) = core::run_pipeline(sh, &cl, tty, capture, log_cmd);
             if term_given {
                 unsafe {

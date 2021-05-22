@@ -26,3 +26,13 @@ after check bar2
 check minfd err
 4
 ==4==
+one alias
+alias sec5_1='echo xsec51'
+one alias with grep
+xsec51
+all alias with grep
+xsec51
+builtin alias in mid
+check minfd err
+4
+==5==

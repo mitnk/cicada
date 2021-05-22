@@ -244,6 +244,10 @@ impl CommandLine {
         })
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.commands.is_empty()
+    }
+
     pub fn with_pipeline(&self) -> bool {
         self.commands.len() > 1
     }

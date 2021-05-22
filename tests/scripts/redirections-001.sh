@@ -26,7 +26,7 @@ echo ==2==
 
 # test builtin redirections
 echo check minfd 1
-# TODO: why this is 4?
+# this would be 4, since 3 is occupied by file of current script
 minfd  # check min fd
 
 alias foo='echo 135'
@@ -67,3 +67,22 @@ echo check minfd err
 minfd  # check min fd
 
 echo ==4==
+
+alias sec5_1="echo xsec51"
+echo one alias
+alias sec5_1
+
+echo one alias with grep
+alias sec5_1 | grep -o xsec51
+
+echo all alias with grep
+alias | grep -o xsec51
+
+echo builtin alias in mid
+# TODO: failing case:
+# echo hi | alias | grep -o xsec51
+
+echo check minfd err
+minfd  # check min fd
+
+echo ==5==
