@@ -22,7 +22,7 @@ use crate::types::{self, CommandLine, CommandOptions, CommandResult};
 
 fn try_run_builtin_in_subprocess(sh: &mut Shell, cl: &CommandLine,
                                  idx_cmd: usize, capture: bool) -> Option<i32> {
-    log!("run builtin in subprocess: {:?}", idx_cmd);
+    log!("[core] run builtin in subprocess: {:?}", idx_cmd);
     if let Some(cr) = try_run_builtin(sh, cl, idx_cmd, capture) {
         return Some(cr.status);
     }
@@ -31,59 +31,65 @@ fn try_run_builtin_in_subprocess(sh: &mut Shell, cl: &CommandLine,
 
 fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
                    idx_cmd: usize, capture: bool) -> Option<CommandResult> {
-    let tokens = cl.commands[0].tokens.clone();
-    let cmd = tokens[0].1.clone();
-    if cmd == "alias" {
-        let status = builtins::alias::run(sh, cl, idx_cmd);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "bg" {
+    if idx_cmd >= cl.commands.len() {
+        println_stderr!("unexpected error in try_run_builtin");
+        return None;
+    }
+
+    let cmd = &cl.commands[idx_cmd];
+    let tokens = cmd.tokens.clone();
+    let cname = tokens[0].1.clone();
+    if cname == "alias" {
+        let cr = builtins::alias::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "bg" {
         let status = builtins::bg::run(sh, &tokens);
         return Some(CommandResult::from_status(0, status));
-    } else if cmd == "cd" {
+    } else if cname == "cd" {
         let status = builtins::cd::run(sh, &tokens);
         return Some(CommandResult::from_status(0, status));
-    } else if cmd == "cinfo" {
+    } else if cname == "cinfo" {
         let _cmd = &cl.commands[idx_cmd];
         let status = builtins::cinfo::run(_cmd, cl);
         return Some(CommandResult::from_status(0, status));
-    } else if cmd == "export" {
+    } else if cname == "export" {
         let status = builtins::export::run(sh, &tokens);
         return Some(CommandResult::from_status(0, status));
-    } else if cmd == "exec" {
+    } else if cname == "exec" {
         let status = builtins::exec::run(&tokens);
         return Some(CommandResult::from_status(0, status));
-    } else if cmd == "exit" {
+    } else if cname == "exit" {
         let status = builtins::exit::run(sh, &tokens);
         return Some(CommandResult::from_status(0, status));
-    } else if cmd == "fg" {
+    } else if cname == "fg" {
         let status = builtins::fg::run(sh, &tokens);
         return Some(CommandResult::from_status(0, status));
-    } else if cmd == "history" {
+    } else if cname == "history" {
         let _cmd = &cl.commands[idx_cmd];
         let status = builtins::history::run(sh, _cmd, cl);
         return Some(CommandResult::from_status(0, status));
-    } else if cmd == "jobs" {
+    } else if cname == "jobs" {
         let status = builtins::jobs::run(sh);
         return Some(CommandResult::from_status(0, status));
-    } else if cmd == "minfd" {
+    } else if cname == "minfd" {
         let cr = builtins::minfd::run(sh, cl, idx_cmd, capture);
         return Some(cr);
-    } else if cmd == "read" {
+    } else if cname == "read" {
         let status = builtins::read::run(sh, cl);
         return Some(CommandResult::from_status(0, status));
-    } else if cmd == "vox" && tokens.len() > 1 && (tokens[1].1 == "enter" || tokens[1].1 == "exit") {
+    } else if cname == "vox" && tokens.len() > 1 && (tokens[1].1 == "enter" || tokens[1].1 == "exit") {
         let status = builtins::vox::run(sh, &tokens);
         return Some(CommandResult::from_status(0, status));
-    } else if cmd == "set" {
+    } else if cname == "set" {
         let status = builtins::set::run(sh, cl, idx_cmd);
         return Some(CommandResult::from_status(0, status));
-    } else if (cmd == "source" || cmd == ".") && tokens.len() <= 2 {
+    } else if (cname == "source" || cname == ".") && tokens.len() <= 2 {
         let status = builtins::source::run(sh, &tokens);
         return Some(CommandResult::from_status(0, status));
-    } else if cmd == "ulimit" {
+    } else if cname == "ulimit" {
         let status = builtins::ulimit::run(sh, &tokens);
         return Some(CommandResult::from_status(0, status));
-    } else if cmd == "unalias" {
+    } else if cname == "unalias" {
         let status = builtins::unalias::run(sh, &tokens);
         return Some(CommandResult::from_status(0, status));
     }
@@ -349,6 +355,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
             }
 
             if cmd.is_builtin() {
+                log!("[core] sh alias: {:?}", sh.get_alias_list());
                 if let Some(status) = try_run_builtin_in_subprocess(sh, cl, idx_cmd, capture) {
                     process::exit(status);
                 }

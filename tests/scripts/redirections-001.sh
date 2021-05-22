@@ -79,8 +79,7 @@ echo all alias with grep
 alias | grep -o xsec51
 
 echo builtin alias in mid
-# TODO: failing case:
-# echo hi | alias | grep -o xsec51
+echo hi | alias | grep -o xsec51
 
 echo check minfd err
 minfd  # check min fd
