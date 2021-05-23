@@ -97,6 +97,7 @@ fg 12345 2>&1 | grep -o 'no job'
 history -h | grep -o limit
 read 2foo 2>&1 | grep -o identifier
 set -h | grep -o error
+ulimit | grep -o open
 echo check minfd err 6
 minfd
 

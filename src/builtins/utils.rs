@@ -118,6 +118,7 @@ pub fn print_stdout(info: &str, cmd: &Command, cl: &CommandLine) {
 
     unsafe {
         let mut f = File::from_raw_fd(fd);
+        let info = info.trim_end_matches('\n');
         f.write_all(info.as_bytes()).unwrap();
         if !info.is_empty() {
             f.write_all(b"\n").unwrap();
@@ -131,6 +132,7 @@ pub fn print_stderr(info: &str, cmd: &Command, cl: &CommandLine) {
 
     unsafe {
         let mut f = File::from_raw_fd(fd);
+        let info = info.trim_end_matches('\n');
         f.write_all(info.as_bytes()).unwrap();
         if !info.is_empty() {
             f.write_all(b"\n").unwrap();

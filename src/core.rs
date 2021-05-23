@@ -78,17 +78,17 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
     } else if cname == "read" {
         let cr = builtins::read::run(sh, cl, cmd, capture);
         return Some(cr);
-    } else if cname == "vox" && tokens.len() > 1 && (tokens[1].1 == "enter" || tokens[1].1 == "exit") {
-        let status = builtins::vox::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
     } else if cname == "set" {
         let cr = builtins::set::run(sh, cl, cmd, capture);
         return Some(cr);
-    } else if (cname == "source" || cname == ".") && tokens.len() <= 2 {
-        let status = builtins::source::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
+    } else if cname == "source" {
+        let cr = builtins::source::run(sh, cl, cmd, capture);
+        return Some(cr);
     } else if cname == "ulimit" {
-        let status = builtins::ulimit::run(sh, &tokens);
+        let cr = builtins::ulimit::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "vox" {
+        let status = builtins::vox::run(sh, &tokens);
         return Some(CommandResult::from_status(0, status));
     } else if cname == "unalias" {
         let status = builtins::unalias::run(sh, &tokens);

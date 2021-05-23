@@ -49,6 +49,7 @@ limit
 limit
 identifier
 error
+open
 check minfd err 6
 4
 ==6==
