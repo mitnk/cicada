@@ -73,17 +73,17 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
         let status = builtins::jobs::run(sh);
         return Some(CommandResult::from_status(0, status));
     } else if cname == "minfd" {
-        let cr = builtins::minfd::run(sh, cl, idx_cmd, capture);
+        let cr = builtins::minfd::run(sh, cl, cmd, capture);
         return Some(cr);
     } else if cname == "read" {
-        let status = builtins::read::run(sh, cl);
-        return Some(CommandResult::from_status(0, status));
+        let cr = builtins::read::run(sh, cl, cmd, capture);
+        return Some(cr);
     } else if cname == "vox" && tokens.len() > 1 && (tokens[1].1 == "enter" || tokens[1].1 == "exit") {
         let status = builtins::vox::run(sh, &tokens);
         return Some(CommandResult::from_status(0, status));
     } else if cname == "set" {
-        let status = builtins::set::run(sh, cl, idx_cmd);
-        return Some(CommandResult::from_status(0, status));
+        let cr = builtins::set::run(sh, cl, cmd, capture);
+        return Some(cr);
     } else if (cname == "source" || cname == ".") && tokens.len() <= 2 {
         let status = builtins::source::run(sh, &tokens);
         return Some(CommandResult::from_status(0, status));

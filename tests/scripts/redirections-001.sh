@@ -94,7 +94,9 @@ exec abcfoo 2>&1 | grep -o 'No such'
 exit foo bar 2>&1 | grep -o 'too many'
 export 2fa=bad 2>&1 | grep -o 'usage'
 fg 12345 2>&1 | grep -o 'no job'
-
+history -h | grep -o limit
+read 2foo 2>&1 | grep -o identifier
+set -h | grep -o error
 echo check minfd err 6
 minfd
 

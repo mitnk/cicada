@@ -1,9 +1,10 @@
 use structopt::StructOpt;
 
-use crate::builtins::utils::{print_stdout, print_stderr};
+use crate::builtins::utils::print_stderr_with_capture;
+use crate::builtins::utils::print_stdout_with_capture;
 use crate::parsers;
 use crate::shell::Shell;
-use crate::types::CommandLine;
+use crate::types::{CommandResult, CommandLine, Command};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "set", about = "Set shell options (BETA)")]
@@ -12,8 +13,9 @@ struct OptMain {
     exit_on_error: bool,
 }
 
-pub fn run(sh: &mut Shell, cl: &CommandLine, idx_cmd: usize) -> i32 {
-    let cmd = &cl.commands[idx_cmd];
+pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
+           capture: bool) -> CommandResult {
+    let mut cr = CommandResult::new();
     let tokens = &cmd.tokens;
     let args = parsers::parser_line::tokens_to_args(tokens);
     let show_usage = args.len() > 1 && (args[1] == "-h" || args[1] == "--help");
@@ -23,21 +25,23 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, idx_cmd: usize) -> i32 {
         Ok(opt) => {
             if opt.exit_on_error {
                 sh.exit_on_error = true;
-                return 0;
+                return cr;
             } else {
-                print_stderr("cicada: set: option not implemented", cmd, cl);
-                return 1;
+                let info = "cicada: set: option not implemented";
+                print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+                return cr;
             }
         }
         Err(e) => {
             let info = format!("{}", e);
             if show_usage {
-                print_stdout(&info, cmd, cl);
+                print_stdout_with_capture(&info, &mut cr, cl, cmd, capture);
+                cr.status = 0;
             } else {
-                print_stderr(&info, cmd, cl);
+                print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+                cr.status = 1;
             }
-            let status = if show_usage { 0 } else { 1 };
-            return status;
+            return cr;
         }
     }
 }

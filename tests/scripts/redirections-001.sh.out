@@ -45,6 +45,10 @@ No such
 too many
 usage
 no job
+limit
+limit
+identifier
+error
 check minfd err 6
 4
 ==6==
