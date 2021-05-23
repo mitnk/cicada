@@ -1,8 +1,9 @@
-use std::io::{self, Write};
+use std::io;
 
-use crate::shell;
+use crate::builtins::utils::print_stderr_with_capture;
+use crate::shell::Shell;
 use crate::libs::re::re_contains;
-use crate::types::CommandLine;
+use crate::types::{CommandResult, CommandLine, Command};
 use crate::tools;
 
 fn _find_invalid_identifier(name_list: &Vec<String>) -> Option<String> {
@@ -14,8 +15,9 @@ fn _find_invalid_identifier(name_list: &Vec<String>) -> Option<String> {
     None
 }
 
-pub fn run(sh: &mut shell::Shell, cl: &CommandLine) -> i32 {
-    let cmd = &cl.commands[0];
+pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
+           capture: bool) -> CommandResult {
+    let mut cr = CommandResult::new();
     let tokens = cmd.tokens.clone();
 
     let name_list: Vec<String>;
@@ -24,8 +26,9 @@ pub fn run(sh: &mut shell::Shell, cl: &CommandLine) -> i32 {
     } else {
         name_list = tokens[1..].iter().map(|x| x.1.clone()).collect();
         if let Some(id_) = _find_invalid_identifier(&name_list) {
-            println_stderr!("cicada: read: `{}': not a valid identifier", id_);
-            return 1;
+            let info = format!("cicada: read: `{}': not a valid identifier", id_);
+            print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+            return cr;
         }
     }
 
@@ -40,8 +43,9 @@ pub fn run(sh: &mut shell::Shell, cl: &CommandLine) -> i32 {
         match io::stdin().read_line(&mut buffer) {
             Ok(_) => {}
             Err(e) => {
-                println_stderr!("cicada: read: error in reading stdin: {:?}", e);
-                return 1;
+                let info = format!("cicada: read: error in reading stdin: {:?}", e);
+                print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+                return cr;
             }
         }
     }
@@ -53,8 +57,9 @@ pub fn run(sh: &mut shell::Shell, cl: &CommandLine) -> i32 {
     for i in 0..idx_2rd_last {
         let name = name_list.get(i);
         if name.is_none() {
-            println_stderr!("cicada: read: name index error");
-            return 1;
+            let info = "cicada: read: name index error";
+            print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
+            return cr;
         }
         let name = name.unwrap();
 
@@ -69,5 +74,5 @@ pub fn run(sh: &mut shell::Shell, cl: &CommandLine) -> i32 {
         String::new()
     };
     sh.set_env(name_last, &value_left);
-    0
+    cr
 }

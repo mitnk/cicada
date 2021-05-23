@@ -50,7 +50,7 @@ pub fn clog(s: &str) {
     let pid = unsafe { libc::getpid() };
     let now = Local::now();
     let s = format!(
-        "[{:04}-{:02}-{:02} {:02}:{:02}:{:02}][{}]{}",
+        "[{:04}-{:02}-{:02} {:02}:{:02}:{:02}][{}] {}",
         now.year(),
         now.month(),
         now.day(),
@@ -136,7 +136,7 @@ pub fn unquote(s: &str) -> String {
 }
 
 pub fn is_env(line: &str) -> bool {
-    re_contains(line, r"^[a-zA-Z0-9_]+=.*$")
+    re_contains(line, r"^[a-zA-Z_][a-zA-Z0-9_]*=.*$")
 }
 
 // #[allow(clippy::trivial_regex)]
@@ -365,6 +365,15 @@ pub fn create_fds() -> Option<(RawFd, RawFd)> {
             return None;
         }
     }
+}
+
+pub fn is_builtin(s: &str) -> bool {
+    let builtins = vec![
+        "alias", "bg", "cd", "cinfo", "exec", "exit", "export", "fg",
+        "history", "jobs", "read", "source", "ulimit", "unalias", "vox",
+        "minfd", "set",
+    ];
+    builtins.contains(&s)
 }
 
 #[cfg(test)]

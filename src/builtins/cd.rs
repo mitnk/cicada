@@ -1,18 +1,22 @@
 use std::env;
-use std::io::Write;
 use std::path::Path;
 
+use crate::builtins::utils::print_stderr_with_capture;
 use crate::parsers;
 use crate::shell;
 use crate::tools;
+use crate::types::{Command, CommandLine, CommandResult};
 
-use crate::types::Tokens;
-
-pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
+pub fn run(sh: &mut shell::Shell, cl: &CommandLine, cmd: &Command,
+           capture: bool) -> CommandResult {
+    let tokens = cmd.tokens.clone();
+    let mut cr = CommandResult::new();
     let args = parsers::parser_line::tokens_to_args(&tokens);
+
     if args.len() > 2 {
-        println_stderr!("cicada: cd: too many argument");
-        return 1;
+        let info = "cicada: cd: too many argument";
+        print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
+        return cr;
     }
 
     let str_current_dir = tools::get_current_dir();
@@ -26,12 +30,19 @@ pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
 
     if dir_to == "-" {
         if sh.previous_dir == "" {
-            println_stderr!("no previous dir");
-            return 1;
+            let info = "no previous dir";
+            print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
+            return cr;
         }
         dir_to = sh.previous_dir.clone();
     } else if !dir_to.starts_with('/') {
         dir_to = format!("{}/{}", str_current_dir, dir_to);
+    }
+
+    if !Path::new(&dir_to).exists() {
+        let info = format!("cicada: cd: {}: No such file or directory", &args[1]);
+        print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+        return cr;
     }
 
     match Path::new(&dir_to).canonicalize() {
@@ -39,17 +50,10 @@ pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
             dir_to = p.as_path().to_string_lossy().to_string();
         }
         Err(e) => {
-            println_stderr!("cicada: cd: error: {:?}", e);
-            return 1;
+            let info = format!("cicada: cd: error: {}", e);
+            print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+            return cr;
         }
-    }
-
-    if !Path::new(&dir_to).exists() {
-        println_stderr!(
-            "cicada: cd: {}: No such file or directory",
-            args[1..].join("")
-        );
-        return 1;
     }
 
     match env::set_current_dir(&dir_to) {
@@ -59,11 +63,13 @@ pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
                 sh.previous_dir = str_current_dir.clone();
                 env::set_var("PWD", &sh.current_dir);
             };
-            0
+            cr.status = 0;
+            cr
         }
         Err(e) => {
-            println_stderr!("cicada: cd: {}", e);
-            1
+            let info = format!("cicada: cd: {}", e);
+            print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+            cr
         }
     }
 }

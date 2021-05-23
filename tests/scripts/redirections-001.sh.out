@@ -10,3 +10,48 @@ foo bar
        1       3      25
        0       0       0
 ==2==
+check minfd 1
+4
+alias foo='echo 135'
+no output
+result in file
+alias foo='echo 135'
+check minfd 2
+4
+==3==
+check bar1
+check bar2
+cicada: alias: bar-not-exist: not found
+after check bar2
+check minfd err
+4
+==4==
+one alias
+alias sec5_1='echo xsec51'
+one alias with grep
+xsec51
+all alias with grep
+xsec51
+builtin alias in mid
+xsec51
+check minfd err
+4
+==5==
+sec6
+no job
+sec6_foo
+os-name
+No such
+too many
+usage
+no job
+limit
+limit
+identifier
+error
+open
+syntax
+not
+check minfd err 6
+4
+==6==

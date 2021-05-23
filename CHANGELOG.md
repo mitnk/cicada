@@ -1,5 +1,11 @@
 # Change Logs
 
+## 0.9.19 - 2021-05-23
+
+- Refine redirections of aliases.
+- Fix & imporve redirections/pipelines for builtins.
+- Added new beta builtins: set, minfd.
+
 ## 0.9.18 - 2021-05-04
 
 - fix compiling issue on 32bit systems.

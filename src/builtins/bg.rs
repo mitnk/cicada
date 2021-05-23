@@ -1,14 +1,18 @@
-use std::io::Write;
-
+use crate::builtins::utils::print_stderr_with_capture;
 use crate::jobc;
 use crate::libc;
-use crate::shell;
-use crate::types;
+use crate::shell::Shell;
+use crate::types::{CommandResult, CommandLine, Command};
 
-pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
+pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
+           capture: bool) -> CommandResult {
+    let tokens = cmd.tokens.clone();
+    let mut cr = CommandResult::new();
+
     if sh.jobs.is_empty() {
-        println_stderr!("cicada: bg: no job found");
-        return 0;
+        let info = "cicada: bg: no job found";
+        print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
+        return cr;
     }
 
     let mut job_id = -1;
@@ -28,13 +32,16 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
         match job_str.parse::<i32>() {
             Ok(n) => job_id = n,
             Err(_) => {
-                println_stderr!("cicada: bg: invalid job id");
-                return 1;
+                let info = "cicada: bg: invalid job id";
+                print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
+                return cr;
             }
         }
     }
     if job_id == -1 {
-        println_stderr!("cicada: not job id found");
+        let info = "cicada: bg: not such job";
+        print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
+        return cr;
     }
 
     let gid: i32;
@@ -48,29 +55,31 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
 
         match result {
             Some(job) => {
-                let cmd = if job.cmd.ends_with(" &") {
+                let info_cmd = if job.cmd.ends_with(" &") {
                     job.cmd.clone()
                 } else {
                     format!("{} &", job.cmd)
                 };
-                println_stderr!("{}", &cmd);
+                print_stderr_with_capture(&info_cmd, &mut cr, cl, cmd, capture);
 
                 unsafe {
                     libc::killpg(job.gid, libc::SIGCONT);
                     gid = job.gid;
                     if job.status == "Running" {
-                        println_stderr!("cicada: bg: job {} already in background", job.id);
-                        return 0;
+                        let info = format!("cicada: bg: job {} already in background", job.id);
+                        print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+                        return cr;
                     }
                 }
             }
             None => {
-                println_stderr!("cicada: bg: no such job");
-                return 1;
+                let info = "cicada: bg: not such job";
+                print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+                return cr;
             }
         }
     }
 
     jobc::mark_job_as_running(sh, gid, true);
-    return 0;
+    return cr;
 }

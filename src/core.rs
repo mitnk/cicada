@@ -18,56 +18,80 @@ use crate::parsers;
 use crate::scripting;
 use crate::shell::{self, Shell};
 use crate::tools::{self, clog};
-use crate::types::{self, CommandLine, CommandOptions, CommandResult, Tokens};
+use crate::types::{self, CommandLine, CommandOptions, CommandResult};
 
-fn with_pipeline(tokens: &Tokens) -> bool {
-    for item in tokens {
-        if item.1 == "|" || item.1 == ">" {
-            return true;
-        }
+fn try_run_builtin_in_subprocess(sh: &mut Shell, cl: &CommandLine,
+                                 idx_cmd: usize, capture: bool) -> Option<i32> {
+    if let Some(cr) = try_run_builtin(sh, cl, idx_cmd, capture) {
+        return Some(cr.status);
     }
-    false
+    None
 }
 
-fn try_run_builtin(sh: &mut Shell, cl: &CommandLine) -> Option<CommandResult> {
-    let tokens = cl.commands[0].tokens.clone();
-    let cmd = tokens[0].1.clone();
-    if cmd == "alias" && !with_pipeline(&tokens) {
-        let status = builtins::alias::run(sh, &tokens);
+fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
+                   idx_cmd: usize, capture: bool) -> Option<CommandResult> {
+    // for builtin, only capture its outputs when it locates at the end
+    let capture = capture && idx_cmd +1 == cl.commands.len();
+
+    if idx_cmd >= cl.commands.len() {
+        println_stderr!("unexpected error in try_run_builtin");
+        return None;
+    }
+
+    let cmd = &cl.commands[idx_cmd];
+    let tokens = cmd.tokens.clone();
+    let cname = tokens[0].1.clone();
+    if cname == "alias" {
+        let cr = builtins::alias::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "bg" {
+        let cr = builtins::bg::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "cd" {
+        let cr = builtins::cd::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "cinfo" {
+        let cr = builtins::cinfo::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "exec" {
+        let cr = builtins::exec::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "exit" {
+        let cr = builtins::exit::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "export" {
+        let cr = builtins::export::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "fg" {
+        let cr = builtins::fg::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "history" {
+        let cr = builtins::history::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "jobs" {
+        let status = builtins::jobs::run(sh);
         return Some(CommandResult::from_status(0, status));
-    } else if cmd == "bg" {
-        let status = builtins::bg::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "cd" {
-        let status = builtins::cd::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "export" {
-        let status = builtins::export::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "exec" {
-        let status = builtins::exec::run(&tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "exit" {
-        let status = builtins::exit::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "fg" {
-        let status = builtins::fg::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "read" {
-        let status = builtins::read::run(sh, cl);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "vox" && tokens.len() > 1 && (tokens[1].1 == "enter" || tokens[1].1 == "exit") {
-        let status = builtins::vox::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if (cmd == "source" || cmd == ".") && tokens.len() <= 2 {
-        let status = builtins::source::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "ulimit" {
-        let status = builtins::ulimit::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
-    } else if cmd == "unalias" {
-        let status = builtins::unalias::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
+    } else if cname == "minfd" {
+        let cr = builtins::minfd::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "read" {
+        let cr = builtins::read::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "set" {
+        let cr = builtins::set::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "source" {
+        let cr = builtins::source::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "ulimit" {
+        let cr = builtins::ulimit::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "unalias" {
+        let cr = builtins::unalias::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "vox" {
+        let cr = builtins::vox::run(sh, cl, cmd, capture);
+        return Some(cr);
     }
     None
 }
@@ -77,11 +101,6 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine) -> Option<CommandResult> {
 pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
                     capture: bool, log_cmd: bool) -> (bool, CommandResult) {
     let mut term_given = false;
-
-    if let Some(cr) = try_run_builtin(sh, cl) {
-        return (term_given, cr);
-    }
-
     if cl.background && capture {
         println_stderr!("cicada: cannot capture output of background cmd");
         return (term_given, CommandResult::error());
@@ -148,6 +167,10 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
         }
     }
 
+    if cl.is_single_and_builtin() {
+        return (false, cmd_result);
+    }
+
     if cl.background {
         if let Some(job) = sh.get_job_by_gid(pgid) {
             println_stderr!("[{}] {}", job.id, job.gid);
@@ -176,8 +199,18 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                        options: &CommandOptions, pgid: &mut i32,
                        term_given: &mut bool, cmd_result: &mut CommandResult,
                        pipes: &Vec<(RawFd, RawFd)>) -> i32 {
-    let cmd = cl.commands.get(idx_cmd).unwrap();
-    // log!(" - run cmd: {:?}", &cmd.tokens);
+    let capture = options.capture_output;
+    if cl.is_single_and_builtin() {
+        if let Some(cr) = try_run_builtin(sh, cl, idx_cmd, capture) {
+            *cmd_result = cr;
+            return unsafe { libc::getpid() };
+        }
+
+        println_stderr!("cicada: error when run singler builtin");
+        log!("error when run singler builtin: {:?}", cl);
+        return 1;
+    }
+
     let pipes_count = pipes.len();
     let mut fds_capture_stdout = None;
     let mut fds_capture_stderr = None;
@@ -186,6 +219,8 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
         fds_capture_stdout = tools::create_fds();
         fds_capture_stderr = tools::create_fds();
     }
+
+    let cmd = cl.commands.get(idx_cmd).unwrap();
     if cmd.has_here_string() {
         fds_stdin = tools::create_fds();
     }
@@ -319,28 +354,10 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                 }
             }
 
-            let program = &cmd.tokens[0].1;
-            if program == "history" {
-                let status = builtins::history::run(sh, &cmd);
-                process::exit(status);
-            } else if program == "vox" {
-                let status = builtins::vox::run(sh, &cmd.tokens);
-                process::exit(status);
-            } else if program == "cinfo" {
-                let status = builtins::cinfo::run();
-                process::exit(status);
-            } else if program == "jobs" {
-                let status = builtins::jobs::run(sh);
-                process::exit(status);
-            } else if program == "source" || program == "." {
-                // NOTE: do pipeline on source would make processes forked,
-                // which may not get correct results (e.g. `echo $$`),
-                // (e.g. cannot make new $PROMPT take effects).
-                let status = builtins::source::run(sh, &cmd.tokens);
-                process::exit(status);
-            } else if program == "alias" {
-                let status = builtins::alias::run(sh, &cmd.tokens);
-                process::exit(status);
+            if cmd.is_builtin() {
+                if let Some(status) = try_run_builtin_in_subprocess(sh, cl, idx_cmd, capture) {
+                    process::exit(status);
+                }
             }
 
             // our strings do not have '\x00' bytes in them,
@@ -356,6 +373,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                 );
             }
 
+            let program = &cmd.tokens[0].1;
             let path = if program.contains('/') {
                 program.clone()
             } else {
@@ -510,6 +528,10 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
 
 fn try_run_func(sh: &mut Shell, cl: &CommandLine, capture: bool,
                 log_cmd: bool) -> Option<CommandResult> {
+    if cl.is_empty() {
+        return None;
+    }
+
     let command = &cl.commands[0];
     if let Some(func_body) = sh.get_func(&command.tokens[0].1) {
         let mut args = vec!["cicada".to_string()];

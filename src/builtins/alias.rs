@@ -1,43 +1,33 @@
-use std::io::Write;
-
 use regex::Regex;
 
 use crate::shell;
 use crate::tools;
-use crate::types::Tokens;
+use crate::types::{Command, CommandLine, CommandResult};
+use crate::builtins::utils::print_stderr_with_capture;
+use crate::builtins::utils::print_stdout_with_capture;
 
-pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
+pub fn run(sh: &mut shell::Shell, cl: &CommandLine, cmd: &Command,
+           capture: bool) -> CommandResult {
+    let mut cr = CommandResult::new();
+    let tokens = cmd.tokens.clone();
+
     if tokens.len() == 1 {
-        return show_alias_list(sh);
+        return show_alias_list(sh, cmd, cl, capture);
     }
+
     if tokens.len() > 2 {
-        println_stderr!("alias syntax error");
-        println_stderr!("alias usage example: alias foo='echo foo'");
-        return 1;
+        let info = "alias syntax error: usage: alias foo='echo foo'";
+        print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
+        return cr;
     }
 
     let input = &tokens[1].1;
-    let re_single_read;
-    match Regex::new(r"^[a-zA-Z0-9_\.-]+$") {
-        Ok(x) => re_single_read = x,
-        Err(e) => {
-            println!("cicada: Regex error: {:?}", e);
-            return 1;
-        }
-    }
+    let re_single_read = Regex::new(r"^[a-zA-Z0-9_\.-]+$").unwrap();
     if re_single_read.is_match(input) {
-        return show_single_alias(sh, input);
+        return show_single_alias(sh, input, cmd, cl, capture);
     }
 
-    let re_to_add;
-    match Regex::new(r"^([a-zA-Z0-9_\.-]+)=(.*)$") {
-        Ok(x) => re_to_add = x,
-        Err(e) => {
-            println!("cicada: Regex error: {:?}", e);
-            return 1;
-        }
-    }
-
+    let re_to_add = Regex::new(r"^([a-zA-Z0-9_\.-]+)=(.*)$").unwrap();
     for cap in re_to_add.captures_iter(input) {
         let name = tools::unquote(&cap[1]);
         // due to limitation of `parses::parser_line`,
@@ -50,27 +40,32 @@ pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
         };
         sh.add_alias(name.as_str(), value.as_str());
     }
-    0
+
+    CommandResult::new()
 }
 
-fn show_alias_list(sh: &shell::Shell) -> i32 {
+fn show_alias_list(sh: &shell::Shell, cmd: &Command,
+                   cl: &CommandLine, capture: bool) -> CommandResult {
+    let mut lines = Vec::new();
     for (name, value) in sh.get_alias_list() {
-        println!("alias {}='{}'", name, value);
+        let line = format!("alias {}='{}'", name, value);
+        lines.push(line);
     }
-    0
+    let buffer = lines.join("\n");
+    let mut cr = CommandResult::new();
+    print_stdout_with_capture(&buffer, &mut cr, cl, cmd, capture);
+    cr
 }
 
-fn show_single_alias(sh: &shell::Shell, name_to_find: &str) -> i32 {
-    let mut found = false;
-    for (name, value) in sh.get_alias_list() {
-        if name_to_find == name {
-            println!("alias {}='{}'", name, value);
-            found = true;
-        }
+fn show_single_alias(sh: &shell::Shell, name_to_find: &str, cmd: &Command,
+                     cl: &CommandLine, capture: bool) -> CommandResult {
+    let mut cr = CommandResult::new();
+    if let Some(content) = sh.get_alias_content(name_to_find) {
+        let info = format!("alias {}='{}'", name_to_find, content);
+        print_stdout_with_capture(&info, &mut cr, cl, cmd, capture);
+    } else {
+        let info = format!("cicada: alias: {}: not found", name_to_find);
+        print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
     }
-    if !found {
-        println_stderr!("cicada: alias: {}: not found", name_to_find);
-        return 1;
-    }
-    0
+    cr
 }

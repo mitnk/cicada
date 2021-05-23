@@ -11,7 +11,9 @@
     - [fg](#user-content-fg)
     - [history](#user-content-history)
     - [jobs](#user-content-jobs)
+    - [minfd](#user-content-minfd)
     - [read](#user-content-read)
+    - [set](#user-content-set)
     - [source](#user-content-source)
     - [ulimit](#user-content-ulimit)
     - [unalias](#user-content-unalias)
@@ -137,13 +139,18 @@ $ history add '<the command input>'
 Listing all jobs in [job control](https://github.com/mitnk/cicada/blob/master/docs/jobc.md).
 See also `bg`, `fg`.
 
+## minfd
+
+Get minimal file descriptor number in current shell process. This builtin
+is hardly useful for users, mainly using in debugging cicada.
+
 ## read
+
+Read a line from the standard input and split it into fields.
 
 ```
 read [name ...]
 ```
-
-Read a line from the standard input and split it into fields.
 
 Reads a single line from the standard input. The line is split into fields as
 with word splitting, and the first word is assigned to the first NAME, the
@@ -167,6 +174,11 @@ $ IFS=:@ read a b c
 1 3 5<hit ENTER>
 $ echo $c $b $a
 ```
+
+## set
+
+(in BETA) Set shell options. Currently ony support `set -e`, same effects
+as Bash.
 
 ## source
 

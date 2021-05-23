@@ -1,4 +1,3 @@
-use std::io::Write;
 use std::path::Path;
 
 use chrono::{DateTime, NaiveDateTime, Local, Utc};
@@ -6,10 +5,13 @@ use rusqlite::Connection as Conn;
 use rusqlite::NO_PARAMS;
 use structopt::StructOpt;
 
+use crate::builtins::utils::print_stderr_with_capture;
+use crate::builtins::utils::print_stdout_with_capture;
 use crate::history;
 use crate::parsers;
-use crate::shell;
-use crate::types::Command;
+use crate::shell::Shell;
+use crate::tools::clog;
+use crate::types::{CommandResult, CommandLine, Command};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "history", about = "History in cicada shell")]
@@ -59,49 +61,88 @@ enum SubCommand {
     }
 }
 
-pub fn run(sh: &shell::Shell, cmd: &Command) -> i32 {
+pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
+           capture: bool) -> CommandResult {
+    let mut cr = CommandResult::new();
     let hfile = history::get_history_file();
     let path = Path::new(hfile.as_str());
     if !path.exists() {
-        println_stderr!("no history file.");
-        return 1;
+        let info = "no history file";
+        print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+        return cr;
     }
     let conn = match Conn::open(&hfile) {
         Ok(x) => x,
         Err(e) => {
-            println!("sqlite conn open error: {:?}", e);
-            return 1;
+            let info = format!("history: sqlite error: {:?}", e);
+            print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+            return cr;
         }
     };
 
-    let tokens = &cmd.tokens;
-    let args = parsers::parser_line::tokens_to_args(tokens);
+    let tokens = cmd.tokens.clone();
+    let args = parsers::parser_line::tokens_to_args(&tokens);
 
-    let opt = OptMain::from_iter(args);
-    match opt.cmd {
-        Some(SubCommand::Delete {rowid: rowids}) => {
-            for rowid in rowids {
-                delete_history_item(&conn, rowid);
+    let show_usage = args.len() > 1 && (args[1] == "-h" || args[1] == "--help");
+    let opt = OptMain::from_iter_safe(args);
+    match opt {
+        Ok(opt) => {
+            match opt.cmd {
+                Some(SubCommand::Delete {rowid: rowids}) => {
+                    let mut _count = 0;
+                    for rowid in rowids {
+                        let _deleted = delete_history_item(&conn, rowid);
+                        if _deleted {
+                            _count += 1;
+                        }
+                    }
+                    if _count > 0 {
+                        let info = format!("deleted {} items", _count);
+                        print_stdout_with_capture(&info, &mut cr, cl, cmd, capture);
+                    }
+                    return cr;
+                }
+                Some(SubCommand::Add {timestamp: ts, input}) => {
+                    let ts = ts.unwrap_or(0 as f64);
+                    add_history(sh, ts, &input);
+                    return cr;
+                }
+                None => {
+                    let (str_out, str_err) = list_current_history(sh, &conn, &opt);
+                    if !str_out.is_empty() {
+                        print_stdout_with_capture(&str_out, &mut cr, cl, cmd, capture);
+                    }
+                    if !str_err.is_empty() {
+                        print_stderr_with_capture(&str_err, &mut cr, cl, cmd, capture);
+                    }
+                    return cr;
+                }
             }
-            return 0;
         }
-        Some(SubCommand::Add {timestamp: ts, input}) => {
-            let ts = ts.unwrap_or(0 as f64);
-            return add_history(sh, ts, &input);
-        }
-        None => {
-            return list_current_history(sh, &conn, &opt);
+        Err(e) => {
+            let info = format!("{}", e);
+            if show_usage {
+                print_stdout_with_capture(&info, &mut cr, cl, cmd, capture);
+                cr.status = 0;
+            } else {
+                print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+                cr.status = 1;
+            }
+            return cr;
         }
     }
 }
 
-fn add_history(sh: &shell::Shell, ts: f64, input: &str) -> i32 {
+fn add_history(sh: &Shell, ts: f64, input: &str) {
     let (tsb, tse) = (ts, ts + 1.0);
     history::add_raw(sh, input, 0, tsb, tse);
-    0
 }
 
-fn list_current_history(sh: &shell::Shell, conn: &Conn, opt: &OptMain) -> i32 {
+fn list_current_history(sh: &Shell, conn: &Conn,
+                        opt: &OptMain) -> (String, String) {
+    let mut result_stderr = String::new();
+    let result_stdout = String::new();
+
     let history_table = history::get_history_table();
     let mut sql = format!("SELECT ROWID, inp, tsb FROM {} WHERE ROWID > 0",
                           history_table);
@@ -125,19 +166,22 @@ fn list_current_history(sh: &shell::Shell, conn: &Conn, opt: &OptMain) -> i32 {
     let mut stmt = match conn.prepare(&sql) {
         Ok(x) => x,
         Err(e) => {
-            println_stderr!("history: prepare select error: {:?}", e);
-            return 1;
+            let info = format!("history: prepare select error: {:?}", e);
+            result_stderr.push_str(&info);
+            return (result_stdout, result_stderr);
         }
     };
 
     let mut rows = match stmt.query(NO_PARAMS) {
         Ok(x) => x,
         Err(e) => {
-            println_stderr!("history: query error: {:?}", e);
-            return 1;
+            let info = format!("history: query error: {:?}", e);
+            result_stderr.push_str(&info);
+            return (result_stdout, result_stderr);
         }
     };
 
+    let mut lines = Vec::new();
     loop {
         match rows.next() {
             Ok(_rows) => {
@@ -145,58 +189,67 @@ fn list_current_history(sh: &shell::Shell, conn: &Conn, opt: &OptMain) -> i32 {
                     let row_id: i32 = match row.get(0) {
                         Ok(x) => x,
                         Err(e) => {
-                            println_stderr!("history: error: {:?}", e);
-                            return 1;
+                            let info = format!("history: error: {:?}", e);
+                            result_stderr.push_str(&info);
+                            return (result_stdout, result_stderr);
                         }
                     };
                     let inp: String = match row.get(1) {
                         Ok(x) => x,
                         Err(e) => {
-                            println_stderr!("history: error: {:?}", e);
-                            return 1;
+                            let info = format!("history: error: {:?}", e);
+                            result_stderr.push_str(&info);
+                            return (result_stdout, result_stderr);
                         }
                     };
 
                     if opt.no_id {
-                        println!("{}", inp);
+                        lines.push(format!("{}", inp));
                     } else if opt.only_id {
-                        println!("{}", row_id);
+                        lines.push(format!("{}", row_id));
                     } else if opt.show_date {
                         let tsb: f64 = match row.get(2) {
                             Ok(x) => x,
                             Err(e) => {
-                                println_stderr!("history: error: {:?}", e);
-                                return 1;
+                                let info = format!("history: error: {:?}", e);
+                                result_stderr.push_str(&info);
+                                return (result_stdout, result_stderr);
                             }
                         };
                         let dt = DateTime::<Utc>::from_utc(
                             NaiveDateTime::from_timestamp(tsb as i64, 0), Utc
                         ).with_timezone(&Local);
-                        println!("{}: {}: {}", row_id, dt.format("%Y-%m-%d %H:%M:%S"), inp);
+                        lines.push(format!("{}: {}: {}", row_id, dt.format("%Y-%m-%d %H:%M:%S"), inp));
                     } else {
-                        println!("{}: {}", row_id, inp);
+                        lines.push(format!("{}: {}", row_id, inp));
                     }
                 } else {
-                    return 0;
+                    break;
                 }
             }
             Err(e) => {
-                println_stderr!("history: rows next error: {:?}", e);
-                return 1;
+                let info = format!("history: rows next error: {:?}", e);
+                result_stderr.push_str(&info);
+                return (result_stdout, result_stderr);
             }
         }
     }
+
+    let buffer = lines.join("\n");
+
+    (buffer, result_stderr)
 }
 
-fn delete_history_item(conn: &Conn, rowid: usize) {
+fn delete_history_item(conn: &Conn, rowid: usize) -> bool {
     let history_table = history::get_history_table();
     let sql = format!("DELETE from {} where rowid = {}", history_table, rowid);
     match conn.execute(&sql, NO_PARAMS) {
         Ok(_) => {
-            println!("item deleted.");
+            return true;
         }
         Err(e) => {
-            println_stderr!("history: prepare error - {:?}", e);
+            log!("history: prepare error - {:?}", e);
+            return false;
         }
     }
 }

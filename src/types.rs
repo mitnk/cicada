@@ -5,6 +5,7 @@ use crate::parsers;
 use crate::parsers::parser_line::tokens_to_redirections;
 use crate::shell;
 use crate::libs;
+use crate::tools;
 
 pub const STOPPED: i32 = 148;
 
@@ -104,6 +105,9 @@ impl Command {
         self.redirect_from.clone().unwrap().0 == "<<<"
     }
 
+    pub fn is_builtin(&self) -> bool {
+        tools::is_builtin(&self.tokens[0].1)
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -238,5 +242,17 @@ impl CommandLine {
             envs: envs,
             background: background,
         })
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.commands.is_empty()
+    }
+
+    pub fn with_pipeline(&self) -> bool {
+        self.commands.len() > 1
+    }
+
+    pub fn is_single_and_builtin(&self) -> bool {
+        self.commands.len() == 1 && self.commands[0].is_builtin()
     }
 }
