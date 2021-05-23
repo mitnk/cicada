@@ -92,6 +92,8 @@ cd sec6_foo 2>&1 | grep -o 'sec6....'
 cinfo | grep -o 'os.name'
 exec abcfoo 2>&1 | grep -o 'No such'
 exit foo bar 2>&1 | grep -o 'too many'
+export 2fa=bad 2>&1 | grep -o 'usage'
+fg 12345 2>&1 | grep -o 'no job'
 
 echo check minfd err 6
 minfd

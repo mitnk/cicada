@@ -31,6 +31,9 @@ fn try_run_builtin_in_subprocess(sh: &mut Shell, cl: &CommandLine,
 
 fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
                    idx_cmd: usize, capture: bool) -> Option<CommandResult> {
+    // for builtin, only capture its outputs when it locates at the end
+    let capture = capture && idx_cmd +1 == cl.commands.len();
+
     if idx_cmd >= cl.commands.len() {
         println_stderr!("unexpected error in try_run_builtin");
         return None;
@@ -58,15 +61,14 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
         let cr = builtins::exit::run(sh, cl, cmd, capture);
         return Some(cr);
     } else if cname == "export" {
-        let status = builtins::export::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
+        let cr = builtins::export::run(sh, cl, cmd, capture);
+        return Some(cr);
     } else if cname == "fg" {
-        let status = builtins::fg::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
+        let cr = builtins::fg::run(sh, cl, cmd, capture);
+        return Some(cr);
     } else if cname == "history" {
-        let _cmd = &cl.commands[idx_cmd];
-        let status = builtins::history::run(sh, _cmd, cl);
-        return Some(CommandResult::from_status(0, status));
+        let cr = builtins::history::run(sh, cl, cmd, capture);
+        return Some(cr);
     } else if cname == "jobs" {
         let status = builtins::jobs::run(sh);
         return Some(CommandResult::from_status(0, status));

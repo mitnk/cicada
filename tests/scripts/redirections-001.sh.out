@@ -43,6 +43,8 @@ sec6_foo
 os-name
 No such
 too many
+usage
+no job
 check minfd err 6
 4
 ==6==

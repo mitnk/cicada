@@ -1,16 +1,20 @@
-use std::io::Write;
-
 use libc;
 
+use crate::builtins::utils::print_stderr_with_capture;
 use crate::jobc;
-use crate::shell;
+use crate::shell::{self, Shell};
 use crate::tools::clog;
-use crate::types;
+use crate::types::{self, CommandResult, CommandLine, Command};
 
-pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
+pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
+           capture: bool) -> CommandResult {
+    let tokens = cmd.tokens.clone();
+    let mut cr = CommandResult::new();
+
     if sh.jobs.is_empty() {
-        println_stderr!("cicada: fg: no job found");
-        return 0;
+        let info = "cicada: fg: no job found";
+        print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
+        return cr;
     }
 
     let mut job_id = -1;
@@ -30,14 +34,17 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
         match job_str.parse::<i32>() {
             Ok(n) => job_id = n,
             Err(_) => {
-                println_stderr!("cicada: fg: invalid job id");
-                return 1;
+                let info = "cicada: fg: invalid job id";
+                print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
+                return cr;
             }
         }
     }
 
     if job_id == -1 {
-        println_stderr!("cicada: not job id found");
+        let info = "cicada: not job id found";
+        print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
+        return cr;
     }
 
     let gid: i32;
@@ -52,12 +59,12 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
 
         match result {
             Some(job) => {
-                let cmd = job.cmd.trim_matches('&').trim();
-                println_stderr!("{}", cmd);
+                let _cmd = job.cmd.trim_matches('&').trim();
+                print_stderr_with_capture(&_cmd, &mut cr, cl, cmd, capture);
 
                 unsafe {
                     if !shell::give_terminal_to(job.gid) {
-                        return 1;
+                        return CommandResult::error();
                     }
 
                     libc::killpg(job.gid, libc::SIGCONT);
@@ -66,8 +73,9 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
                 }
             }
             None => {
-                println_stderr!("cicada: fg: no such job");
-                return 1;
+                let info = "cicada: fg: no such job";
+                print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
+                return cr;
             }
         }
     }
@@ -88,6 +96,6 @@ pub fn run(sh: &mut shell::Shell, tokens: &types::Tokens) -> i32 {
         if !shell::give_terminal_to(gid_shell) {
             log!("failed to give term to back to shell : {}", gid_shell);
         }
-        return status;
+        return CommandResult::from_status(0, status);
     }
 }
