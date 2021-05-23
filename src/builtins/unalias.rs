@@ -1,19 +1,23 @@
-use std::io::Write;
+use crate::builtins::utils::print_stderr_with_capture;
+use crate::shell::Shell;
+use crate::types::{CommandResult, CommandLine, Command};
 
-use crate::shell;
-use crate::types::Tokens;
+pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
+           capture: bool) -> CommandResult {
+    let tokens = cmd.tokens.clone();
+    let mut cr = CommandResult::new();
 
-pub fn run(sh: &mut shell::Shell, tokens: &Tokens) -> i32 {
     if tokens.len() != 2 {
-        println_stderr!("unalias syntax error");
-        println_stderr!("unalias usage example: alias foo");
-        return 1;
+        let info = "cicada: unalias: syntax error";
+        print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+        return cr;
     }
 
     let input = &tokens[1].1;
     if !sh.remove_alias(input) {
-        println_stderr!("cicada: unalias: {}: not found", input);
-        return 1;
+        let info = format!("cicada: unalias: {}: not found", input);
+        print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+        return cr;
     }
-    0
+    cr
 }

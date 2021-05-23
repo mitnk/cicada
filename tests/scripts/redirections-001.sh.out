@@ -50,6 +50,7 @@ limit
 identifier
 error
 open
+syntax
 check minfd err 6
 4
 ==6==

@@ -93,7 +93,6 @@ fn set_shell_vars(sh: &mut Shell, envs: &HashMap<String, String>) {
 /// example 2: `ls | wc`
 fn run_proc(sh: &mut Shell, line: &str, tty: bool,
             capture: bool) -> CommandResult {
-    log!("[execute] run_proc: line: {:?}", line);
     let log_cmd = !sh.cmd.starts_with(' ');
     match CommandLine::from_line(&line, sh) {
         Ok(cl) => {

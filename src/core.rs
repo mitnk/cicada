@@ -22,7 +22,6 @@ use crate::types::{self, CommandLine, CommandOptions, CommandResult};
 
 fn try_run_builtin_in_subprocess(sh: &mut Shell, cl: &CommandLine,
                                  idx_cmd: usize, capture: bool) -> Option<i32> {
-    log!("[core] run builtin in subprocess: {:?}", idx_cmd);
     if let Some(cr) = try_run_builtin(sh, cl, idx_cmd, capture) {
         return Some(cr.status);
     }
@@ -87,12 +86,12 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
     } else if cname == "ulimit" {
         let cr = builtins::ulimit::run(sh, cl, cmd, capture);
         return Some(cr);
-    } else if cname == "vox" {
-        let status = builtins::vox::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
     } else if cname == "unalias" {
-        let status = builtins::unalias::run(sh, &tokens);
-        return Some(CommandResult::from_status(0, status));
+        let cr = builtins::unalias::run(sh, cl, cmd, capture);
+        return Some(cr);
+    } else if cname == "vox" {
+        let cr = builtins::vox::run(sh, cl, cmd, capture);
+        return Some(cr);
     }
     None
 }
@@ -356,7 +355,6 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
             }
 
             if cmd.is_builtin() {
-                log!("[core] sh alias: {:?}", sh.get_alias_list());
                 if let Some(status) = try_run_builtin_in_subprocess(sh, cl, idx_cmd, capture) {
                     process::exit(status);
                 }

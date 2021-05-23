@@ -40,6 +40,7 @@ pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command,
         use std::io;
         let mut out = io::stdout();
         app.write_help(&mut out).expect("failed to write to stdout");
+        print!("\n");
         return CommandResult::new();
     }
 

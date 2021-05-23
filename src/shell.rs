@@ -739,12 +739,9 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
                 }
             }
 
-            log!("[shell][do dollor expand] run subcmd 1: {:?}", &cmd);
             let cmd_result;
-            log!("[shell][do dollor expand] doing CommandLine::from_line() ...");
             match CommandLine::from_line(&cmd, sh) {
                 Ok(c) => {
-                    log!("[shell] running pipline and capture output ...");
                     let (term_given, _cr) = core::run_pipeline(sh, &c, false, true, false);
                     if term_given {
                         unsafe {
@@ -889,7 +886,6 @@ fn do_command_substitution(sh: &mut Shell, tokens: &mut types::Tokens) {
 }
 
 pub fn do_expansion(sh: &mut Shell, tokens: &mut types::Tokens) {
-    log!("[shell] doing expansion: {:?}", tokens);
     let line = parsers::parser_line::tokens_to_line(tokens);
     if tools::is_arithmetic(&line) {
         return

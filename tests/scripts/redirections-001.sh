@@ -98,6 +98,7 @@ history -h | grep -o limit
 read 2foo 2>&1 | grep -o identifier
 set -h | grep -o error
 ulimit | grep -o open
+unalias 2>&1 | grep -o syntax
 echo check minfd err 6
 minfd
 
