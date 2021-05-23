@@ -51,6 +51,7 @@ identifier
 error
 open
 syntax
+not
 check minfd err 6
 4
 ==6==

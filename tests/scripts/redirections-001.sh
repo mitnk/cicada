@@ -99,6 +99,7 @@ read 2foo 2>&1 | grep -o identifier
 set -h | grep -o error
 ulimit | grep -o open
 unalias 2>&1 | grep -o syntax
+vox enter not-exists 2>&1 | grep -o not
 echo check minfd err 6
 minfd
 
