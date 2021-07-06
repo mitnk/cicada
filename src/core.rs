@@ -233,6 +233,25 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                 libc::signal(libc::SIGQUIT, libc::SIG_DFL);
             }
 
+            // close pipes unrelated to current child (left side)
+            if idx_cmd > 0 {
+                for i in 0..idx_cmd-1 {
+                    let fds = pipes[i];
+                    unsafe {
+                        libc::close(fds.0);
+                        libc::close(fds.1);
+                    }
+                }
+            }
+            // close pipes unrelated to current child (right side)
+            for i in idx_cmd+1..pipes_count {
+                let fds = pipes[i];
+                unsafe {
+                    libc::close(fds.0);
+                    libc::close(fds.1);
+                }
+            }
+
             if idx_cmd == 0 {
                 unsafe {
                     let pid = libc::getpid();

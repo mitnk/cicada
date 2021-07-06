@@ -10,3 +10,5 @@ pwd | awk -F/ '{print $NF}'
 cd ..
 rm -rf ./foo1
 echo =1=
+yes | cat | cat | head -n 99999 | head -n 1
+echo =2=
