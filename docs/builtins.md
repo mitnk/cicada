@@ -11,7 +11,6 @@
     - [fg](#user-content-fg)
     - [history](#user-content-history)
     - [jobs](#user-content-jobs)
-    - [minfd](#user-content-minfd)
     - [read](#user-content-read)
     - [set](#user-content-set)
     - [source](#user-content-source)
@@ -138,11 +137,6 @@ $ history add '<the command input>'
 
 Listing all jobs in [job control](https://github.com/mitnk/cicada/blob/master/docs/jobc.md).
 See also `bg`, `fg`.
-
-## minfd
-
-Get minimal file descriptor number in current shell process. This builtin
-is hardly useful for users, mainly using in debugging cicada.
 
 ## read
 
