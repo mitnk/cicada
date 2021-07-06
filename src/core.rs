@@ -268,6 +268,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                 let fds_prev = pipes[idx_cmd - 1];
                 unsafe {
                     libc::dup2(fds_prev.0, 0);
+                    libc::close(fds_prev.0);
                     libc::close(fds_prev.1);
                 }
             }
@@ -275,6 +276,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                 let fds = pipes[idx_cmd];
                 unsafe {
                     libc::dup2(fds.1, 1);
+                    libc::close(fds.1);
                     libc::close(fds.0);
                 }
             }
@@ -292,8 +294,8 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
             if cmd.has_here_string() {
                 if let Some(fds) = fds_stdin {
                     unsafe {
-                        libc::dup2(fds.0, 0);
                         libc::close(fds.1);
+                        libc::dup2(fds.0, 0);
                         libc::close(fds.0);
                     }
                 }
@@ -308,8 +310,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                 if to_ == "&1" && from_ == "2" {
                     unsafe {
                         if idx_cmd < pipes_count {
-                            let fds = pipes[idx_cmd];
-                            libc::dup2(fds.1, 2);
+                            libc::dup2(1, 2);
                         } else if !options.capture_output {
                             let fd = libc::dup(1);
                             libc::dup2(fd, 2);
