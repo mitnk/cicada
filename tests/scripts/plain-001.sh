@@ -87,15 +87,15 @@ rm -f 2019-07-30
 
 echo ==3==
 
-touch 'foo.1' 'bar.1' 'foo.txt'
+touch 'random314.1' 'bar.1' 'random314.txt'
 ls *.1 | sort
 
-ls f* | sort
+ls random314* | sort
 
-echo 'f*'
+echo 'random314*'
 echo "bar*"
 
-rm -f 'foo.1' 'bar.1' 'foo.txt'
+rm -f 'random314.1' 'bar.1' 'random314.txt'
 
 echo ==4==
 

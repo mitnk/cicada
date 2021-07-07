@@ -17,10 +17,9 @@ echo ==1==
 cat <<< hello
 cat <<< 'foo bar'
 cat <<< "$(3 + 4)"
-cat <<< a | wc
-cat <<< a | wc | wc
-cat <<< hello | wc <<< a | wc
-cat <<< a | wc > /dev/null | wc
+cat <<< a | wc | sed 's/ */-/g'
+cat <<< hello | wc <<< a | sed 's/ */-/g'
+cat <<< a | wc > /dev/null | wc | sed 's/ */-/g'
 
 echo ==2==
 
