@@ -1,5 +1,9 @@
 # Change Logs
 
+## 0.9.20 - master
+
+- Fixed a fd leaking issue.
+
 ## 0.9.19 - 2021-05-23
 
 - Refine redirections of aliases.

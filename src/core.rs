@@ -150,6 +150,12 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
     };
 
     let mut cmd_result = CommandResult::new();
+
+    let (fds_capture_stdout, fds_capture_stderr) = if capture {
+        (tools::create_fds(), tools::create_fds())
+    } else {
+        (None, None)
+    };
     for i in 0..length {
         let child_id: i32 = _run_single_command(
             sh,
@@ -160,6 +166,8 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
             &mut term_given,
             &mut cmd_result,
             &pipes,
+            &fds_capture_stdout,
+            &fds_capture_stderr,
         );
 
         if child_id > 0 && !cl.background {
@@ -198,7 +206,9 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
 fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                        options: &CommandOptions, pgid: &mut i32,
                        term_given: &mut bool, cmd_result: &mut CommandResult,
-                       pipes: &Vec<(RawFd, RawFd)>) -> i32 {
+                       pipes: &Vec<(RawFd, RawFd)>,
+                       fds_capture_stdout: &Option<(RawFd, RawFd)>,
+                       fds_capture_stderr: &Option<(RawFd, RawFd)>) -> i32 {
     let capture = options.capture_output;
     if cl.is_single_and_builtin() {
         if let Some(cr) = try_run_builtin(sh, cl, idx_cmd, capture) {
@@ -212,14 +222,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
     }
 
     let pipes_count = pipes.len();
-    let mut fds_capture_stdout = None;
-    let mut fds_capture_stderr = None;
     let mut fds_stdin = None;
-    if idx_cmd == pipes_count && options.capture_output {
-        fds_capture_stdout = tools::create_fds();
-        fds_capture_stderr = tools::create_fds();
-    }
-
     let cmd = cl.commands.get(idx_cmd).unwrap();
     if cmd.has_here_string() {
         fds_stdin = tools::create_fds();
@@ -231,6 +234,39 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                 // child processes need to handle ctrl-Z
                 libc::signal(libc::SIGTSTP, libc::SIG_DFL);
                 libc::signal(libc::SIGQUIT, libc::SIG_DFL);
+            }
+
+            // close pipes unrelated to current child (left side)
+            if idx_cmd > 0 {
+                for i in 0..idx_cmd-1 {
+                    let fds = pipes[i];
+                    unsafe {
+                        libc::close(fds.0);
+                        libc::close(fds.1);
+                    }
+                }
+            }
+            // close pipes unrelated to current child (right side)
+            for i in idx_cmd+1..pipes_count {
+                let fds = pipes[i];
+                unsafe {
+                    libc::close(fds.0);
+                    libc::close(fds.1);
+                }
+            }
+            // close pipe fds for capturing stdout/stderr
+            // (they're only used in last child)
+            if idx_cmd < pipes_count {
+                unsafe {
+                    if let Some(fds) = fds_capture_stdout {
+                        libc::close(fds.0);
+                        libc::close(fds.1);
+                    }
+                    if let Some(fds) = fds_capture_stderr {
+                        libc::close(fds.0);
+                        libc::close(fds.1);
+                    }
+                }
             }
 
             if idx_cmd == 0 {
@@ -249,6 +285,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                 let fds_prev = pipes[idx_cmd - 1];
                 unsafe {
                     libc::dup2(fds_prev.0, 0);
+                    libc::close(fds_prev.0);
                     libc::close(fds_prev.1);
                 }
             }
@@ -256,6 +293,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                 let fds = pipes[idx_cmd];
                 unsafe {
                     libc::dup2(fds.1, 1);
+                    libc::close(fds.1);
                     libc::close(fds.0);
                 }
             }
@@ -273,8 +311,8 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
             if cmd.has_here_string() {
                 if let Some(fds) = fds_stdin {
                     unsafe {
-                        libc::dup2(fds.0, 0);
                         libc::close(fds.1);
+                        libc::dup2(fds.0, 0);
                         libc::close(fds.0);
                     }
                 }
@@ -289,8 +327,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                 if to_ == "&1" && from_ == "2" {
                     unsafe {
                         if idx_cmd < pipes_count {
-                            let fds = pipes[idx_cmd];
-                            libc::dup2(fds.1, 2);
+                            libc::dup2(1, 2);
                         } else if !options.capture_output {
                             let fd = libc::dup(1);
                             libc::dup2(fd, 2);
@@ -415,7 +452,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
         }
         Ok(ForkResult::Parent { child, .. }) => {
             let pid: i32 = child.into();
-            if options.isatty && !options.capture_output && idx_cmd == 0 {
+            if idx_cmd == 0 {
                 *pgid = pid;
                 unsafe {
                     // we need to wait pgid of child set to itself,
@@ -433,7 +470,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                         }
                     }
 
-                    if !cl.background {
+                    if options.isatty && !options.capture_output && !cl.background {
                         *term_given = shell::give_terminal_to(pid);
                     }
                 }
@@ -484,11 +521,13 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                         libc::close(fds.1);
                         let mut f_out = File::from_raw_fd(fds.0);
                         f_out.read_to_string(&mut s_out).expect("fds stdout");
+                        libc::close(fds.0);
                     }
                     if let Some(fds) = fds_capture_stderr {
                         libc::close(fds.1);
                         let mut f_err = File::from_raw_fd(fds.0);
                         f_err.read_to_string(&mut s_err).expect("fds stderr");
+                        libc::close(fds.0);
                     }
                 }
 
@@ -497,22 +536,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                     status: 0,
                     stdout: s_out.clone(),
                     stderr: s_err.clone(),
-                }
-            }
-
-            unsafe {
-                if let Some(fds) = fds_capture_stdout {
-                    libc::close(fds.0);
-                    libc::close(fds.1);
-                }
-                if let Some(fds) = fds_capture_stderr {
-                    libc::close(fds.0);
-                    libc::close(fds.1);
-                }
-                if let Some(fds) = fds_stdin {
-                    libc::close(fds.0);
-                    libc::close(fds.1);
-                }
+                };
             }
 
             return pid;
