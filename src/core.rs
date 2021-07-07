@@ -255,6 +255,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                 }
             }
             // close pipe fds for capturing stdout/stderr
+            // (they're only used in last child)
             if idx_cmd < pipes_count {
                 unsafe {
                     if let Some(fds) = fds_capture_stdout {
