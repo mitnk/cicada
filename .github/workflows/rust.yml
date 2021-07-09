@@ -20,5 +20,3 @@ jobs:
       run: cargo build
     - name: Run tests
       run: cargo test --bins
-    - name: Scripting Tests
-      run: make scripting-test

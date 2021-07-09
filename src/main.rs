@@ -28,6 +28,7 @@ use linefeed::{Interface, ReadResult};
 #[macro_use]
 mod tools;
 
+mod signals;
 mod builtins;
 mod calculator;
 mod completers;
@@ -56,6 +57,7 @@ fn main() {
     }
 
     let mut sh = shell::Shell::new();
+    signals::setup_sigchld_handler(&mut sh);
 
     let args: Vec<String> = env::args().collect();
 

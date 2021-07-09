@@ -52,6 +52,7 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i3
     } else {
         Some(WaitPidFlag::WNOHANG)
     };
+
     match waitpid(Pid::from_raw(pid), flags) {
         Ok(WaitStatus::Stopped(_pid, _)) => {
             status = types::STOPPED;
@@ -80,18 +81,22 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i3
             status = sig as i32;
         }
         Ok(_info) => {
-            // log!("waitpid ok: {:?}", _info);
+            log!("waitpid ok: {:?}", _info);
         }
         Err(e) => match e {
             Error::Sys(errno) => {
                 if errno == Errno::ECHILD {
                     cleanup_process_groups(sh, gid, pid, "Done");
+                }
+                else if errno == Errno::EINTR {
+                    log!("waitpid intrupted: pid: {:?}", pid);
+                    // TODO: need to **safely** sync the status of <pid> process here?
                 } else {
-                    log!("waitpid error: errno: {:?}", errno);
+                    log!("waitpid error 1: errno: {:?}", errno);
                 }
             }
             _ => {
-                log!("waitpid error: {:?}", e);
+                log!("waitpid error 2: {:?}", e);
                 status = 1;
             }
         },
