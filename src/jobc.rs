@@ -7,6 +7,7 @@ use nix::unistd::Pid;
 use nix::Error;
 
 use crate::shell;
+use crate::signals;
 use crate::tools::clog;
 use crate::types;
 
@@ -81,19 +82,41 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i3
             status = sig as i32;
         }
         Ok(_info) => {
-            log!("waitpid ok: {:?}", _info);
+            // log!("waitpid ok: {:?}", _info);
         }
         Err(e) => match e {
             Error::Sys(errno) => {
+                if errno == Errno::EINTR {
+                    log!("jobc wait_process got interrupt: {}", pid);
+
+                    // since we have installed a signal handler for SIGCHLD,
+                    // it will always interrupt the waitpid() here, thus
+                    // the exit status will be lost. we have to fetch the info
+                    // from the signal::pop_reap_map().
+                    if let Some(_status) = signals::pop_reap_map(pid) {
+                        log!("jobc wait_process got interrupt: {} status: {}", pid, _status);
+                        return _status;
+                    } else {
+                        log!("jobc retry wait_process: {}", pid);
+                        return wait_process(sh, gid, pid, stop);
+                    }
+                }
+
                 if errno == Errno::ECHILD {
+                    log!("jobc wait_process ECHILD: pid: {:?}", pid);
                     cleanup_process_groups(sh, gid, pid, "Done");
+
+                    // similar with EINTR branch, for some commands
+                    // e.g. `sleep 2 | sleep 1 | exit 7` we will miss the
+                    // chance to get the exit status of `exit` in EINTR branch,
+                    // we have to catch the info here.
+                    if let Some(_status) = signals::pop_reap_map(pid) {
+                        status = _status;
+                        log!("waitpid {} got interrupt, status: {}", pid, status);
+                    }
                 }
-                else if errno == Errno::EINTR {
-                    log!("waitpid intrupted: pid: {:?}", pid);
-                    // TODO: need to **safely** sync the status of <pid> process here?
-                } else {
-                    log!("waitpid error 1: errno: {:?}", errno);
-                }
+
+                log!("waitpid error 1: errno: {:?}", errno);
             }
             _ => {
                 log!("waitpid error 2: {:?}", e);

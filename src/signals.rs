@@ -3,9 +3,22 @@ use errno::{errno, set_errno};
 use nix::sys::signal;
 use nix::sys::wait::{WaitPidFlag, WaitStatus, waitpid};
 use nix::unistd::Pid;
+use std::sync::Mutex;
+use std::collections::HashMap;
 
-use crate::shell;
 use crate::tools::clog;
+
+lazy_static! {
+    static ref REAP_MAP: Mutex<HashMap<i32, i32>> = Mutex::new(HashMap::new());
+}
+
+fn insert_reap_map(pid: i32, status: i32) {
+    REAP_MAP.lock().unwrap().insert(pid, status);
+}
+
+pub fn pop_reap_map(pid: i32) -> Option<i32> {
+    REAP_MAP.lock().unwrap().remove(&pid)
+}
 
 extern fn handle_sigchld(_sig: i32) {
     let saved_errno = errno();
@@ -13,8 +26,9 @@ extern fn handle_sigchld(_sig: i32) {
     let wait_flag = Some(WaitPidFlag::WNOHANG);
     loop {
         match waitpid(Pid::from_raw(-1), wait_flag) {
-            Ok(WaitStatus::Exited(_pid, _status)) => {
-                log!("reaped pid:{} status:{}", _pid, _status);
+            Ok(WaitStatus::Exited(pid, status)) => {
+                log!("reaped pid:{} status:{}", pid, status);
+                insert_reap_map(i32::from(pid), status);
             }
             Ok(WaitStatus::StillAlive) => {
                 break;
@@ -31,7 +45,7 @@ extern fn handle_sigchld(_sig: i32) {
     set_errno(saved_errno);
 }
 
-pub fn setup_sigchld_handler(_sh: &mut shell::Shell) {
+pub fn setup_sigchld_handler() {
     let sigset = signal::SigSet::empty();
     let handler = signal::SigHandler::Handler(handle_sigchld);
     let sa = signal::SigAction::new(handler, signal::SaFlags::empty(), sigset);

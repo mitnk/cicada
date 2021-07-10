@@ -12,7 +12,6 @@ use uuid::Uuid;
 use crate::core;
 use crate::libs;
 use crate::parsers;
-use crate::shell;
 use crate::tools::{self, clog};
 use crate::types::{self, CommandLine};
 
@@ -746,7 +745,7 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
                     if term_given {
                         unsafe {
                             let gid = libc::getpgid(0);
-                            shell::give_terminal_to(gid);
+                            give_terminal_to(gid);
                         }
                     }
 
@@ -796,7 +795,7 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
                     if term_given {
                         unsafe {
                             let gid = libc::getpgid(0);
-                            shell::give_terminal_to(gid);
+                            give_terminal_to(gid);
                         }
                     }
 
@@ -845,7 +844,7 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
                             if term_given {
                                 unsafe {
                                     let gid = libc::getpgid(0);
-                                    shell::give_terminal_to(gid);
+                                    give_terminal_to(gid);
                                 }
                             }
 

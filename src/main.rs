@@ -57,7 +57,7 @@ fn main() {
     }
 
     let mut sh = shell::Shell::new();
-    signals::setup_sigchld_handler(&mut sh);
+    signals::setup_sigchld_handler();
 
     let args: Vec<String> = env::args().collect();
 
