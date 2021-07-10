@@ -27,7 +27,7 @@ extern fn handle_sigchld(_sig: i32) {
     loop {
         match waitpid(Pid::from_raw(-1), wait_flag) {
             Ok(WaitStatus::Exited(pid, status)) => {
-                log!("reaped pid:{} status:{}", pid, status);
+                // log!("reaped pid:{} status:{}", pid, status);
                 insert_reap_map(i32::from(pid), status);
             }
             Ok(WaitStatus::StillAlive) => {
@@ -48,7 +48,9 @@ extern fn handle_sigchld(_sig: i32) {
 pub fn setup_sigchld_handler() {
     let sigset = signal::SigSet::empty();
     let handler = signal::SigHandler::Handler(handle_sigchld);
-    let sa = signal::SigAction::new(handler, signal::SaFlags::empty(), sigset);
+    // automatically restart system calls interrupted by this signal handler
+    let flags = signal::SaFlags::SA_RESTART;
+    let sa = signal::SigAction::new(handler, flags, sigset);
     unsafe {
         match signal::sigaction(signal::SIGCHLD, &sa) {
             Ok(_) => {},

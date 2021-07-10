@@ -47,7 +47,6 @@ pub fn mark_job_as_running(sh: &mut shell::Shell, gid: i32, bg: bool) {
 }
 
 pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i32 {
-    log!("= jobc enter wait_process: {}", pid);
     let flags = if stop {
         Some(WaitPidFlag::WUNTRACED)
     } else {
@@ -87,38 +86,53 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i3
         }
         Err(e) => match e {
             Error::Sys(errno) => {
+                if errno == Errno::ECHILD {
+                    // log!("jobc wait_process ECHILD: pid: {:?}", pid);
+                    cleanup_process_groups(sh, gid, pid, "Done");
+
+                    // similar with EINTR branch, for some commands
+                    // e.g. `sleep 2 | sleep 1 | exit 3` we will miss the
+                    // chance to get the exit status of `exit` in EINTR branch,
+                    // we have to catch the info here.
+                    if let Some(status) = signals::pop_reap_map(pid) {
+                        // log!("jobc ECHILD: pid:{:?} got status:{}", pid, status);
+                        return status;
+                    }
+
+                    // log!("no reap info found for ECHILD: status --> 1 pid:{}", pid);
+                    return 1;
+                }
+
                 if errno == Errno::EINTR {
-                    log!("jobc wait_process got EINTR: {}", pid);
+                    // log!("jobc wait_process got EINTR: {}", pid);
 
                     // since we have installed a signal handler for SIGCHLD,
                     // it will always interrupt the waitpid() here, thus
                     // the exit status will be lost. we have to fetch the info
                     // from the signal::pop_reap_map().
+
+                    // UPDATED: if we use SA_RESTART when calling sigaction(),
+                    // this EINTR branch won't be reached, but we cannot
+                    // assume all OS implementations follow this flag. Thus
+                    // we still handle EINTR here.
+
+                    // NOTE the OS implementation differences: on Mac,
+                    // waitpid() in signal handler always handles first;
+                    // on Linux, waitpid() in wait_process() handles first.
+                    // for example, normal commands like `echo hi | wc`,
+                    // on Mac both zombies are reaped by signal handler, and
+                    // the waitpid() in wait_process() here got interrupt;
+                    // while on Linux, they are reaped by wait_process(),
+                    // the signal handler won't be called.
                     if let Some(status) = signals::pop_reap_map(pid) {
-                        log!("jobc EINTR pid:{} got status:{}", pid, status);
+                        // log!("jobc EINTR pid:{} got status:{}", pid, status);
                         cleanup_process_groups(sh, gid, pid, "Done");
                         return status;
                     } else {
-                        log!("jobc pid {} not yet terminated, re-wait", pid);
+                        // one example: `sleep 2 | sleep 1 | exit 3`
+                        // log!("jobc pid {} not yet terminated, re-wait", pid);
                         return wait_process(sh, gid, pid, stop);
                     }
-                }
-
-                if errno == Errno::ECHILD {
-                    log!("jobc wait_process ECHILD: pid: {:?}", pid);
-                    cleanup_process_groups(sh, gid, pid, "Done");
-
-                    // similar with EINTR branch, for some commands
-                    // e.g. `sleep 2 | sleep 1 | exit 7` we will miss the
-                    // chance to get the exit status of `exit` in EINTR branch,
-                    // we have to catch the info here.
-                    if let Some(status) = signals::pop_reap_map(pid) {
-                        log!("jobc ECHILD: pid:{:?} got status:{}", pid, status);
-                        return status;
-                    }
-
-                    log!("no reap info found for ECHILD: status --> 1 pid:{}", pid);
-                    return 1;
                 }
 
                 log!("waitpid error 1: errno: {:?}", errno);
