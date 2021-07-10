@@ -47,7 +47,7 @@ pub fn mark_job_as_running(sh: &mut shell::Shell, gid: i32, bg: bool) {
 }
 
 pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i32 {
-    let mut status = 0;
+    log!("= jobc enter wait_process: {}", pid);
     let flags = if stop {
         Some(WaitPidFlag::WUNTRACED)
     } else {
@@ -56,11 +56,11 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i3
 
     match waitpid(Pid::from_raw(pid), flags) {
         Ok(WaitStatus::Stopped(_pid, _)) => {
-            status = types::STOPPED;
+            return types::STOPPED;
         }
         Ok(WaitStatus::Exited(npid, status_new)) => {
             cleanup_process_groups(sh, gid, npid.into(), "Done");
-            status = status_new;
+            return status_new;
         }
         Ok(WaitStatus::Signaled(npid, sig, _)) => {
             let reason = if sig == signal::SIGKILL {
@@ -79,25 +79,27 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i3
                 format!("Signaled: {:?}", sig)
             };
             cleanup_process_groups(sh, gid, npid.into(), &reason);
-            status = sig as i32;
+            return sig as i32;
         }
         Ok(_info) => {
             // log!("waitpid ok: {:?}", _info);
+            return 0;
         }
         Err(e) => match e {
             Error::Sys(errno) => {
                 if errno == Errno::EINTR {
-                    log!("jobc wait_process got interrupt: {}", pid);
+                    log!("jobc wait_process got EINTR: {}", pid);
 
                     // since we have installed a signal handler for SIGCHLD,
                     // it will always interrupt the waitpid() here, thus
                     // the exit status will be lost. we have to fetch the info
                     // from the signal::pop_reap_map().
-                    if let Some(_status) = signals::pop_reap_map(pid) {
-                        log!("jobc wait_process got interrupt: {} status: {}", pid, _status);
-                        return _status;
+                    if let Some(status) = signals::pop_reap_map(pid) {
+                        log!("jobc EINTR pid:{} got status:{}", pid, status);
+                        cleanup_process_groups(sh, gid, pid, "Done");
+                        return status;
                     } else {
-                        log!("jobc retry wait_process: {}", pid);
+                        log!("jobc pid {} not yet terminated, re-wait", pid);
                         return wait_process(sh, gid, pid, stop);
                     }
                 }
@@ -110,21 +112,24 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i3
                     // e.g. `sleep 2 | sleep 1 | exit 7` we will miss the
                     // chance to get the exit status of `exit` in EINTR branch,
                     // we have to catch the info here.
-                    if let Some(_status) = signals::pop_reap_map(pid) {
-                        status = _status;
-                        log!("waitpid {} got interrupt, status: {}", pid, status);
+                    if let Some(status) = signals::pop_reap_map(pid) {
+                        log!("jobc ECHILD: pid:{:?} got status:{}", pid, status);
+                        return status;
                     }
+
+                    log!("no reap info found for ECHILD: status --> 1 pid:{}", pid);
+                    return 1;
                 }
 
                 log!("waitpid error 1: errno: {:?}", errno);
+                return 1;
             }
             _ => {
                 log!("waitpid error 2: {:?}", e);
-                status = 1;
+                return 1;
             }
-        },
+        }
     }
-    status
 }
 
 pub fn try_wait_bg_jobs(sh: &mut shell::Shell) {
