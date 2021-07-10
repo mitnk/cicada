@@ -90,10 +90,10 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i3
                     // log!("jobc wait_process ECHILD: pid: {:?}", pid);
                     cleanup_process_groups(sh, gid, pid, "Done");
 
-                    // similar with EINTR branch, for some commands
-                    // e.g. `sleep 2 | sleep 1 | exit 3` we will miss the
-                    // chance to get the exit status of `exit` in EINTR branch,
-                    // we have to catch the info here.
+                    // since we installed a signal handler for SIGCHLD,
+                    // commands like `sleep 2 | sleep 1 | exit 3`, the latter
+                    // two children is reaped by it, we have to fetch/sync
+                    // the exit status of them from the signal handler.
                     if let Some(status) = signals::pop_reap_map(pid) {
                         // log!("jobc ECHILD: pid:{:?} got status:{}", pid, status);
                         return status;
