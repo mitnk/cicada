@@ -58,6 +58,9 @@ fn main() {
 
     let mut sh = shell::Shell::new();
     signals::setup_sigchld_handler();
+    // block the signals at most of time, since Rust is not "async-signal-safe"
+    // yet. see https://github.com/rust-lang/rfcs/issues/1368
+    // we'll unblock them when necessary only.
     signals::block_signals();
 
     let args: Vec<String> = env::args().collect();

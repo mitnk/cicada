@@ -187,6 +187,11 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
     }
 
     signals::unblock_signals();
+    // NOTE: this block of Rust code (till the call of block_signals())
+    // is not safe. In theory, it can be broken by our signal handlers.
+    // see https://ldpreload.com/blog/signalfd-is-useless for details.
+    // Nevertheless, we're keeping this batch of code as simpler as possible
+    // (this is a ongoing to-do). Another option is we use waitpid(-1) here.
     for pid in &children {
         let status = jobc::wait_process(sh, pgid, *pid, true);
         if capture {
