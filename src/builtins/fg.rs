@@ -88,7 +88,7 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
             status = jobc::wait_process(sh, gid, *pid, true);
         }
 
-        if status == types::STOPPED {
+        if status == types::WS_STOPPED {
             jobc::mark_job_as_stopped(sh, gid);
         }
 

@@ -4,6 +4,8 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::os::unix::io::{FromRawFd, RawFd};
 use std::process;
+use std::time::Duration;
+use std::thread;
 
 use libc;
 use nix::unistd::{execve, ForkResult};
@@ -18,7 +20,7 @@ use crate::parsers;
 use crate::scripting;
 use crate::shell::{self, Shell};
 use crate::tools::{self, clog};
-use crate::types::{self, CommandLine, CommandOptions, CommandResult};
+use crate::types::{CommandLine, CommandOptions, CommandResult};
 
 fn try_run_builtin_in_subprocess(sh: &mut Shell, cl: &CommandLine,
                                  idx_cmd: usize, capture: bool) -> Option<i32> {
@@ -185,17 +187,50 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
         }
     }
 
-    for pid in &children {
-        let status = jobc::wait_process(sh, pgid, *pid, true);
-        if capture {
-            cmd_result.status = status;
-        } else {
-            cmd_result = CommandResult::from_status(pgid, status);
-        }
-    }
+    let one_ms = Duration::from_millis(1);
+    let mut count_waited = 0;
+    let count_child = children.len();
+    if let Some(pid_last) = children.last() {
+        loop {
+            let ws = jobc::waitpid_nohang();
+            if ws.is_error() {
+                log!("todo: waitpid error");
+                continue;
+            }
 
-    if cmd_result.status == types::STOPPED {
-        jobc::mark_job_as_stopped(sh, pgid);
+            let npid = ws.get_pid();
+            if ws.is_stopped() {
+                unsafe {
+                    let _gid = libc::getpgid(npid);
+                    if _gid == pgid {
+                        let status = ws.get_status();
+                        jobc::mark_job_as_stopped(sh, pgid);
+                        cmd_result = CommandResult::from_status(pgid, status);
+                        break;
+                    } else {
+                        sh.mark_job_as_stopped(_gid);
+                    }
+                }
+            }
+
+            if children.contains(&npid) {
+                jobc::cleanup_process_groups(sh, pgid, npid, "Done");
+
+                count_waited += 1;
+                if npid == *pid_last {
+                    let status = ws.get_status();
+                    if capture {
+                        cmd_result.status = status;
+                    } else {
+                        cmd_result = CommandResult::from_status(pgid, status);
+                    }
+                }
+                if count_waited >= count_child {
+                    break;
+                }
+            }
+            thread::sleep(one_ms);
+        }
     }
 
     (term_given, cmd_result)

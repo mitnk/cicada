@@ -3,6 +3,7 @@
 ## 0.9.20 - master
 
 - Fixed a fd leaking issue.
+- Reap child processes in a timely manner.
 
 ## 0.9.19 - 2021-05-23
 

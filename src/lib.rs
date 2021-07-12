@@ -79,6 +79,7 @@ mod parsers;
 mod rcfile;
 mod scripting;
 mod shell;
+mod signals;
 
 /// Represents an error calling `exec`.
 pub use crate::types::CommandResult;
