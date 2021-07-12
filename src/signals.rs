@@ -20,6 +20,28 @@ pub fn pop_reap_map(pid: i32) -> Option<i32> {
     REAP_MAP.lock().unwrap().remove(&pid)
 }
 
+pub fn block_signals() {
+    let mut sigset = signal::SigSet::empty();
+    sigset.add(signal::SIGCHLD);
+    match signal::sigprocmask(signal::SigmaskHow::SIG_BLOCK, Some(&sigset), None) {
+        Ok(_) => {},
+        Err(e) => {
+            log!("sigprocmask block error: {:?}", e);
+        }
+    }
+}
+
+pub fn unblock_signals() {
+    let mut sigset = signal::SigSet::empty();
+    sigset.add(signal::SIGCHLD);
+    match signal::sigprocmask(signal::SigmaskHow::SIG_UNBLOCK, Some(&sigset), None) {
+        Ok(_) => {},
+        Err(e) => {
+            log!("sigprocmask unblock error: {:?}", e);
+        }
+    }
+}
+
 extern fn handle_sigchld(_sig: i32) {
     let saved_errno = errno();
 
@@ -27,16 +49,13 @@ extern fn handle_sigchld(_sig: i32) {
     loop {
         match waitpid(Pid::from_raw(-1), wait_flag) {
             Ok(WaitStatus::Exited(pid, status)) => {
-                // log!("reaped pid:{} status:{}", pid, status);
                 insert_reap_map(i32::from(pid), status);
             }
-            Ok(WaitStatus::StillAlive) => {
+            Ok(_others) => {
                 break;
             }
-            Ok(_) => {
-                break;
-            }
-            Err(_) => {
+            Err(_e) => {
+                // log!("sigchld waitpid error: {:?}", _e);
                 break;
             }
         }

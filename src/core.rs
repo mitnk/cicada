@@ -16,6 +16,7 @@ use crate::jobc;
 use crate::libs;
 use crate::parsers;
 use crate::scripting;
+use crate::signals;
 use crate::shell::{self, Shell};
 use crate::tools::{self, clog};
 use crate::types::{self, CommandLine, CommandOptions, CommandResult};
@@ -185,6 +186,7 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
         }
     }
 
+    signals::unblock_signals();
     for pid in &children {
         let status = jobc::wait_process(sh, pgid, *pid, true);
         if capture {
@@ -193,6 +195,7 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
             cmd_result = CommandResult::from_status(pgid, status);
         }
     }
+    signals::block_signals();
 
     if cmd_result.status == types::STOPPED {
         jobc::mark_job_as_stopped(sh, pgid);

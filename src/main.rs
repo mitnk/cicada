@@ -58,6 +58,7 @@ fn main() {
 
     let mut sh = shell::Shell::new();
     signals::setup_sigchld_handler();
+    signals::block_signals();
 
     let args: Vec<String> = env::args().collect();
 
@@ -119,8 +120,12 @@ fn main() {
                 println!("error when setting prompt: {:?}\n", e);
             }
         }
+
+        signals::unblock_signals();
         match rl.read_line() {
             Ok(ReadResult::Input(line)) => {
+                signals::block_signals();
+
                 jobc::try_wait_bg_jobs(&mut sh);
 
                 if line.trim() == "" {
@@ -155,16 +160,17 @@ fn main() {
                         sh: Arc::new(sh.clone()),
                     }));
                 }
+                continue;
             }
             Ok(ReadResult::Eof) => {
                 if let Ok(x) = env::var("NO_EXIT_ON_CTRL_D") {
                     if x == "1" {
                         println!();
-                        continue;
                     }
+                } else {
+                    println!("exit");
+                    break;
                 }
-                println!("exit");
-                break;
             }
             Ok(ReadResult::Signal(s)) => {
                 println!("readline signal: {:?}", s);
@@ -173,5 +179,6 @@ fn main() {
                 println!("readline error: {:?}", e);
             }
         }
+        signals::block_signals();
     }
 }
