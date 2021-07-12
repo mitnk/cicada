@@ -2,7 +2,9 @@ use std::io::Write;
 
 use nix::errno::Errno;
 use nix::sys::signal;
-use nix::sys::wait::{waitpid, WaitPidFlag, WaitStatus};
+use nix::sys::wait::waitpid;
+use nix::sys::wait::WaitPidFlag as WF;
+use nix::sys::wait::WaitStatus as WS;
 use nix::unistd::Pid;
 use nix::Error;
 
@@ -26,7 +28,7 @@ pub fn print_job(job: &types::Job) {
     println_stderr!("[{}] {}  {}    {}", job.id, job.gid, job.status, _cmd);
 }
 
-fn cleanup_process_groups(sh: &mut shell::Shell, gid: i32, pid: i32, reason: &str) {
+pub fn cleanup_process_groups(sh: &mut shell::Shell, gid: i32, pid: i32, reason: &str) {
     if let Some(mut job) = sh.remove_pid_from_job(gid, pid) {
         job.status = reason.to_string();
         if job.report {
@@ -46,22 +48,49 @@ pub fn mark_job_as_running(sh: &mut shell::Shell, gid: i32, bg: bool) {
     sh.mark_job_as_running(gid, bg);
 }
 
+pub fn waitpid_nohang() -> types::WaitStatus {
+    let options = Some(WF::WUNTRACED | WF::WNOHANG | WF::WCONTINUED);
+    match waitpid(Pid::from_raw(-1), options) {
+        Ok(WS::Exited(npid, status)) => {
+            let npid = i32::from(npid);
+            return types::WaitStatus::from_exited(npid, status);
+        }
+        Ok(WS::Stopped(npid, sig)) => {
+            let npid = i32::from(npid);
+            return types::WaitStatus::from_stopped(npid, sig as i32);
+        }
+        Ok(WS::Signaled(npid, sig, _core_dumped)) => {
+            let npid = i32::from(npid);
+            return types::WaitStatus::from_signaled(npid, sig as i32);
+        }
+        Ok(WS::StillAlive) => {
+            return types::WaitStatus::empty();
+        }
+        Ok(_others) => {
+            return types::WaitStatus::from_others();
+        }
+        Err(_e) => {
+            return types::WaitStatus::from_error();
+        }
+    }
+}
+
 pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i32 {
     let flags = if stop {
-        Some(WaitPidFlag::WUNTRACED)
+        Some(WF::WUNTRACED)
     } else {
-        Some(WaitPidFlag::WNOHANG)
+        Some(WF::WNOHANG)
     };
 
     match waitpid(Pid::from_raw(pid), flags) {
-        Ok(WaitStatus::Stopped(_pid, _)) => {
-            return types::STOPPED;
+        Ok(WS::Stopped(_pid, _)) => {
+            return types::WS_STOPPED;
         }
-        Ok(WaitStatus::Exited(npid, status_new)) => {
+        Ok(WS::Exited(npid, status_new)) => {
             cleanup_process_groups(sh, gid, npid.into(), "Done");
             return status_new;
         }
-        Ok(WaitStatus::Signaled(npid, sig, _)) => {
+        Ok(WS::Signaled(npid, sig, _)) => {
             let reason = if sig == signal::SIGKILL {
                 "Killed: 9".to_string()
             } else if sig == signal::SIGTERM {

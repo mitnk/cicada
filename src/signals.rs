@@ -1,7 +1,7 @@
 use errno::{errno, set_errno};
 
 use nix::sys::signal;
-use nix::sys::wait::{WaitPidFlag, WaitStatus, waitpid};
+use nix::sys::wait::{WaitPidFlag as WF, WaitStatus, waitpid};
 use nix::unistd::Pid;
 use std::sync::Mutex;
 use std::collections::HashMap;
@@ -45,9 +45,9 @@ pub fn unblock_signals() {
 extern fn handle_sigchld(_sig: i32) {
     let saved_errno = errno();
 
-    let wait_flag = Some(WaitPidFlag::WNOHANG);
+    let options = Some(WF::WUNTRACED | WF::WNOHANG | WF::WCONTINUED);
     loop {
-        match waitpid(Pid::from_raw(-1), wait_flag) {
+        match waitpid(Pid::from_raw(-1), options) {
             Ok(WaitStatus::Exited(pid, status)) => {
                 insert_reap_map(i32::from(pid), status);
             }

@@ -7,7 +7,65 @@ use crate::shell;
 use crate::libs;
 use crate::tools;
 
-pub const STOPPED: i32 = 148;
+// waitpid status
+pub const WS_STOPPED: i32 = 145;
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub struct WaitStatus(i32, i32, i32);
+
+impl WaitStatus {
+    pub fn from_exited(pid: i32, status: i32) -> Self {
+        WaitStatus(pid, 0, status)
+    }
+
+    pub fn from_signaled(pid: i32, sig: i32) -> Self {
+        WaitStatus(pid, 1, sig)
+    }
+
+    pub fn from_stopped(pid: i32, sig: i32) -> Self {
+        WaitStatus(pid, 2, sig)
+    }
+
+    pub fn from_others() -> Self {
+        WaitStatus(0, 9, 9)
+    }
+
+    pub fn from_error() -> Self {
+        WaitStatus(0, 255, 127)
+    }
+
+    pub fn empty() -> Self {
+        WaitStatus(0, 0, 0)
+    }
+
+    pub fn is_error(&self) -> bool {
+        self.1 == 255
+    }
+
+    pub fn is_exited(&self) -> bool {
+        self.0 != 0 && self.1 == 0
+    }
+
+    pub fn is_stopped(&self) -> bool {
+        self.1 == 2
+    }
+
+    pub fn get_pid(&self) -> i32 {
+        self.0
+    }
+
+    pub fn get_signaled_status(&self) -> i32 {
+        self.2 + 128
+    }
+
+    pub fn get_status(&self) -> i32 {
+        if self.is_exited() {
+            self.2
+        } else {
+            self.get_signaled_status()
+        }
+    }
+}
 
 pub type Token = (String, String);
 pub type Tokens = Vec<Token>;
