@@ -2,7 +2,6 @@ use std::path::Path;
 
 use chrono::{DateTime, NaiveDateTime, Local, Utc};
 use rusqlite::Connection as Conn;
-use rusqlite::NO_PARAMS;
 use structopt::StructOpt;
 
 use crate::builtins::utils::print_stderr_with_capture;
@@ -172,7 +171,7 @@ fn list_current_history(sh: &Shell, conn: &Conn,
         }
     };
 
-    let mut rows = match stmt.query(NO_PARAMS) {
+    let mut rows = match stmt.query([]) {
         Ok(x) => x,
         Err(e) => {
             let info = format!("history: query error: {:?}", e);
@@ -243,7 +242,7 @@ fn list_current_history(sh: &Shell, conn: &Conn,
 fn delete_history_item(conn: &Conn, rowid: usize) -> bool {
     let history_table = history::get_history_table();
     let sql = format!("DELETE from {} where rowid = {}", history_table, rowid);
-    match conn.execute(&sql, NO_PARAMS) {
+    match conn.execute(&sql, []) {
         Ok(_) => {
             return true;
         }

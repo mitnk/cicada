@@ -1,12 +1,10 @@
 use std::io::Write;
 
-use nix::errno::Errno;
 use nix::sys::signal;
 use nix::sys::wait::waitpid;
 use nix::sys::wait::WaitPidFlag as WF;
 use nix::sys::wait::WaitStatus as WS;
 use nix::unistd::Pid;
-use nix::Error;
 
 use crate::shell;
 use crate::signals;
@@ -48,8 +46,8 @@ pub fn mark_job_as_running(sh: &mut shell::Shell, gid: i32, bg: bool) {
     sh.mark_job_as_running(gid, bg);
 }
 
-pub fn waitpid_nohang() -> types::WaitStatus {
-    let options = Some(WF::WUNTRACED | WF::WNOHANG | WF::WCONTINUED);
+pub fn waitpid_all() -> types::WaitStatus {
+    let options = Some(WF::WUNTRACED | WF::WCONTINUED);
     match waitpid(Pid::from_raw(-1), options) {
         Ok(WS::Exited(npid, status)) => {
             let npid = i32::from(npid);
@@ -69,8 +67,8 @@ pub fn waitpid_nohang() -> types::WaitStatus {
         Ok(_others) => {
             return types::WaitStatus::from_others();
         }
-        Err(_e) => {
-            return types::WaitStatus::from_error();
+        Err(e) => {
+            return types::WaitStatus::from_error(e as i32);
         }
     }
 }
@@ -114,61 +112,55 @@ pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i3
             return 0;
         }
         Err(e) => match e {
-            Error::Sys(errno) => {
-                if errno == Errno::ECHILD {
-                    // log!("jobc wait_process ECHILD: pid: {:?}", pid);
-                    cleanup_process_groups(sh, gid, pid, "Done");
+            nix::Error::ECHILD => {
+                // log!("jobc wait_process ECHILD: pid: {:?}", pid);
+                cleanup_process_groups(sh, gid, pid, "Done");
 
-                    // since we installed a signal handler for SIGCHLD,
-                    // commands like `sleep 2 | sleep 1 | exit 3`, the latter
-                    // two children is reaped by it, we have to fetch/sync
-                    // the exit status of them from the signal handler.
-                    if let Some(status) = signals::pop_reap_map(pid) {
-                        // log!("jobc ECHILD: pid:{:?} got status:{}", pid, status);
-                        return status;
-                    }
-
-                    // log!("no reap info found for ECHILD: status --> 1 pid:{}", pid);
-                    return 1;
+                // since we installed a signal handler for SIGCHLD,
+                // commands like `sleep 2 | sleep 1 | exit 3`, the latter
+                // two children is reaped by it, we have to fetch/sync
+                // the exit status of them from the signal handler.
+                if let Some(status) = signals::pop_reap_map(pid) {
+                    // log!("jobc ECHILD: pid:{:?} got status:{}", pid, status);
+                    return status;
                 }
 
-                if errno == Errno::EINTR {
-                    // log!("jobc wait_process got EINTR: {}", pid);
-
-                    // since we have installed a signal handler for SIGCHLD,
-                    // it will always interrupt the waitpid() here, thus
-                    // the exit status will be lost. we have to fetch the info
-                    // from the signal::pop_reap_map().
-
-                    // UPDATED: if we use SA_RESTART when calling sigaction(),
-                    // this EINTR branch won't be reached, but we cannot
-                    // assume all OS implementations follow this flag. Thus
-                    // we still handle EINTR here.
-
-                    // NOTE the OS implementation differences: on Mac,
-                    // waitpid() in signal handler always handles first;
-                    // on Linux, waitpid() in wait_process() handles first.
-                    // for example, normal commands like `echo hi | wc`,
-                    // on Mac both zombies are reaped by signal handler, and
-                    // the waitpid() in wait_process() here got interrupt;
-                    // while on Linux, they are reaped by wait_process(),
-                    // the signal handler won't be called.
-                    if let Some(status) = signals::pop_reap_map(pid) {
-                        // log!("jobc EINTR pid:{} got status:{}", pid, status);
-                        cleanup_process_groups(sh, gid, pid, "Done");
-                        return status;
-                    } else {
-                        // one example: `sleep 2 | sleep 1 | exit 3`
-                        // log!("jobc pid {} not yet terminated, re-wait", pid);
-                        return wait_process(sh, gid, pid, stop);
-                    }
-                }
-
-                log!("waitpid error 1: errno: {:?}", errno);
+                // log!("no reap info found for ECHILD: status --> 1 pid:{}", pid);
                 return 1;
             }
+            nix::Error::EINTR => {
+                // log!("jobc wait_process got EINTR: {}", pid);
+
+                // since we have installed a signal handler for SIGCHLD,
+                // it will always interrupt the waitpid() here, thus
+                // the exit status will be lost. we have to fetch the info
+                // from the signal::pop_reap_map().
+
+                // UPDATED: if we use SA_RESTART when calling sigaction(),
+                // this EINTR branch won't be reached, but we cannot
+                // assume all OS implementations follow this flag. Thus
+                // we still handle EINTR here.
+
+                // NOTE the OS implementation differences: on Mac,
+                // waitpid() in signal handler always handles first;
+                // on Linux, waitpid() in wait_process() handles first.
+                // for example, normal commands like `echo hi | wc`,
+                // on Mac both zombies are reaped by signal handler, and
+                // the waitpid() in wait_process() here got interrupt;
+                // while on Linux, they are reaped by wait_process(),
+                // the signal handler won't be called.
+                if let Some(status) = signals::pop_reap_map(pid) {
+                    // log!("jobc EINTR pid:{} got status:{}", pid, status);
+                    cleanup_process_groups(sh, gid, pid, "Done");
+                    return status;
+                } else {
+                    // one example: `sleep 2 | sleep 1 | exit 3`
+                    // log!("jobc pid {} not yet terminated, re-wait", pid);
+                    return wait_process(sh, gid, pid, stop);
+                }
+            }
             _ => {
-                log!("waitpid error 2: {:?}", e);
+                log!("jobc waitpid error: {:?}", e);
                 return 1;
             }
         }

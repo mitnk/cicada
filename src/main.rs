@@ -125,6 +125,10 @@ fn main() {
         }
 
         signals::unblock_signals();
+        // FIXME: in `rl.read_line()` below, there is lots of Rust code,
+        // which may not be async-signal-safe. see follow links for details:
+        // - https://ldpreload.com/blog/signalfd-is-useless
+        // - https://man7.org/linux/man-pages/man7/signal-safety.7.html
         match rl.read_line() {
             Ok(ReadResult::Input(line)) => {
                 signals::block_signals();

@@ -4,13 +4,9 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::os::unix::io::{FromRawFd, RawFd};
 use std::process;
-use std::time::Duration;
-use std::thread;
 
 use libc;
 use nix::unistd::{execve, ForkResult};
-use nix::errno::Errno;
-use nix::Error;
 
 use crate::builtins;
 use crate::calculator;
@@ -187,15 +183,19 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
         }
     }
 
-    let one_ms = Duration::from_millis(1);
     let mut count_waited = 0;
     let count_child = children.len();
     if let Some(pid_last) = children.last() {
         loop {
-            let ws = jobc::waitpid_nohang();
+            let ws = jobc::waitpid_all();
+            // here when we calling waitpid_all(), all signals should have
+            // been masked. There should no errors (ECHILD/EINTR etc) happen.
             if ws.is_error() {
-                log!("todo: waitpid error");
-                continue;
+                let err = ws.get_errno();
+                println_stderr!("unexpected waitpid error: {}", err);
+                log!("unexpected waitpid error: {}", err);
+                cmd_result = CommandResult::from_status(pgid, err as i32);
+                break;
             }
 
             let npid = ws.get_pid();
@@ -229,7 +229,6 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
                     break;
                 }
             }
-            thread::sleep(one_ms);
         }
     }
 
@@ -468,13 +467,13 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
             match execve(&c_program, &c_args, &c_envs) {
                 Ok(_) => {}
                 Err(e) => match e {
-                    Error::Sys(Errno::ENOEXEC) => {
+                    nix::Error::ENOEXEC => {
                         println_stderr!("cicada: {}: exec format error (ENOEXEC)", program);
                     }
-                    Error::Sys(Errno::ENOENT) => {
+                    nix::Error::ENOENT => {
                         println_stderr!("cicada: {}: file does not exist", program);
                     }
-                    Error::Sys(Errno::EACCES) => {
+                    nix::Error::EACCES => {
                         println_stderr!("cicada: {}: Permission denied", program);
                     }
                     _ => {

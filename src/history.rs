@@ -8,7 +8,6 @@ use linefeed::terminal::DefaultTerminal;
 use linefeed::Interface;
 use rusqlite::Connection as Conn;
 use rusqlite::Error::SqliteFailure;
-use rusqlite::NO_PARAMS;
 
 use crate::shell;
 use crate::tools::{self, clog};
@@ -70,7 +69,7 @@ fn init_db(hfile: &str, htable: &str) {
     ",
         htable
     );
-    match conn.execute(&sql, NO_PARAMS) {
+    match conn.execute(&sql, []) {
         Ok(_) => {}
         Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e),
     }
@@ -118,7 +117,7 @@ pub fn init(rl: &mut Interface<DefaultTerminal>) {
         }
     };
 
-    let rows = match stmt.query_map(NO_PARAMS, |row| row.get(0)) {
+    let rows = match stmt.query_map([], |row| row.get(0)) {
         Ok(x) => x,
         Err(e) => {
             println_stderr!("cicada: query select error: {:?}", e);
@@ -173,7 +172,7 @@ fn delete_duplicated_histories() {
         SELECT MAX(rowid) FROM {} GROUP BY inp)",
         history_table, history_table
     );
-    match conn.execute(&sql, NO_PARAMS) {
+    match conn.execute(&sql, []) {
         Ok(_) => {}
         Err(e) => match e {
             SqliteFailure(ee, msg) => {
@@ -224,7 +223,7 @@ pub fn add_raw(sh: &shell::Shell, line: &str, status: i32,
         sh.session_id,
         sh.current_dir,
     );
-    match conn.execute(&sql, NO_PARAMS) {
+    match conn.execute(&sql, []) {
         Ok(_) => {}
         Err(e) => println_stderr!("cicada: failed to save history: {:?}", e),
     }

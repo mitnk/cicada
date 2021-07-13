@@ -30,8 +30,8 @@ impl WaitStatus {
         WaitStatus(0, 9, 9)
     }
 
-    pub fn from_error() -> Self {
-        WaitStatus(0, 255, 127)
+    pub fn from_error(errno: i32) -> Self {
+        WaitStatus(0, 255, errno)
     }
 
     pub fn empty() -> Self {
@@ -40,6 +40,10 @@ impl WaitStatus {
 
     pub fn is_error(&self) -> bool {
         self.1 == 255
+    }
+
+    pub fn get_errno(&self) -> nix::Error {
+        nix::Error::from_i32(self.2)
     }
 
     pub fn is_exited(&self) -> bool {
