@@ -57,25 +57,34 @@ pub fn mark_job_as_running(sh: &mut shell::Shell, gid: i32, bg: bool) {
     sh.mark_job_as_running(gid, bg);
 }
 
+#[allow(unreachable_patterns)]
 pub fn waitpid_all() -> types::WaitStatus {
     let options = Some(WF::WUNTRACED | WF::WCONTINUED);
     match waitpid(Pid::from_raw(-1), options) {
-        Ok(WS::Exited(npid, status)) => {
-            let npid = i32::from(npid);
-            return types::WaitStatus::from_exited(npid, status);
+        Ok(WS::Exited(pid, status)) => {
+            let pid = i32::from(pid);
+            return types::WaitStatus::from_exited(pid, status);
         }
-        Ok(WS::Stopped(npid, sig)) => {
-            let npid = i32::from(npid);
-            return types::WaitStatus::from_stopped(npid, sig as i32);
+        Ok(WS::Stopped(pid, sig)) => {
+            let pid = i32::from(pid);
+            return types::WaitStatus::from_stopped(pid, sig as i32);
         }
-        Ok(WS::Signaled(npid, sig, _core_dumped)) => {
-            let npid = i32::from(npid);
-            return types::WaitStatus::from_signaled(npid, sig as i32);
+        Ok(WS::Continued(pid)) => {
+            // MacOS seems cannot got this branch for waitpid(-1)
+            // but signal handlers can.
+            let pid = i32::from(pid);
+            return types::WaitStatus::from_continuted(pid);
+        }
+        Ok(WS::Signaled(pid, sig, _core_dumped)) => {
+            let pid = i32::from(pid);
+            return types::WaitStatus::from_signaled(pid, sig as i32);
         }
         Ok(WS::StillAlive) => {
             return types::WaitStatus::empty();
         }
         Ok(_others) => {
+            // this is for PtraceEvent and PtraceSyscall on Linux,
+            // unreachable on other platforms.
             return types::WaitStatus::from_others();
         }
         Err(e) => {

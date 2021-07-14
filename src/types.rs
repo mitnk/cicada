@@ -26,6 +26,10 @@ impl WaitStatus {
         WaitStatus(pid, 2, sig)
     }
 
+    pub fn from_continuted(pid: i32) -> Self {
+        WaitStatus(pid, 3, 0)
+    }
+
     pub fn from_others() -> Self {
         WaitStatus(0, 9, 9)
     }
@@ -52,6 +56,10 @@ impl WaitStatus {
 
     pub fn is_stopped(&self) -> bool {
         self.1 == 2
+    }
+
+    pub fn is_continued(&self) -> bool {
+        self.1 == 3
     }
 
     pub fn get_pid(&self) -> i32 {

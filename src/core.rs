@@ -138,7 +138,7 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
     }
 
     let mut pgid: i32 = 0;
-    let mut children: Vec<i32> = Vec::new();
+    let mut fg_pids: Vec<i32> = Vec::new();
 
     let isatty = if tty { unsafe { libc::isatty(1) == 1 } } else { false };
     let options = CommandOptions {
@@ -170,7 +170,7 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
         );
 
         if child_id > 0 && !cl.background && !capture {
-            children.push(child_id);
+            fg_pids.push(child_id);
         }
     }
 
@@ -185,8 +185,8 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
     }
 
     let mut count_waited = 0;
-    let count_child = children.len();
-    if let Some(pid_last) = children.last() {
+    let count_child = fg_pids.len();
+    if let Some(pid_last) = fg_pids.last() {
         loop {
             let ws = jobc::waitpid_all();
             // here when we calling waitpid_all(), all signals should have
@@ -201,7 +201,7 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
             let npid = ws.get_pid();
             log!("pid:{} core ws: {:?}", npid, ws);
 
-            let is_a_fg_child = children.contains(&npid);
+            let is_a_fg_child = fg_pids.contains(&npid);
             if is_a_fg_child {
                 count_waited += 1;
             }
@@ -217,6 +217,9 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
                     jobc::mark_job_member_stopped(sh, npid, 0);
                     log!("core bg stop pid: {}", npid);
                 }
+            } else if ws.is_continued() {
+                log!("pid {} got continued", npid);
+                continue;
             } else {
                 jobc::cleanup_process_groups(sh, pgid, npid, "Done");
             }
