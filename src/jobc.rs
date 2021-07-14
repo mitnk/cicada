@@ -70,8 +70,6 @@ pub fn waitpid_all() -> types::WaitStatus {
             return types::WaitStatus::from_stopped(pid, sig as i32);
         }
         Ok(WS::Continued(pid)) => {
-            // MacOS seems cannot got this branch for waitpid(-1)
-            // but signal handlers can.
             let pid = i32::from(pid);
             return types::WaitStatus::from_continuted(pid);
         }

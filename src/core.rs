@@ -209,8 +209,11 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
             if ws.is_stopped() {
                 if is_a_fg_child {
                     // for stop signal of fg job (current job)
+                    // i.e. Ctrl-Z is pressed on the fg job
+                    if count_waited == count_child {
+                        println!("");
+                    }
                     jobc::mark_job_member_stopped(sh, npid, pgid);
-                    log!("core fg stop pid: {}", npid);
                 } else {
                     // for stop signal of bg jobs
                     signals::insert_stopped_map(npid);
