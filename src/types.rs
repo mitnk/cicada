@@ -1,5 +1,5 @@
 use regex::Regex;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::parsers;
 use crate::parsers::parser_line::tokens_to_redirections;
@@ -178,8 +178,20 @@ pub struct Job {
     pub id: i32,
     pub gid: i32,
     pub pids: Vec<i32>,
+    pub pids_stopped: HashSet<i32>,
     pub status: String,
-    pub report: bool,
+    pub is_bg: bool,
+}
+
+impl Job {
+    pub fn all_members_stopped(&self) -> bool {
+        for pid in &self.pids {
+            if !self.pids_stopped.contains(&pid) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
 
 #[derive(Clone, Debug, Default)]

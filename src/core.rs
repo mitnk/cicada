@@ -14,6 +14,7 @@ use crate::jobc;
 use crate::libs;
 use crate::parsers;
 use crate::scripting;
+use crate::signals;
 use crate::shell::{self, Shell};
 use crate::tools::{self, clog};
 use crate::types::{CommandLine, CommandOptions, CommandResult};
@@ -168,7 +169,7 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
             &fds_capture_stderr,
         );
 
-        if child_id > 0 && !cl.background {
+        if child_id > 0 && !cl.background && !capture {
             children.push(child_id);
         }
     }
@@ -192,42 +193,45 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
             // been masked. There should no errors (ECHILD/EINTR etc) happen.
             if ws.is_error() {
                 let err = ws.get_errno();
-                println_stderr!("unexpected waitpid error: {}", err);
                 log!("unexpected waitpid error: {}", err);
                 cmd_result = CommandResult::from_status(pgid, err as i32);
                 break;
             }
 
             let npid = ws.get_pid();
+            log!("pid:{} core ws: {:?}", npid, ws);
+
+            let is_a_fg_child = children.contains(&npid);
+            if is_a_fg_child {
+                count_waited += 1;
+            }
+
             if ws.is_stopped() {
-                unsafe {
-                    let _gid = libc::getpgid(npid);
-                    if _gid == pgid {
-                        let status = ws.get_status();
-                        jobc::mark_job_as_stopped(sh, pgid);
-                        cmd_result = CommandResult::from_status(pgid, status);
-                        break;
-                    } else {
-                        sh.mark_job_as_stopped(_gid);
-                    }
+                if is_a_fg_child {
+                    // for stop signal of fg job (current job)
+                    jobc::mark_job_member_stopped(sh, npid, pgid);
+                    log!("core fg stop pid: {}", npid);
+                } else {
+                    // for stop signal of bg jobs
+                    signals::insert_stopped_map(npid);
+                    jobc::mark_job_member_stopped(sh, npid, 0);
+                    log!("core bg stop pid: {}", npid);
+                }
+            } else {
+                jobc::cleanup_process_groups(sh, pgid, npid, "Done");
+            }
+
+            if is_a_fg_child && npid == *pid_last {
+                let status = ws.get_status();
+                if capture {
+                    cmd_result.status = status;
+                } else {
+                    cmd_result = CommandResult::from_status(pgid, status);
                 }
             }
 
-            if children.contains(&npid) {
-                jobc::cleanup_process_groups(sh, pgid, npid, "Done");
-
-                count_waited += 1;
-                if npid == *pid_last {
-                    let status = ws.get_status();
-                    if capture {
-                        cmd_result.status = status;
-                    } else {
-                        cmd_result = CommandResult::from_status(pgid, status);
-                    }
-                }
-                if count_waited >= count_child {
-                    break;
-                }
+            if count_waited >= count_child {
+                break;
             }
         }
     }

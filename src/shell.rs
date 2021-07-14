@@ -1,6 +1,6 @@
 use errno::errno;
 use libc;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::io::Write;
 use std::mem;
@@ -59,26 +59,24 @@ impl Shell {
             if let Some(x) = self.jobs.get_mut(&i) {
                 if x.gid == gid {
                     x.pids.push(pid);
+                    x.cmd = format!("{} | {}", x.cmd, cmd);
                     return;
                 }
             } else {
                 indexed_job_missing = true;
             }
 
-            let mut _cmd = cmd.to_string();
-            if bg && !_cmd.ends_with('&') {
-                _cmd.push_str(" &");
-            }
             if indexed_job_missing {
                 self.jobs.insert(
                     i,
                     types::Job {
-                        cmd: _cmd.to_string(),
+                        cmd: cmd.to_string(),
                         id: i,
                         gid: gid,
                         pids: vec![pid],
+                        pids_stopped: HashSet::new(),
                         status: status.to_string(),
-                        report: bg,
+                        is_bg: bg,
                     },
                 );
                 return;
@@ -89,6 +87,32 @@ impl Shell {
 
     pub fn get_job_by_id(&self, job_id: i32) -> Option<&types::Job> {
         self.jobs.get(&job_id)
+    }
+
+    pub fn mark_job_member_stopped(&mut self, pid: i32,
+                                   gid: i32) -> Option<&types::Job> {
+        if self.jobs.is_empty() {
+            return None;
+        }
+        let mut i = 1;
+        let mut idx_found = 0;
+        loop {
+            if let Some(job) = self.jobs.get_mut(&i) {
+                if job.gid == gid {
+                    job.pids_stopped.insert(pid);
+                    idx_found = i;
+                    break;
+                }
+            }
+
+
+            i += 1;
+            if i >= 65535 {
+                break;
+            }
+        }
+
+        self.jobs.get(&idx_found)
     }
 
     pub fn get_job_by_gid(&self, gid: i32) -> Option<&types::Job> {
@@ -119,12 +143,11 @@ impl Shell {
 
         let mut i = 1;
         loop {
-            if let Some(x) = self.jobs.get_mut(&i) {
-                if x.gid == gid {
-                    x.status = "Running".to_string();
-                    x.report = bg;
-                    if bg && !x.cmd.ends_with(" &") {
-                        x.cmd = format!("{} &", x.cmd);
+            if let Some(job) = self.jobs.get_mut(&i) {
+                if job.gid == gid {
+                    job.status = "Running".to_string();
+                    if bg {
+                        job.is_bg = bg;
                     }
                     return;
                 }
@@ -147,6 +170,7 @@ impl Shell {
             if let Some(x) = self.jobs.get_mut(&i) {
                 if x.gid == gid {
                     x.status = "Stopped".to_string();
+                    x.is_bg = false;
                     return;
                 }
             }

@@ -17,19 +17,18 @@ pub fn print_job(job: &types::Job) {
         cmd.truncate(50);
         cmd.push_str(" ...");
     }
-    let _cmd;
-    if job.status != "Running" {
-        _cmd = cmd.trim_matches('&').trim();
+    let _cmd = if job.is_bg && job.status == "Running" {
+        format!("{} &", job.cmd)
     } else {
-        _cmd = cmd.as_str();
-    }
+        job.cmd.clone()
+    };
     println_stderr!("[{}] {}  {}    {}", job.id, job.gid, job.status, _cmd);
 }
 
 pub fn cleanup_process_groups(sh: &mut shell::Shell, gid: i32, pid: i32, reason: &str) {
     if let Some(mut job) = sh.remove_pid_from_job(gid, pid) {
         job.status = reason.to_string();
-        if job.report {
+        if job.is_bg {
             print_job(&job);
         }
     }
@@ -39,6 +38,18 @@ pub fn mark_job_as_stopped(sh: &mut shell::Shell, gid: i32) {
     sh.mark_job_as_stopped(gid);
     if let Some(job) = sh.get_job_by_gid(gid) {
         print_job(job);
+    }
+}
+
+pub fn mark_job_member_stopped(sh: &mut shell::Shell, pid: i32, gid: i32) {
+    let _gid = if gid == 0 {
+        unsafe { libc::getpgid(pid) }
+    } else { gid };
+
+    if let Some(job) = sh.mark_job_member_stopped(pid, gid) {
+        if job.all_members_stopped() {
+            mark_job_as_stopped(sh, gid);
+        }
     }
 }
 
@@ -74,6 +85,7 @@ pub fn waitpid_all() -> types::WaitStatus {
 }
 
 pub fn wait_process(sh: &mut shell::Shell, gid: i32, pid: i32, stop: bool) -> i32 {
+    log!("jobc enter wait_process pid: {}", pid);
     let flags = if stop {
         Some(WF::WUNTRACED)
     } else {
@@ -175,6 +187,11 @@ pub fn try_wait_bg_jobs(sh: &mut shell::Shell) {
     for (_i, job) in jobs.iter() {
         for pid in job.pids.iter() {
             wait_process(sh, job.gid, *pid, false);
+            if signals::pop_stopped_map(*pid) {
+                mark_job_member_stopped(sh, *pid, job.gid);
+            } else if signals::pop_cont_map(*pid) {
+                mark_job_as_running(sh, job.gid, true);
+            }
         }
     }
 }

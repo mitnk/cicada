@@ -61,6 +61,7 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
             Some(job) => {
                 let _cmd = job.cmd.trim_matches('&').trim();
                 print_stderr_with_capture(&_cmd, &mut cr, cl, cmd, capture);
+                cr.status = 0;
 
                 unsafe {
                     if !shell::give_terminal_to(job.gid) {
