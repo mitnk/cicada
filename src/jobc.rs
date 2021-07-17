@@ -142,7 +142,6 @@ pub fn wait_fg_job(sh: &mut shell:: Shell, gid: i32,
         }
 
         let pid = ws.get_pid();
-
         let is_a_fg_child = pids.contains(&pid);
         if is_a_fg_child && !ws.is_continued() {
             count_waited += 1;
@@ -190,11 +189,6 @@ pub fn wait_fg_job(sh: &mut shell:: Shell, gid: i32,
         }
 
         if count_waited >= count_child {
-            // print an extra line, so that `^C` `^\` etc take a whole line.
-            if ws.is_signaled() {
-                println_stderr!("");
-            }
-
             break;
         }
     }

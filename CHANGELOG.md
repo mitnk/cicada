@@ -1,9 +1,10 @@
 # Change Logs
 
-## 0.9.20 - master
+## 0.9.20 - 2021-07-17
 
 - Fixed a fd leaking issue.
-- Reap child processes in a timely manner.
+- Established signal handler for SIGCHLD.
+- Fixed some issues in job control.
 
 ## 0.9.19 - 2021-05-23
 
