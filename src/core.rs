@@ -67,8 +67,8 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
         let cr = builtins::history::run(sh, cl, cmd, capture);
         return Some(cr);
     } else if cname == "jobs" {
-        let status = builtins::jobs::run(sh);
-        return Some(CommandResult::from_status(0, status));
+        let cr = builtins::jobs::run(sh, cl, cmd, capture);
+        return Some(cr);
     } else if cname == "minfd" {
         let cr = builtins::minfd::run(sh, cl, cmd, capture);
         return Some(cr);
@@ -137,7 +137,7 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
     }
 
     let mut pgid: i32 = 0;
-    let mut children: Vec<i32> = Vec::new();
+    let mut fg_pids: Vec<i32> = Vec::new();
 
     let isatty = if tty { unsafe { libc::isatty(1) == 1 } } else { false };
     let options = CommandOptions {
@@ -168,8 +168,8 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
             &fds_capture_stderr,
         );
 
-        if child_id > 0 && !cl.background {
-            children.push(child_id);
+        if child_id > 0 && !cl.background && !capture {
+            fg_pids.push(child_id);
         }
     }
 
@@ -183,55 +183,9 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
         }
     }
 
-    let mut count_waited = 0;
-    let count_child = children.len();
-    if let Some(pid_last) = children.last() {
-        loop {
-            let ws = jobc::waitpid_all();
-            // here when we calling waitpid_all(), all signals should have
-            // been masked. There should no errors (ECHILD/EINTR etc) happen.
-            if ws.is_error() {
-                let err = ws.get_errno();
-                println_stderr!("unexpected waitpid error: {}", err);
-                log!("unexpected waitpid error: {}", err);
-                cmd_result = CommandResult::from_status(pgid, err as i32);
-                break;
-            }
-
-            let npid = ws.get_pid();
-            if ws.is_stopped() {
-                unsafe {
-                    let _gid = libc::getpgid(npid);
-                    if _gid == pgid {
-                        let status = ws.get_status();
-                        jobc::mark_job_as_stopped(sh, pgid);
-                        cmd_result = CommandResult::from_status(pgid, status);
-                        break;
-                    } else {
-                        sh.mark_job_as_stopped(_gid);
-                    }
-                }
-            }
-
-            if children.contains(&npid) {
-                jobc::cleanup_process_groups(sh, pgid, npid, "Done");
-
-                count_waited += 1;
-                if npid == *pid_last {
-                    let status = ws.get_status();
-                    if capture {
-                        cmd_result.status = status;
-                    } else {
-                        cmd_result = CommandResult::from_status(pgid, status);
-                    }
-                }
-                if count_waited >= count_child {
-                    break;
-                }
-            }
-        }
+    if !fg_pids.is_empty() {
+        cmd_result = jobc::wait_fg_job(sh, pgid, &fg_pids, capture);
     }
-
     (term_given, cmd_result)
 }
 

@@ -1,5 +1,6 @@
 use regex::Regex;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::fmt;
 
 use crate::parsers;
 use crate::parsers::parser_line::tokens_to_redirections;
@@ -7,10 +8,7 @@ use crate::shell;
 use crate::libs;
 use crate::tools;
 
-// waitpid status
-pub const WS_STOPPED: i32 = 145;
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct WaitStatus(i32, i32, i32);
 
 impl WaitStatus {
@@ -24,6 +22,10 @@ impl WaitStatus {
 
     pub fn from_stopped(pid: i32, sig: i32) -> Self {
         WaitStatus(pid, 2, sig)
+    }
+
+    pub fn from_continuted(pid: i32) -> Self {
+        WaitStatus(pid, 3, 0)
     }
 
     pub fn from_others() -> Self {
@@ -42,6 +44,14 @@ impl WaitStatus {
         self.1 == 255
     }
 
+    pub fn is_others(&self) -> bool {
+        self.1 == 9
+    }
+
+    pub fn is_signaled(&self) -> bool {
+        self.1 == 1
+    }
+
     pub fn get_errno(&self) -> nix::Error {
         nix::Error::from_i32(self.2)
     }
@@ -54,20 +64,57 @@ impl WaitStatus {
         self.1 == 2
     }
 
+    pub fn is_continued(&self) -> bool {
+        self.1 == 3
+    }
+
     pub fn get_pid(&self) -> i32 {
         self.0
     }
 
-    pub fn get_signaled_status(&self) -> i32 {
+    fn _get_signaled_status(&self) -> i32 {
         self.2 + 128
+    }
+
+    pub fn get_signal(&self) -> i32 {
+        self.2
+    }
+
+    pub fn get_name(&self) -> String {
+        if self.is_exited() {
+            "Exited".to_string()
+        } else if self.is_stopped() {
+            "Stopped".to_string()
+        } else if self.is_continued() {
+            "Continued".to_string()
+        } else if self.is_signaled() {
+            "Signaled".to_string()
+        } else if self.is_others() {
+            "Others".to_string()
+        } else if self.is_error() {
+            "Error".to_string()
+        } else {
+            format!("unknown: {}", self.2)
+        }
     }
 
     pub fn get_status(&self) -> i32 {
         if self.is_exited() {
             self.2
         } else {
-            self.get_signaled_status()
+            self._get_signaled_status()
         }
+    }
+}
+
+impl fmt::Debug for WaitStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut formatter = f.debug_struct("WaitStatus");
+        formatter.field("pid", &self.0);
+        let name = self.get_name();
+        formatter.field("name", &name);
+        formatter.field("ext", &self.2);
+        formatter.finish()
     }
 }
 
@@ -178,8 +225,24 @@ pub struct Job {
     pub id: i32,
     pub gid: i32,
     pub pids: Vec<i32>,
+    pub pids_stopped: HashSet<i32>,
     pub status: String,
-    pub report: bool,
+    pub is_bg: bool,
+}
+
+impl Job {
+    pub fn all_members_stopped(&self) -> bool {
+        for pid in &self.pids {
+            if !self.pids_stopped.contains(&pid) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    pub fn all_members_running(&self) -> bool {
+        self.pids_stopped.is_empty()
+    }
 }
 
 #[derive(Clone, Debug, Default)]

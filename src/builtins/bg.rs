@@ -49,19 +49,12 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
     {
         let mut result = sh.get_job_by_id(job_id);
         // fall back to find job by using prcess group id
-        if let None = result {
+        if result.is_none() {
             result = sh.get_job_by_gid(job_id);
         }
 
         match result {
             Some(job) => {
-                let info_cmd = if job.cmd.ends_with(" &") {
-                    job.cmd.clone()
-                } else {
-                    format!("{} &", job.cmd)
-                };
-                print_stderr_with_capture(&info_cmd, &mut cr, cl, cmd, capture);
-
                 unsafe {
                     libc::killpg(job.gid, libc::SIGCONT);
                     gid = job.gid;
@@ -71,6 +64,10 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
                         return cr;
                     }
                 }
+
+                let info_cmd = format!("[{}]  {} &", job.id, job.cmd);
+                print_stderr_with_capture(&info_cmd, &mut cr, cl, cmd, capture);
+                cr.status = 0;
             }
             None => {
                 let info = "cicada: bg: not such job";
