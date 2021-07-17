@@ -181,11 +181,6 @@ pub fn wait_fg_job(sh: &mut shell:: Shell, gid: i32,
         }
 
         if is_a_fg_child && pid == pid_last {
-            // print an extra line, so that `^C` `^\` etc take a whole line.
-            if ws.is_signaled() {
-                println_stderr!("");
-            }
-
             let status = ws.get_status();
             if capture {
                 cmd_result.status = status;
@@ -195,6 +190,11 @@ pub fn wait_fg_job(sh: &mut shell:: Shell, gid: i32,
         }
 
         if count_waited >= count_child {
+            // print an extra line, so that `^C` `^\` etc take a whole line.
+            if ws.is_signaled() {
+                println_stderr!("");
+            }
+
             break;
         }
     }
