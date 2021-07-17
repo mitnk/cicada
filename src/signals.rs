@@ -93,7 +93,7 @@ extern fn handle_sigchld(_sig: i32) {
                 break;
             }
             Ok(_others) => {
-                log!("chld others: {:?}", _others);
+                // log!("chld others: {:?}", _others);
             }
             Err(e) => {
                 if e == nix::Error::ECHILD {

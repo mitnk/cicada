@@ -18,9 +18,9 @@ pub fn get_job_line(job: &types::Job, trim: bool) -> String {
         cmd.push_str(" ...");
     }
     let _cmd = if job.is_bg && job.status == "Running" {
-        format!("{} &", job.cmd)
+        format!("{} &", cmd)
     } else {
-        job.cmd.clone()
+        cmd
     };
     format!("[{}] {}  {}   {}", job.id, job.gid, job.status, _cmd)
 }
@@ -136,6 +136,10 @@ pub fn wait_fg_job(sh: &mut shell:: Shell, gid: i32,
         // been masked. There should no errors (ECHILD/EINTR etc) happen.
         if ws.is_error() {
             let err = ws.get_errno();
+            if err == nix::Error::ECHILD {
+                break;
+            }
+
             log!("unexpected waitpid error: {}", err);
             cmd_result = CommandResult::from_status(gid, err as i32);
             break;

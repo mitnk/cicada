@@ -15,8 +15,9 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
 
     let mut lines = Vec::new();
     let jobs = sh.jobs.clone();
+    let no_trim = cmd.tokens.len() >= 2 && cmd.tokens[1].1 == "-f";
     for (_i, job) in jobs.iter() {
-        let line = jobc::get_job_line(job, false);
+        let line = jobc::get_job_line(job, !no_trim);
         lines.push(line);
     }
     let buffer = lines.join("\n");

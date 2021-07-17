@@ -1,5 +1,9 @@
 # Change Logs
 
+## 0.9.21 - 2021-07-17
+
+- Fixed issues on exhausting opened files `ulimit -n`.
+
 ## 0.9.20 - 2021-07-17
 
 - Fixed a fd leaking issue.

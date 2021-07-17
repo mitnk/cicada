@@ -5,8 +5,9 @@ use std::io::{Read, Write};
 use std::os::unix::io::{FromRawFd, RawFd};
 use std::process;
 
+
 use libc;
-use nix::unistd::{execve, ForkResult};
+use nix::unistd::{ForkResult, execve, pipe};
 
 use crate::builtins;
 use crate::calculator;
@@ -122,14 +123,28 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
         println!("cicada: invalid command: cmds with empty length");
         return (false, CommandResult::error());
     }
+
     let mut pipes = Vec::new();
+    let mut errored_pipes = false;
     for _ in 0..length - 1 {
-        if let Some(fds) = tools::create_fds() {
-            pipes.push(fds);
-        } else {
-            println_stderr!("create pipe error");
-            return (false, CommandResult::error());
+        match pipe() {
+            Ok(fds) => pipes.push(fds),
+            Err(e) => {
+                errored_pipes = true;
+                println_stderr!("cicada: pipeline: {}", e);
+                break;
+            }
         }
+    }
+    if errored_pipes {
+        // release fds that already created when errors occurred
+        unsafe {
+            for fds in pipes {
+                libc::close(fds.0);
+                libc::close(fds.1);
+            }
+        }
+        return (false, CommandResult::error());
     }
     if pipes.len() + 1 != length {
         println!("cicada: invalid command: unmatched pipes count");
@@ -149,11 +164,31 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
 
     let mut cmd_result = CommandResult::new();
 
-    let (fds_capture_stdout, fds_capture_stderr) = if capture {
-        (tools::create_fds(), tools::create_fds())
-    } else {
-        (None, None)
-    };
+    let mut fds_capture_stdout = None;
+    let mut fds_capture_stderr = None;
+    if capture {
+        match pipe() {
+            Ok(fds) => fds_capture_stdout = Some(fds),
+            Err(e) => {
+                println_stderr!("cicada: pipeline: {}", e);
+                return (false, CommandResult::error());
+            }
+        }
+        match pipe() {
+            Ok(fds) => fds_capture_stderr = Some(fds),
+            Err(e) => {
+                if let Some(fds) = fds_capture_stdout {
+                    unsafe {
+                        libc::close(fds.0);
+                        libc::close(fds.1);
+                    }
+                }
+                println_stderr!("cicada: pipeline: {}", e);
+                return (false, CommandResult::error());
+            }
+        }
+    }
+
     for i in 0..length {
         let child_id: i32 = _run_single_command(
             sh,
@@ -213,7 +248,13 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
     let mut fds_stdin = None;
     let cmd = cl.commands.get(idx_cmd).unwrap();
     if cmd.has_here_string() {
-        fds_stdin = tools::create_fds();
+        match pipe() {
+            Ok(fds) => fds_stdin = Some(fds),
+            Err(e) => {
+                println_stderr!("cicada: pipeline: {}", e);
+                return 1;
+            }
+        }
     }
 
     match libs::fork::fork() {
