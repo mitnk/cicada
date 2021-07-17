@@ -65,7 +65,7 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
                     }
                 }
 
-                let info_cmd = format!("{} &", job.cmd);
+                let info_cmd = format!("[{}]  {} &", job.id, job.cmd);
                 print_stderr_with_capture(&info_cmd, &mut cr, cl, cmd, capture);
                 cr.status = 0;
             }

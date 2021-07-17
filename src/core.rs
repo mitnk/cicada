@@ -14,7 +14,6 @@ use crate::jobc;
 use crate::libs;
 use crate::parsers;
 use crate::scripting;
-use crate::signals;
 use crate::shell::{self, Shell};
 use crate::tools::{self, clog};
 use crate::types::{CommandLine, CommandOptions, CommandResult};
@@ -68,8 +67,8 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
         let cr = builtins::history::run(sh, cl, cmd, capture);
         return Some(cr);
     } else if cname == "jobs" {
-        let status = builtins::jobs::run(sh);
-        return Some(CommandResult::from_status(0, status));
+        let cr = builtins::jobs::run(sh, cl, cmd, capture);
+        return Some(cr);
     } else if cname == "minfd" {
         let cr = builtins::minfd::run(sh, cl, cmd, capture);
         return Some(cr);
@@ -184,64 +183,9 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
         }
     }
 
-    let mut count_waited = 0;
-    let count_child = fg_pids.len();
-    if let Some(pid_last) = fg_pids.last() {
-        loop {
-            let ws = jobc::waitpid_all();
-            // here when we calling waitpid_all(), all signals should have
-            // been masked. There should no errors (ECHILD/EINTR etc) happen.
-            if ws.is_error() {
-                let err = ws.get_errno();
-                log!("unexpected waitpid error: {}", err);
-                cmd_result = CommandResult::from_status(pgid, err as i32);
-                break;
-            }
-
-            let npid = ws.get_pid();
-            log!("pid:{} core ws: {:?}", npid, ws);
-
-            let is_a_fg_child = fg_pids.contains(&npid);
-            if is_a_fg_child {
-                count_waited += 1;
-            }
-
-            if ws.is_stopped() {
-                if is_a_fg_child {
-                    // for stop signal of fg job (current job)
-                    // i.e. Ctrl-Z is pressed on the fg job
-                    if count_waited == count_child {
-                        println!("");
-                    }
-                    jobc::mark_job_member_stopped(sh, npid, pgid);
-                } else {
-                    // for stop signal of bg jobs
-                    signals::insert_stopped_map(npid);
-                    jobc::mark_job_member_stopped(sh, npid, 0);
-                    log!("core bg stop pid: {}", npid);
-                }
-            } else if ws.is_continued() {
-                log!("pid {} got continued", npid);
-                continue;
-            } else {
-                jobc::cleanup_process_groups(sh, pgid, npid, "Done");
-            }
-
-            if is_a_fg_child && npid == *pid_last {
-                let status = ws.get_status();
-                if capture {
-                    cmd_result.status = status;
-                } else {
-                    cmd_result = CommandResult::from_status(pgid, status);
-                }
-            }
-
-            if count_waited >= count_child {
-                break;
-            }
-        }
+    if !fg_pids.is_empty() {
+        cmd_result = jobc::wait_fg_job(sh, pgid, &fg_pids, capture);
     }
-
     (term_given, cmd_result)
 }
 

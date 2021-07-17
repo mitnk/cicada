@@ -4,7 +4,7 @@ use crate::builtins::utils::print_stderr_with_capture;
 use crate::jobc;
 use crate::shell::{self, Shell};
 use crate::tools::clog;
-use crate::types::{self, CommandResult, CommandLine, Command};
+use crate::types::{CommandResult, CommandLine, Command};
 
 pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
            capture: bool) -> CommandResult {
@@ -59,8 +59,7 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
 
         match result {
             Some(job) => {
-                let _cmd = job.cmd.trim_matches('&').trim();
-                print_stderr_with_capture(&_cmd, &mut cr, cl, cmd, capture);
+                print_stderr_with_capture(&job.cmd, &mut cr, cl, cmd, capture);
                 cr.status = 0;
 
                 unsafe {
@@ -84,19 +83,13 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
     unsafe {
         jobc::mark_job_as_running(sh, gid, false);
 
-        let mut status = 0;
-        for pid in pid_list.iter() {
-            status = jobc::wait_process(sh, gid, *pid, true);
-        }
-
-        if status == types::WS_STOPPED {
-            jobc::mark_job_as_stopped(sh, gid);
-        }
+        let cr = jobc::wait_fg_job(sh, gid, &pid_list, false);
 
         let gid_shell = libc::getpgid(0);
         if !shell::give_terminal_to(gid_shell) {
             log!("failed to give term to back to shell : {}", gid_shell);
         }
-        return CommandResult::from_status(0, status);
+
+        return cr;
     }
 }

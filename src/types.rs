@@ -1,5 +1,6 @@
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 
 use crate::parsers;
 use crate::parsers::parser_line::tokens_to_redirections;
@@ -7,10 +8,7 @@ use crate::shell;
 use crate::libs;
 use crate::tools;
 
-// waitpid status
-pub const WS_STOPPED: i32 = 145;
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct WaitStatus(i32, i32, i32);
 
 impl WaitStatus {
@@ -46,6 +44,14 @@ impl WaitStatus {
         self.1 == 255
     }
 
+    pub fn is_others(&self) -> bool {
+        self.1 == 9
+    }
+
+    pub fn is_signaled(&self) -> bool {
+        self.1 == 1
+    }
+
     pub fn get_errno(&self) -> nix::Error {
         nix::Error::from_i32(self.2)
     }
@@ -66,16 +72,49 @@ impl WaitStatus {
         self.0
     }
 
-    pub fn get_signaled_status(&self) -> i32 {
+    fn _get_signaled_status(&self) -> i32 {
         self.2 + 128
+    }
+
+    pub fn get_signal(&self) -> i32 {
+        self.2
+    }
+
+    pub fn get_name(&self) -> String {
+        if self.is_exited() {
+            "Exited".to_string()
+        } else if self.is_stopped() {
+            "Stopped".to_string()
+        } else if self.is_continued() {
+            "Continued".to_string()
+        } else if self.is_signaled() {
+            "Signaled".to_string()
+        } else if self.is_others() {
+            "Others".to_string()
+        } else if self.is_error() {
+            "Error".to_string()
+        } else {
+            format!("unknown: {}", self.2)
+        }
     }
 
     pub fn get_status(&self) -> i32 {
         if self.is_exited() {
             self.2
         } else {
-            self.get_signaled_status()
+            self._get_signaled_status()
         }
+    }
+}
+
+impl fmt::Debug for WaitStatus {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut formatter = f.debug_struct("WaitStatus");
+        formatter.field("pid", &self.0);
+        let name = self.get_name();
+        formatter.field("name", &name);
+        formatter.field("ext", &self.2);
+        formatter.finish()
     }
 }
 
@@ -199,6 +238,10 @@ impl Job {
             }
         }
         return true;
+    }
+
+    pub fn all_members_running(&self) -> bool {
+        self.pids_stopped.is_empty()
     }
 }
 

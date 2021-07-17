@@ -35,10 +35,14 @@ macro_rules! println_stderr {
 pub fn clog(s: &str) {
     let file;
     if let Ok(x) = env::var("CICADA_LOG_FILE") {
+        if x.is_empty() {
+            return;
+        }
         file = x;
     } else {
         return;
     }
+
     let mut cfile;
     match OpenOptions::new().append(true).create(true).open(&file) {
         Ok(x) => cfile = x,

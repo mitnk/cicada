@@ -89,6 +89,32 @@ impl Shell {
         self.jobs.get(&job_id)
     }
 
+    pub fn mark_job_member_continued(&mut self, pid: i32,
+                                     gid: i32) -> Option<&types::Job> {
+        if self.jobs.is_empty() {
+            return None;
+        }
+        let mut i = 1;
+        let mut idx_found = 0;
+        loop {
+            if let Some(job) = self.jobs.get_mut(&i) {
+                if job.gid == gid {
+                    job.pids_stopped.remove(&pid);
+                    idx_found = i;
+                    break;
+                }
+            }
+
+
+            i += 1;
+            if i >= 65535 {
+                break;
+            }
+        }
+
+        self.jobs.get(&idx_found)
+    }
+
     pub fn mark_job_member_stopped(&mut self, pid: i32,
                                    gid: i32) -> Option<&types::Job> {
         if self.jobs.is_empty() {
@@ -146,9 +172,7 @@ impl Shell {
             if let Some(job) = self.jobs.get_mut(&i) {
                 if job.gid == gid {
                     job.status = "Running".to_string();
-                    if bg {
-                        job.is_bg = bg;
-                    }
+                    job.is_bg = bg;
                     return;
                 }
             }
@@ -170,7 +194,7 @@ impl Shell {
             if let Some(x) = self.jobs.get_mut(&i) {
                 if x.gid == gid {
                     x.status = "Stopped".to_string();
-                    x.is_bg = false;
+                    x.is_bg = true;
                     return;
                 }
             }

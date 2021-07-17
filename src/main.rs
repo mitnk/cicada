@@ -133,9 +133,8 @@ fn main() {
             Ok(ReadResult::Input(line)) => {
                 signals::block_signals();
 
-                jobc::try_wait_bg_jobs(&mut sh);
-
                 if line.trim() == "" {
+                    jobc::try_wait_bg_jobs(&mut sh, true);
                     continue;
                 }
                 sh.cmd = line.clone();
@@ -167,6 +166,7 @@ fn main() {
                         sh: Arc::new(sh.clone()),
                     }));
                 }
+                jobc::try_wait_bg_jobs(&mut sh, true);
                 continue;
             }
             Ok(ReadResult::Eof) => {
