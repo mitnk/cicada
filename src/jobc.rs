@@ -72,9 +72,7 @@ pub fn mark_job_member_continued(sh: &mut shell::Shell, pid: i32, gid: i32) {
     } else { gid };
 
     if let Some(job) = sh.mark_job_member_continued(pid, gid) {
-        log!("made pid continued: {}", pid);
         if job.all_members_running() {
-            log!("all member's running, making gid running");
             mark_job_as_running(sh, gid, true);
         }
     }
@@ -144,10 +142,9 @@ pub fn wait_fg_job(sh: &mut shell:: Shell, gid: i32,
         }
 
         let pid = ws.get_pid();
-        log!("wait_fg_job: {:?}", ws);
 
         let is_a_fg_child = pids.contains(&pid);
-        if is_a_fg_child {
+        if is_a_fg_child && !ws.is_continued() {
             count_waited += 1;
         }
 
@@ -167,10 +164,8 @@ pub fn wait_fg_job(sh: &mut shell:: Shell, gid: i32,
                 // for stop signal of bg jobs
                 signals::insert_stopped_map(pid);
                 mark_job_member_stopped(sh, pid, 0, false);
-                log!("core bg stop pid: {}", pid);
             }
         } else if ws.is_continued() {
-            log!("pid {} got continued", pid);
             if !is_a_fg_child {
                 signals::insert_cont_map(pid);
             }
@@ -214,10 +209,7 @@ pub fn try_wait_bg_jobs(sh: &mut shell::Shell, report: bool) {
     let jobs = sh.jobs.clone();
     for (_i, job) in jobs.iter() {
         for pid in job.pids.iter() {
-            log!("jobc try wait: {}", pid);
-
             if let Some(_status) = signals::pop_reap_map(*pid) {
-                log!("jobc {} reaped {}", pid, _status);
                 mark_job_as_done(sh, job.gid, *pid, "Done");
                 continue;
             }
@@ -234,7 +226,6 @@ pub fn try_wait_bg_jobs(sh: &mut shell::Shell, report: bool) {
                 } else {
                     format!("Killed: {}", sig)
                 };
-                log!("jobc {} killed {}", pid, &reason);
                 mark_job_as_done(sh, job.gid, *pid, &reason);
                 continue;
             }

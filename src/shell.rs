@@ -172,6 +172,7 @@ impl Shell {
             if let Some(job) = self.jobs.get_mut(&i) {
                 if job.gid == gid {
                     job.status = "Running".to_string();
+                    job.pids_stopped.clear();
                     job.is_bg = bg;
                     return;
                 }
