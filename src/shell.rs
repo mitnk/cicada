@@ -790,6 +790,7 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
             let cmd_result;
             match CommandLine::from_line(&cmd, sh) {
                 Ok(c) => {
+                    log!("run subcmd dollar: {:?}", &cmd);
                     let (term_given, _cr) = core::run_pipeline(sh, &c, false, true, false);
                     if term_given {
                         unsafe {
@@ -836,7 +837,7 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
     for (sep, token) in tokens.iter() {
         let new_token: String;
         if sep == "`" {
-            log!("run subcmd 2: {:?}", token);
+            log!("run subcmd dot1: {:?}", token);
             let cr;
             match CommandLine::from_line(&token, sh) {
                 Ok(c) => {
@@ -884,7 +885,7 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
                 for cap in re.captures_iter(&_token) {
                     _head = cap[1].to_string();
                     _tail = cap[3].to_string();
-                    log!("run subcmd 3: {:?}", &cap[2]);
+                    log!("run subcmd dot2: {:?}", &cap[2]);
 
                     let cr;
                     match CommandLine::from_line(&cap[2], sh) {

@@ -162,8 +162,6 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
         envs: cl.envs.clone(),
     };
 
-    let mut cmd_result = CommandResult::new();
-
     let mut fds_capture_stdout = None;
     let mut fds_capture_stderr = None;
     if capture {
@@ -189,6 +187,7 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
         }
     }
 
+    let mut cmd_result = CommandResult::new();
     for i in 0..length {
         let child_id: i32 = _run_single_command(
             sh,
@@ -203,7 +202,7 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
             &fds_capture_stderr,
         );
 
-        if child_id > 0 && !cl.background && !capture {
+        if child_id > 0 && !cl.background {
             fg_pids.push(child_id);
         }
     }
@@ -219,7 +218,13 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
     }
 
     if !fg_pids.is_empty() {
-        cmd_result = jobc::wait_fg_job(sh, pgid, &fg_pids, capture);
+        let _cr = jobc::wait_fg_job(sh, pgid, &fg_pids);
+        // for capture commands, e.g. `echo foo` in `echo "hello $(echo foo)"
+        // the cmd_result is already built in loop calling _run_single_command()
+        // above.
+        if !capture {
+            cmd_result = _cr;
+        }
     }
     (term_given, cmd_result)
 }

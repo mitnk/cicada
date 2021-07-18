@@ -120,8 +120,7 @@ pub fn waitpidx(wpid: i32, block: bool) -> types::WaitStatus {
     }
 }
 
-pub fn wait_fg_job(sh: &mut shell:: Shell, gid: i32,
-                   pids: &[i32], capture: bool) -> CommandResult {
+pub fn wait_fg_job(sh: &mut shell:: Shell, gid: i32, pids: &[i32]) -> CommandResult {
     let mut cmd_result = CommandResult::new();
     let mut count_waited = 0;
     let count_child = pids.len();
@@ -185,11 +184,7 @@ pub fn wait_fg_job(sh: &mut shell:: Shell, gid: i32,
 
         if is_a_fg_child && pid == pid_last {
             let status = ws.get_status();
-            if capture {
-                cmd_result.status = status;
-            } else {
-                cmd_result = CommandResult::from_status(gid, status);
-            }
+            cmd_result.status = status;
         }
 
         if count_waited >= count_child {

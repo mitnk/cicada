@@ -1,5 +1,9 @@
 # Change Logs
 
+## 0.9.22 - master
+
+- Fixed an issue that captured commands does not got reaped.
+
 ## 0.9.21 - 2021-07-17
 
 - Fixed issues on exhausting opened files `ulimit -n`.
