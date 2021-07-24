@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::env;
 use std::fs::read_dir;
-use std::io::Write;
+use std::io::{ErrorKind, Write};
 use std::os::unix::fs::PermissionsExt;
 
 use regex::Regex;
@@ -51,32 +51,40 @@ pub fn find_file_in_path(filename: &str, exec: bool) -> String {
     }
     let vec_path: Vec<&str> = env_path.split(':').collect();
     for p in &vec_path {
-        if let Ok(list) = read_dir(p) {
-            for entry in list {
-                if let Ok(entry) = entry {
-                    if let Ok(name) = entry.file_name().into_string() {
-                        if name != filename {
-                            continue;
-                        }
+        match read_dir(p) {
+            Ok(list) => {
+                for entry in list {
+                    if let Ok(entry) = entry {
+                        if let Ok(name) = entry.file_name().into_string() {
+                            if name != filename {
+                                continue;
+                            }
 
-                        if exec {
-                            let _mode;
-                            match entry.metadata() {
-                                Ok(x) => _mode = x,
-                                Err(e) => {
-                                    println_stderr!("cicada: metadata error: {:?}", e);
+                            if exec {
+                                let _mode;
+                                match entry.metadata() {
+                                    Ok(x) => _mode = x,
+                                    Err(e) => {
+                                        println_stderr!("cicada: metadata error: {:?}", e);
+                                        continue;
+                                    }
+                                }
+                                let mode = _mode.permissions().mode();
+                                if mode & 0o111 == 0 {
+                                    // not binary
                                     continue;
                                 }
                             }
-                            let mode = _mode.permissions().mode();
-                            if mode & 0o111 == 0 {
-                                // not binary
-                                continue;
-                            }
-                        }
 
-                        return entry.path().to_string_lossy().to_string();
+                            return entry.path().to_string_lossy().to_string();
+                        }
                     }
+                }
+            }
+            Err(e) => {
+                if e.kind() != ErrorKind::NotFound {
+                    println_stderr!("cicada: fs read_dir error: {}", e);
+                    break;
                 }
             }
         }

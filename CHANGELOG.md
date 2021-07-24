@@ -1,8 +1,9 @@
 # Change Logs
 
-## 0.9.22 - master
+## 0.9.22 - 2021-07-24
 
 - Fixed an issue that captured commands does not got reaped.
+- Made cicada more stable from crashing.
 
 ## 0.9.21 - 2021-07-17
 

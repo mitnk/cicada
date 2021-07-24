@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::shell::Shell;
 use crate::builtins::utils::print_stdout_with_capture;
 use crate::types::{CommandResult, CommandLine, Command};
@@ -18,7 +20,7 @@ pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command,
             unsafe { libc::close(fd); }
         }
         Err(e) => {
-            println!("cicada: minfd: error: {}", e);
+            println_stderr!("cicada: minfd: error: {}", e);
         }
     }
 

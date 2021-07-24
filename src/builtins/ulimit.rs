@@ -1,7 +1,7 @@
 use clap::{value_t, Arg, App};
 use libc;
 
-use std::io::Error;
+use std::io::{Error, Write};
 
 use crate::builtins::utils::print_stderr_with_capture;
 use crate::builtins::utils::print_stdout_with_capture;
@@ -39,7 +39,12 @@ pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command,
     if tokens.len() == 2 && (tokens[1].1 == "-h" || tokens[1].1 == "--help") {
         use std::io;
         let mut out = io::stdout();
-        app.write_help(&mut out).expect("failed to write to stdout");
+        match app.write_help(&mut out) {
+            Ok(_) => {},
+            Err(e) => {
+                println_stderr!("cicada: clap: {}", e);
+            }
+        }
         print!("\n");
         return CommandResult::new();
     }

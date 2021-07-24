@@ -461,7 +461,13 @@ fn brace_getitem(s: &str, depth: i32) -> (Vec<String>, String) {
     let mut ss = s.to_string();
     let mut tmp;
     while ss.len() > 0 {
-        let c = ss.chars().next().unwrap();
+        let c;
+        match ss.chars().next() {
+            Some(x) => c = x,
+            None => {
+                return (out, ss);
+            }
+        }
         if depth > 0 && (c == ',' || c == '}') {
             return (out, ss);
         }
@@ -485,7 +491,14 @@ fn brace_getitem(s: &str, depth: i32) -> (Vec<String>, String) {
         // FIXME: here we mean more than one char.
         if c == '\\' && ss.len() > 1 {
             ss.remove(0);
-            let c = ss.chars().next().unwrap();
+            let c;
+            match ss.chars().next() {
+                Some(x) => c = x,
+                None => {
+                    return (out, ss)
+                }
+            }
+
             tmp = format!("\\{}", c);
         } else {
             tmp = c.to_string();
@@ -514,7 +527,14 @@ fn brace_getgroup(s: &str, depth: i32) -> Option<(Vec<String>, String)> {
         for x in g.iter() {
             out.push(x.clone());
         }
-        let c = ss.chars().next().unwrap();
+
+        let c;
+        match ss.chars().next() {
+            Some(x) => c = x,
+            None => {
+                break;
+            }
+        }
         if c == '}' {
             let mut sss = ss.clone();
             sss.remove(0);
@@ -582,13 +602,34 @@ fn expand_brace_range(tokens: &mut types::Tokens) {
 
         // safe to unwrap here, since the `is_match` above already validated
         let caps = re.captures(&token).unwrap();
-        let start = caps[1].to_string().parse::<i32>().unwrap();
-        let end = caps[2].to_string().parse::<i32>().unwrap();
+        let start;
+        match caps[1].to_string().parse::<i32>() {
+            Ok(x) => start = x,
+            Err(e) => {
+                println_stderr!("cicada: {}", e);
+                return;
+            }
+        }
+        let end;
+        match caps[2].to_string().parse::<i32>() {
+            Ok(x) => end = x,
+            Err(e) => {
+                println_stderr!("cicada: {}", e);
+                return;
+            }
+        }
+
         // incr is always positive
         let mut incr = if caps.get(4).is_none() {
             1
         } else {
-            caps[4].to_string().parse::<i32>().unwrap()
+            match caps[4].to_string().parse::<i32>() {
+                Ok(x) => x,
+                Err(e) => {
+                    println_stderr!("cicada: {}", e);
+                    return;
+                }
+            }
         };
         if incr <= 1 {
             incr = 1;

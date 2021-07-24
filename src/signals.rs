@@ -16,35 +16,56 @@ lazy_static! {
 }
 
 pub fn killed_map_insert(pid: i32, sig: i32) {
-    KILL_MAP.lock().unwrap().insert(pid, sig);
+    if let Ok(mut m) = KILL_MAP.try_lock() {
+        m.insert(pid, sig);
+    }
 }
 
 pub fn killed_map_pop(pid: i32) -> Option<i32> {
-    KILL_MAP.lock().unwrap().remove(&pid)
+    if let Ok(mut m) = KILL_MAP.try_lock() {
+        m.remove(&pid)
+    } else {
+        None
+    }
 }
 
 pub fn insert_cont_map(pid: i32) {
-    CONT_MAP.lock().unwrap().insert(pid);
+    if let Ok(mut m) = CONT_MAP.try_lock() {
+        m.insert(pid);
+    }
 }
 
 pub fn pop_cont_map(pid: i32) -> bool {
-    CONT_MAP.lock().unwrap().remove(&pid)
+    match CONT_MAP.try_lock() {
+        Ok(mut m) => m.remove(&pid),
+        Err(_) => false,
+    }
 }
 
 pub fn insert_stopped_map(pid: i32) {
-    STOP_MAP.lock().unwrap().insert(pid);
+    if let Ok(mut m) = STOP_MAP.try_lock() {
+        m.insert(pid);
+    }
 }
 
 pub fn pop_stopped_map(pid: i32) -> bool {
-    STOP_MAP.lock().unwrap().remove(&pid)
+    match STOP_MAP.try_lock() {
+        Ok(mut m) => m.remove(&pid),
+        Err(_) => false,
+    }
 }
 
 pub fn insert_reap_map(pid: i32, status: i32) {
-    REAP_MAP.lock().unwrap().insert(pid, status);
+    if let Ok(mut m) = REAP_MAP.try_lock() {
+        m.insert(pid, status);
+    }
 }
 
 pub fn pop_reap_map(pid: i32) -> Option<i32> {
-    REAP_MAP.lock().unwrap().remove(&pid)
+    match REAP_MAP.try_lock() {
+        Ok(mut m) => m.remove(&pid),
+        Err(_) => None,
+    }
 }
 
 pub fn block_signals() {
@@ -93,7 +114,7 @@ extern fn handle_sigchld(_sig: i32) {
                 break;
             }
             Ok(_others) => {
-                // log!("chld others: {:?}", _others);
+                // log!("sigchld others: {:?}", _others);
             }
             Err(e) => {
                 if e == nix::Error::ECHILD {

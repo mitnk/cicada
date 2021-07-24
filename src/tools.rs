@@ -45,7 +45,7 @@ pub fn clog(s: &str) {
     match OpenOptions::new().append(true).create(true).open(&file) {
         Ok(x) => cfile = x,
         Err(e) => {
-            println!("clog: open file {} failed: {:?}", &file, e);
+            println!("clog: open error: {}: {}", &file, e);
             return;
         }
     }
@@ -70,7 +70,7 @@ pub fn clog(s: &str) {
     match cfile.write_all(s.as_bytes()) {
         Ok(_) => {}
         Err(e) => {
-            println!("clog: write_all failed: {:?}", e);
+            println!("clog: write_all failed: {}", e);
             return;
         }
     }
@@ -91,7 +91,7 @@ pub fn get_user_name() -> String {
             return x;
         }
         Err(e) => {
-            log!("cicada: env USER error: {:?}", e);
+            log!("cicada: env USER error: {}", e);
         }
     }
     let cmd_result = execute::run("whoami");
@@ -102,7 +102,7 @@ pub fn get_user_home() -> String {
     match env::var("HOME") {
         Ok(x) => x,
         Err(e) => {
-            println_stderr!("cicada: env HOME error: {:?}", e);
+            println_stderr!("cicada: env HOME error: {}", e);
             String::new()
         }
     }
@@ -150,17 +150,7 @@ pub fn extend_bangbang(sh: &shell::Shell, line: &mut String) {
         return;
     }
 
-    let re;
-    match Regex::new(r"!!") {
-        Ok(x) => {
-            re = x;
-        }
-        Err(e) => {
-            println_stderr!("Regex new: {:?}", e);
-            return;
-        }
-    }
-
+    let re = Regex::new(r"!!").unwrap();
     let mut replaced = false;
     let mut new_line = String::new();
     let tokens = parsers::parser_line::cmd_to_tokens(line);
@@ -290,7 +280,9 @@ pub fn create_raw_fd_from_file(file_name: &str, append: bool) -> Result<i32, Str
             let fd = x.into_raw_fd();
             Ok(fd)
         }
-        Err(e) => Err(format!("failed to create fd from file: {:?}", e)),
+        Err(e) => {
+            Err(format!("{}", e))
+        }
     }
 }
 
@@ -299,8 +291,8 @@ pub fn get_fd_from_file(file_name: &str) -> i32 {
     let display = path.display();
     let file = match File::open(&path) {
         Err(why) => {
-            println_stderr!("cicada: could not open {}: {}", display, why);
-            return 0;
+            println_stderr!("cicada: {}: {}", display, why);
+            return -1;
         }
         Ok(file) => file,
     };
@@ -308,15 +300,7 @@ pub fn get_fd_from_file(file_name: &str) -> i32 {
 }
 
 pub fn escape_path(path: &str) -> String {
-    let re;
-    match Regex::new(r##"(?P<c>[!\(\)<>,\?\]\[\{\} \\'"`*\^#|$&;])"##) {
-        Ok(x) => {
-            re = x;
-        }
-        Err(_) => {
-            return path.to_string();
-        }
-    }
+    let re = Regex::new(r##"(?P<c>[!\(\)<>,\?\]\[\{\} \\'"`*\^#|$&;])"##).unwrap();
     return re.replace_all(path, "\\$c").to_string();
 }
 

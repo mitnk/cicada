@@ -139,7 +139,7 @@ pub fn wait_fg_job(sh: &mut shell:: Shell, gid: i32, pids: &[i32]) -> CommandRes
                 break;
             }
 
-            log!("unexpected waitpid error: {}", err);
+            log!("jobc unexpected waitpid error: {}", err);
             cmd_result = CommandResult::from_status(gid, err as i32);
             break;
         }
@@ -178,8 +178,6 @@ pub fn wait_fg_job(sh: &mut shell:: Shell, gid: i32, pids: &[i32]) -> CommandRes
             } else {
                 signals::killed_map_insert(pid, ws.get_signal());
             }
-        } else {
-            log!("else {:?}", ws);
         }
 
         if is_a_fg_child && pid == pid_last {

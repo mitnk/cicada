@@ -34,7 +34,7 @@ fn init_db(hfile: &str, htable: &str) {
         match fs::create_dir_all(parent) {
             Ok(_) => {}
             Err(e) => {
-                println_stderr!("cicada: dirs create failed: {:?}", e);
+                println_stderr!("cicada: histdir create error: {}", e);
                 return;
             }
         }
@@ -43,7 +43,7 @@ fn init_db(hfile: &str, htable: &str) {
                 println!("cicada: created history file: {}", hfile);
             }
             Err(e) => {
-                println_stderr!("cicada: history: file create failed: {:?}", e);
+                println_stderr!("cicada: history: file create failed: {}", e);
             }
         }
     }
@@ -51,7 +51,7 @@ fn init_db(hfile: &str, htable: &str) {
     let conn = match Conn::open(&hfile) {
         Ok(x) => x,
         Err(e) => {
-            println_stderr!("cicada: history: cannot open sqlite db: {:?}", e);
+            println_stderr!("cicada: history: open db error: {}", e);
             return;
         }
     };
@@ -71,7 +71,7 @@ fn init_db(hfile: &str, htable: &str) {
     );
     match conn.execute(&sql, []) {
         Ok(_) => {}
-        Err(e) => println_stderr!("cicada: sqlite exec error - {:?}", e),
+        Err(e) => println_stderr!("cicada: history: query error: {}", e),
     }
 }
 
@@ -104,7 +104,7 @@ pub fn init(rl: &mut Interface<DefaultTerminal>) {
     let conn = match Conn::open(&hfile) {
         Ok(x) => x,
         Err(e) => {
-            println_stderr!("cicada: sqlite conn open error: {:?}", e);
+            println_stderr!("cicada: history: conn error: {}", e);
             return;
         }
     };
@@ -112,7 +112,7 @@ pub fn init(rl: &mut Interface<DefaultTerminal>) {
     let mut stmt = match conn.prepare(&sql) {
         Ok(x) => x,
         Err(e) => {
-            println_stderr!("cicada: prepare select error: {:?}", e);
+            println_stderr!("cicada: prepare select error: {}", e);
             return;
         }
     };
@@ -120,7 +120,7 @@ pub fn init(rl: &mut Interface<DefaultTerminal>) {
     let rows = match stmt.query_map([], |row| row.get(0)) {
         Ok(x) => x,
         Err(e) => {
-            println_stderr!("cicada: query select error: {:?}", e);
+            println_stderr!("cicada: query select error: {}", e);
             return;
         }
     };
@@ -163,7 +163,7 @@ fn delete_duplicated_histories() {
     let conn = match Conn::open(&hfile) {
         Ok(x) => x,
         Err(e) => {
-            println_stderr!("cicada: sqlite conn open error: {:?}", e);
+            println_stderr!("cicada: history: conn error: {}", e);
             return;
         }
     };
@@ -184,13 +184,13 @@ fn delete_duplicated_histories() {
                     return;
                 }
                 println_stderr!(
-                    "cicada: failed to delete dup histories: {:?}: {:?}",
+                    "cicada: history: delete dups error: {}: {:?}",
                     &ee,
                     &msg
                 );
             }
             _ => {
-                println_stderr!("cicada: failed to delete dup histories: {:?}", e);
+                println_stderr!("cicada: history: delete dup error: {}", e);
             }
         },
     }
@@ -207,7 +207,7 @@ pub fn add_raw(sh: &shell::Shell, line: &str, status: i32,
     let conn = match Conn::open(&hfile) {
         Ok(x) => x,
         Err(e) => {
-            println_stderr!("cicada: sqlite conn open error: {:?}", e);
+            println_stderr!("cicada: history: conn error: {}", e);
             return;
         }
     };
@@ -225,7 +225,7 @@ pub fn add_raw(sh: &shell::Shell, line: &str, status: i32,
     );
     match conn.execute(&sql, []) {
         Ok(_) => {}
-        Err(e) => println_stderr!("cicada: failed to save history: {:?}", e),
+        Err(e) => println_stderr!("cicada: history: save error: {}", e),
     }
 }
 

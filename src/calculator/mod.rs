@@ -1,3 +1,5 @@
+use std::num::Wrapping as W;
+
 use pest::Parser;
 use pest::iterators::{Pair, Pairs};
 use pest::prec_climber::*;
@@ -23,19 +25,24 @@ pub fn eval_int(expression: Pairs<Rule>) -> i64 {
     PREC_CLIMBER.climb(
         expression,
         |pair: Pair<Rule>| match pair.as_rule() {
-            Rule::num => pair.as_str().parse::<i64>().unwrap(),
+            Rule::num => {
+                match pair.as_str().parse::<i64>() {
+                    Ok(n) => n,
+                    Err(_) => 0,
+                }
+            }
             Rule::expr => eval_int(pair.into_inner()),
             _ => unreachable!(),
         },
         |lhs: i64, op: Pair<Rule>, rhs: i64| match op.as_rule() {
-            Rule::add      => lhs + rhs,
-            Rule::subtract => lhs - rhs,
-            Rule::multiply => lhs * rhs,
+            Rule::add      => (W(lhs) + W(rhs)).0,
+            Rule::subtract => (W(lhs) - W(rhs)).0,
+            Rule::multiply => (W(lhs) * W(rhs)).0,
             Rule::divide   => {
                 if rhs == 0 {
                     (lhs as f64 / 0.0) as i64
                 } else {
-                    lhs / rhs
+                    (W(lhs) / W(rhs)).0
                 }
             }
             Rule::power    => lhs.pow(rhs as u32),
@@ -48,7 +55,12 @@ pub fn eval_float(expression: Pairs<Rule>) -> f64 {
     PREC_CLIMBER.climb(
         expression,
         |pair: Pair<Rule>| match pair.as_rule() {
-            Rule::num => pair.as_str().parse::<f64>().unwrap(),
+            Rule::num => {
+                match pair.as_str().parse::<f64>() {
+                    Ok(f) => f,
+                    Err(_) => 0.0,
+                }
+            }
             Rule::expr => eval_float(pair.into_inner()),
             _ => unreachable!(),
         },

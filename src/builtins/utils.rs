@@ -2,6 +2,8 @@ use std::fs::File;
 use std::io::Write;
 use std::os::unix::io::{FromRawFd, RawFd};
 
+use errno::errno;
+
 use crate::tools;
 use crate::types::{Command, CommandLine, CommandResult, Redirection};
 
@@ -90,7 +92,12 @@ fn _get_dupped_stdout_fd(cmd: &Command, cl: &CommandLine) -> RawFd {
     if let Some(fd) = _fd_out {
         fd
     } else {
-        unsafe { libc::dup(1) }
+        let fd = unsafe { libc::dup(1) };
+        if fd == -1 {
+            let eno = errno();
+            println_stderr!("cicada: dup: {}", eno);
+        }
+        fd
     }
 }
 
@@ -107,32 +114,64 @@ fn _get_dupped_stderr_fd(cmd: &Command, cl: &CommandLine) -> RawFd {
     if let Some(fd) = _fd_err {
         fd
     } else {
-        unsafe { libc::dup(2) }
+        let fd = unsafe { libc::dup(2) };
+        if fd == -1 {
+            let eno = errno();
+            println_stderr!("cicada: dup: {}", eno);
+        }
+        fd
     }
 }
 
 pub fn print_stdout(info: &str, cmd: &Command, cl: &CommandLine) {
     let fd = _get_dupped_stdout_fd(cmd, cl);
+    if fd == -1 {
+        return;
+    }
 
     unsafe {
         let mut f = File::from_raw_fd(fd);
         let info = info.trim_end_matches('\n');
-        f.write_all(info.as_bytes()).unwrap();
+        match f.write_all(info.as_bytes()) {
+            Ok(_) => {},
+            Err(e) => {
+                println_stderr!("write_all: error: {}", e);
+            }
+        }
         if !info.is_empty() {
-            f.write_all(b"\n").unwrap();
+            match f.write_all(b"\n") {
+                Ok(_) => {},
+                Err(e) => {
+                    println_stderr!("write_all: error: {}", e);
+                }
+            }
         }
     }
 }
 
 pub fn print_stderr(info: &str, cmd: &Command, cl: &CommandLine) {
     let fd = _get_dupped_stderr_fd(cmd, cl);
+    if fd == -1 {
+        return;
+    }
 
     unsafe {
         let mut f = File::from_raw_fd(fd);
         let info = info.trim_end_matches('\n');
-        f.write_all(info.as_bytes()).unwrap();
+        match f.write_all(info.as_bytes()) {
+            Ok(_) => (),
+            Err(e) => {
+                println_stderr!("write_all: error: {}", e);
+            }
+        }
+
         if !info.is_empty() {
-            f.write_all(b"\n").unwrap();
+            match f.write_all(b"\n") {
+                Ok(_) => (),
+                Err(e) => {
+                    println_stderr!("write_all: error: {}", e);
+                }
+            }
         }
     }
 }

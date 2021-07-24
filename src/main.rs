@@ -20,6 +20,7 @@ extern crate pest;
 extern crate pest_derive;
 
 use std::env;
+use std::io::Write;
 use std::sync::Arc;
 
 use chrono::prelude::Local;
@@ -106,7 +107,7 @@ fn main() {
         Ok(x) => rl = x,
         Err(e) => {
             // non-tty will raise errors here
-            println!("linefeed Interface Error: {:?}", e);
+            println!("cicada: linefeed error: {}", e);
             return;
         }
     }
@@ -120,7 +121,7 @@ fn main() {
         match rl.set_prompt(&prompt) {
             Ok(_) => {}
             Err(e) => {
-                println!("error when setting prompt: {:?}\n", e);
+                println_stderr!("cicada: prompt error: {}", e);
             }
         }
 
@@ -180,10 +181,10 @@ fn main() {
                 }
             }
             Ok(ReadResult::Signal(s)) => {
-                println!("readline signal: {:?}", s);
+                println_stderr!("readline signal: {:?}", s);
             }
             Err(e) => {
-                println!("readline error: {:?}", e);
+                println_stderr!("readline error: {}", e);
             }
         }
         signals::block_signals();
