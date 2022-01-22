@@ -2,6 +2,15 @@
 
 You can modify them in [RC-file](https://github.com/mitnk/cicada/blob/master/docs/rc-file.md).
 
+## CICADA_ENABLE_SIG_HANDLER
+
+Cicada will install a self-defined signal handler if its value set to `1`.  But
+it may cause cicada crash in some cases, as it's [not safe
+yet](https://github.com/rust-lang/rfcs/issues/1368) in rust to use signal
+handlers.
+
+default: `""` (empty, disabled)
+
 ## CICADA_LOG_FILE
 
 Cicada write some logs into this file. It's raraly useful. If it not set,

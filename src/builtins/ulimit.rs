@@ -1,12 +1,12 @@
-use clap::{value_t, Arg, App};
+use clap::{Arg, App, ErrorKind};
 use libc;
 
 use std::io::{Error, Write};
 
 use crate::builtins::utils::print_stderr_with_capture;
 use crate::builtins::utils::print_stdout_with_capture;
-use crate::shell::Shell;
 use crate::parsers;
+use crate::shell::Shell;
 use crate::types::{CommandResult, CommandLine, Command};
 
 pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command,
@@ -14,26 +14,26 @@ pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command,
     let mut cr = CommandResult::new();
     let tokens = &cmd.tokens;
     let args = parsers::parser_line::tokens_to_args(tokens);
-    // NOTE: these default_value -1 is for reporting only
+    // NOTE: these default_missing_value -1 is for reporting only
     // we cannot change the limit less then zero.
-    let app = App::new("ulimit")
+    let mut app = App::new("ulimit")
         .about("Show / Modify shell resource limits")
-        .arg(Arg::with_name("report_all")
-             .short("a")
+        .arg(Arg::new("report_all")
+             .short('a')
              .help("Report all limits"))
-        .arg(Arg::with_name("for_hard")
-             .short("H")
+        .arg(Arg::new("for_hard")
+             .short('H')
              .help("specify the hard limit"))
-        .arg(Arg::with_name("for_soft")
-             .short("S")
+        .arg(Arg::new("for_soft")
+             .short('S')
              .help("specify the soft limit (default)"))
-        .arg(Arg::with_name("open_files")
-             .short("n")
-             .default_value("-1")
+        .arg(Arg::new("open_files")
+             .short('n')
+             .default_missing_value("-1")
              .takes_value(true))
-        .arg(Arg::with_name("core_file_size")
-             .short("c")
-             .default_value("-1")
+        .arg(Arg::new("core_file_size")
+             .short('c')
+             .default_missing_value("-1")
              .takes_value(true));
 
     if tokens.len() == 2 && (tokens[1].1 == "-h" || tokens[1].1 == "--help") {
@@ -49,36 +49,45 @@ pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command,
         return CommandResult::new();
     }
 
-    let _matches = app.get_matches_from_safe(&args);
     let matches;
-    match _matches {
+    match app.try_get_matches_from(&args) {
         Ok(x) => {
             matches = x;
         }
         Err(e) => {
-            let info = format!("ulimit error: {}", e.message);
+            let info = format!("ulimit error: {}", e);
             print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
             return cr;
         }
     }
 
     let open_files;
-    match value_t!(matches, "open_files", i64) {
+    match matches.value_of_t("open_files") {
         Ok(x) => open_files = x,
-        Err(_) => {
-            let info = "cicada: ulimit: invalid params";
-            print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
-            return cr;
+        Err(e) => {
+            match e.kind {
+                ErrorKind::ArgumentNotFound => open_files = -1,
+                _ => {
+                    let info = format!("cicada: ulimit: invalid params: {}", e);
+                    print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+                    return cr;
+                }
+            }
         }
     }
 
     let core_file_size;
-    match value_t!(matches, "core_file_size", i64) {
+    match matches.value_of_t("core_file_size") {
         Ok(x) => core_file_size = x,
-        Err(_) => {
-            let info = "cicada: ulimit: invalid params";
-            print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
-            return cr;
+        Err(e) => {
+            match e.kind {
+                ErrorKind::ArgumentNotFound => core_file_size = -1,
+                _ => {
+                    let info = format!("cicada: ulimit: invalid params: {}", e);
+                    print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+                    return cr;
+                }
+            }
         }
     }
 

@@ -78,11 +78,22 @@ pub fn clog(s: &str) {
 
 macro_rules! log {
     ($fmt:expr) => (
-        clog($fmt);
+        clog($fmt)
     );
     ($fmt:expr, $($arg:tt)*) => (
         clog(&format!($fmt, $($arg)*));
     );
+}
+
+pub fn is_signal_handler_enabled() -> bool {
+    match env::var("CICADA_ENABLE_SIG_HANDLER") {
+        Ok(x) => {
+            return x == "1";
+        },
+        Err(_) => {
+            return false;
+        }
+    }
 }
 
 pub fn get_user_name() -> String {

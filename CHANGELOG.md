@@ -1,4 +1,10 @@
-# Change Logs
+# cicada Release Notes
+
+## 0.9.23 - 2022-02-22
+
+- updated to use rust edition 2021.
+- disable self-defined signal handler by default for safety.
+- upgraded dep-libs to latest versions.
 
 ## 0.9.22 - 2021-07-24
 

@@ -58,14 +58,7 @@ fn main() {
     }
 
     let mut sh = shell::Shell::new();
-    signals::setup_sigchld_handler();
-    // block the signals at most of time, since Rust is not "async-signal-safe"
-    // yet. see https://github.com/rust-lang/rfcs/issues/1368
-    // we'll unblock them when necessary only.
-    signals::block_signals();
-
     let args: Vec<String> = env::args().collect();
-
     // only load RC in a login shell
     if args.len() > 0 && args[0].starts_with("-") {
         rcfile::load_rc_files(&mut sh);
@@ -116,6 +109,15 @@ fn main() {
         sh: Arc::new(sh.clone()),
     }));
 
+    let sig_handler_enabled = tools::is_signal_handler_enabled();
+    if sig_handler_enabled {
+        signals::setup_sigchld_handler();
+        // block the signals at most of time, since Rust is not "async-signal-safe"
+        // yet. see https://github.com/rust-lang/rfcs/issues/1368
+        // we'll unblock them when necessary only.
+        signals::block_signals();
+    }
+
     loop {
         let prompt = prompt::get_prompt(&sh);
         match rl.set_prompt(&prompt) {
@@ -125,14 +127,18 @@ fn main() {
             }
         }
 
-        signals::unblock_signals();
-        // FIXME: in `rl.read_line()` below, there is lots of Rust code,
-        // which may not be async-signal-safe. see follow links for details:
-        // - https://ldpreload.com/blog/signalfd-is-useless
-        // - https://man7.org/linux/man-pages/man7/signal-safety.7.html
+        if sig_handler_enabled {
+            // FIXME: in `rl.read_line()` below, there is lots of Rust code,
+            // which may not be async-signal-safe. see follow links for details:
+            // - https://ldpreload.com/blog/signalfd-is-useless
+            // - https://man7.org/linux/man-pages/man7/signal-safety.7.html
+            signals::unblock_signals();
+        }
         match rl.read_line() {
             Ok(ReadResult::Input(line)) => {
-                signals::block_signals();
+                if sig_handler_enabled {
+                    signals::block_signals();
+                }
 
                 if line.trim() == "" {
                     jobc::try_wait_bg_jobs(&mut sh, true);
@@ -187,6 +193,8 @@ fn main() {
                 println_stderr!("readline error: {}", e);
             }
         }
-        signals::block_signals();
+        if sig_handler_enabled {
+            signals::block_signals();
+        }
     }
 }

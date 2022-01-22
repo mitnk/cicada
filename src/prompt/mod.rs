@@ -36,7 +36,7 @@ pub fn get_prompt(sh: &shell::Shell) -> String {
             prompt.push_str("\n$ ");
         }
     } else {
-        log!("ERROR: Failed to get term size")
+        log!("ERROR: Failed to get term size");
     }
     prompt
 }
