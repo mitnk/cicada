@@ -11,6 +11,10 @@ handlers.
 
 default: `""` (empty, disabled)
 
+When cicada is used as container [CMD](https://docs.docker.com/engine/reference/builder/#cmd)
+instruction (PID 1), this env should be set to `1`, so that zombie processes
+are reapped correctly.
+
 ## CICADA_LOG_FILE
 
 Cicada write some logs into this file. It's raraly useful. If it not set,
