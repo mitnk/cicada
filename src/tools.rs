@@ -361,6 +361,27 @@ pub fn is_builtin(s: &str) -> bool {
     builtins.contains(&s)
 }
 
+pub fn init_path_env() {
+    // order matters. took from `runc spec`
+    let mut paths: Vec<String> = vec![
+        "/usr/local/sbin".to_string(),
+        "/usr/local/bin".to_string(),
+        "/usr/sbin".to_string(),
+        "/usr/bin".to_string(),
+        "/sbin".to_string(),
+        "/bin".to_string(),
+    ];
+    if let Ok(env_path) = env::var("PATH") {
+        for x in env_path.split(":") {
+            if !paths.contains(&x.to_string()) {
+                paths.push(x.to_string());
+            }
+        }
+    }
+    let paths = paths.join(":");
+    env::set_var("PATH", paths);
+}
+
 #[cfg(test)]
 mod tests {
     use super::escape_path;

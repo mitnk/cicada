@@ -66,6 +66,12 @@ would render prompt with:
 $ [master] mitnk@mpb$
 ```
 
+> WARNING: when
+> [CICADA_ENABLE_SIG_HANDLER](https://github.com/mitnk/cicada/blob/master/docs/envs.md#cicada_enable_sig_handler)
+> is enabled, use in-line command in prompt could cause cicada crash, with
+> error message like `BUG IN CLIENT OF LIBPLATFORM: Trying to recursively lock
+> an os_unfair_lock`. View [detailed logs](https://pastebin.com/3krRLUNp)
+
 ### Use prefix & suffix in it (BETA)
 You can use `[` or `{` as prefix, and `]`, `}` as suffix when using command
 output int prompt. e.g.

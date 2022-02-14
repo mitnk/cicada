@@ -1,6 +1,10 @@
 # cicada Release Notes
 
-## 0.9.23 - 2022-02-22
+## 0.9.24 - 2022-02-14
+
+- updated `PATH` initialization.
+
+## 0.9.23 - 2022-01-22
 
 - updated to use rust edition 2021.
 - disable self-defined signal handler by default for safety.

@@ -138,6 +138,12 @@ $ pip install --requirement
 
 **You may use sub commands in it**. For example:
 
+> WARNING: when
+> [CICADA_ENABLE_SIG_HANDLER](https://github.com/mitnk/cicada/blob/master/docs/envs.md#cicada_enable_sig_handler)
+> is enabled, use in-line command in completion file could cause cicada crash,
+> with error message like `BUG IN CLIENT OF LIBPLATFORM: Trying to recursively
+> lock an os_unfair_lock`. View [detailed logs](https://pastebin.com/3krRLUNp)
+
 ```
 $ cat ~/.config/cicada/completers/git.yaml
 ... skipped ...

@@ -57,6 +57,8 @@ fn main() {
         libc::signal(libc::SIGQUIT, libc::SIG_IGN);
     }
 
+    tools::init_path_env();
+
     let mut sh = shell::Shell::new();
     let args: Vec<String> = env::args().collect();
     // only load RC in a login shell
