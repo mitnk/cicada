@@ -82,10 +82,10 @@ pub fn find_file_in_path(filename: &str, exec: bool) -> String {
                 }
             }
             Err(e) => {
-                if e.kind() != ErrorKind::NotFound {
-                    println_stderr!("cicada: fs read_dir error: {}", e);
-                    break;
+                if e.kind() == ErrorKind::NotFound {
+                    continue;
                 }
+                log!("cicada: fs read_dir error: {}: {}", p, e);
             }
         }
     }

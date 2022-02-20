@@ -1,5 +1,10 @@
 # cicada Release Notes
 
+## 0.9.25 - 2022-02-20
+
+- fixed an issue that PATH searching will break when items in it cannot be
+  read due to permissions.
+
 ## 0.9.24 - 2022-02-14
 
 - updated `PATH` initialization.

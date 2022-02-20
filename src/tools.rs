@@ -363,14 +363,14 @@ pub fn is_builtin(s: &str) -> bool {
 
 pub fn init_path_env() {
     // order matters. took from `runc spec`
-    let mut paths: Vec<String> = vec![
-        "/usr/local/sbin".to_string(),
-        "/usr/local/bin".to_string(),
-        "/usr/sbin".to_string(),
-        "/usr/bin".to_string(),
-        "/sbin".to_string(),
-        "/bin".to_string(),
-    ];
+    let mut paths: Vec<String> = vec![];
+    for x in vec!["/usr/local/sbin", "/usr/local/bin", "/usr/sbin", "/usr/bin",
+                  "/sbin", "/bin"] {
+        if Path::new(x).exists() {
+            paths.push(x.to_string());
+        }
+    }
+
     if let Ok(env_path) = env::var("PATH") {
         for x in env_path.split(":") {
             if !paths.contains(&x.to_string()) {
