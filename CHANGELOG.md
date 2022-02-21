@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 0.9.26 - 2022-02-21
+
+- No changes, only a version fix for Termux.
+
 ## 0.9.25 - 2022-02-20
 
 - fixed an issue that PATH searching will break when items in it cannot be
