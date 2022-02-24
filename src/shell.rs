@@ -248,10 +248,16 @@ impl Shell {
         }
     }
 
+    /// get *Shell Variable*, or *ENV Variable*.
     pub fn get_env(&self, name: &str) -> Option<String> {
         match self.envs.get(name) {
             Some(x) => Some(x.to_string()),
-            None => None,
+            None => {
+                match env::var(name) {
+                    Ok(x) => Some(x),
+                    Err(_) => None,
+                }
+            }
         }
     }
 

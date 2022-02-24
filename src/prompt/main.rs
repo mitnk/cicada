@@ -18,9 +18,13 @@ fn is_suffix_char(c: char) -> bool {
     c == ']' || c == '}'
 }
 
-fn is_prompt_item_char(c: char) -> bool {
+fn is_prompt_item_char(c: char, token: &str) -> bool {
     let s = c.to_string();
-    libs::re::re_contains(&s, r#"^[a-zA-Z_]$"#)
+    if token.is_empty() {
+        libs::re::re_contains(&s, r#"^[a-zA-Z_]$"#)
+    } else {
+        libs::re::re_contains(&s, r#"^[a-zA-Z0-9_]$"#)
+    }
 }
 
 pub fn get_prompt_string() -> String {
@@ -31,7 +35,7 @@ pub fn get_prompt_string() -> String {
 }
 
 fn apply_prompt_item(sh: &shell::Shell, result: &mut String, token: &str) {
-    if let Ok(x) = env::var(token) {
+    if let Some(x) = sh.get_env(token) {
         result.push_str(&x);
         return;
     }
@@ -103,7 +107,7 @@ pub fn render_prompt(sh: &shell::Shell, ps: &str) -> String {
                     token.push(c);
                 }
                 continue;
-            } else if is_prompt_item_char(c) {
+            } else if is_prompt_item_char(c, &token) {
                 token.push(c);
                 continue;
             } else if token.is_empty() {
@@ -145,16 +149,27 @@ pub fn render_prompt(sh: &shell::Shell, ps: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::env;
     use super::render_prompt;
     use super::shell::Shell;
 
     #[test]
     fn test_render_prompt() {
         let mut sh = Shell::new();
-        sh.set_env("USER", "mitnk");
 
-        assert_eq!("mitnk$\n", render_prompt(&sh, "$USER$${newline}"));
-        assert_eq!("mitnk$\n", render_prompt(&sh, "$USER$$newline"));
+        env::set_var("MY_ARCH", "x86-64");
+        env::set_var("OS", "linux");
+        assert_eq!("x86-64/linux", render_prompt(&sh, "$MY_ARCH/$OS"));
+
+        env::set_var("FOOBAR7", "user135");
+        assert_eq!("user135$\n", render_prompt(&sh, "$FOOBAR7$${newline}"));
+        assert_eq!("user135$\n", render_prompt(&sh, "$FOOBAR7$$newline"));
+
+        sh.set_env("FOOBAR8", "u138");
+        assert_eq!("u138", render_prompt(&sh, "$FOOBAR8"));
+
+        assert_eq!("$67", render_prompt(&sh, "$67"));
+        assert_eq!("<NOT_EXISTS>", render_prompt(&sh, "$NOT_EXISTS"));
 
         assert_eq!("$", render_prompt(&sh, "$"));
         assert_eq!("$$", render_prompt(&sh, "$$"));
