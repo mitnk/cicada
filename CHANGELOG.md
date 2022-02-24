@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 0.9.28 - 2022-02-24
+
+- No changes to previous, just add Cargo.lock into git.
+
 ## 0.9.27 - 2022-02-24
 
 - Fixed a minor prompt render issue.
