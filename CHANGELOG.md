@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 0.9.27 - 2022-02-24
+
+- Fixed a minor prompt render issue.
+
 ## 0.9.26 - 2022-02-21
 
 - No changes, only a version fix for Termux.

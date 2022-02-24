@@ -1,4 +1,4 @@
-use clap::{Arg, App, ErrorKind};
+use clap::{Arg, Command as ClapCommand, ErrorKind};
 use libc;
 
 use std::io::{Error, Write};
@@ -16,7 +16,7 @@ pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command,
     let args = parsers::parser_line::tokens_to_args(tokens);
     // NOTE: these default_missing_value -1 is for reporting only
     // we cannot change the limit less then zero.
-    let mut app = App::new("ulimit")
+    let mut app = ClapCommand::new("ulimit")
         .about("Show / Modify shell resource limits")
         .arg(Arg::new("report_all")
              .short('a')
@@ -65,7 +65,7 @@ pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command,
     match matches.value_of_t("open_files") {
         Ok(x) => open_files = x,
         Err(e) => {
-            match e.kind {
+            match e.kind() {
                 ErrorKind::ArgumentNotFound => open_files = -1,
                 _ => {
                     let info = format!("cicada: ulimit: invalid params: {}", e);
@@ -80,7 +80,7 @@ pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command,
     match matches.value_of_t("core_file_size") {
         Ok(x) => core_file_size = x,
         Err(e) => {
-            match e.kind {
+            match e.kind() {
                 ErrorKind::ArgumentNotFound => core_file_size = -1,
                 _ => {
                     let info = format!("cicada: ulimit: invalid params: {}", e);
