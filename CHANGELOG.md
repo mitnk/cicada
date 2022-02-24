@@ -1,6 +1,6 @@
 # cicada Release Notes
 
-## 0.9.28 - 2022-02-24
+## 0.9.2{8,9} - 2022-02-24
 
 - No changes to previous, just add Cargo.lock into git.
 
