@@ -1,6 +1,6 @@
 # cicada Release Notes
 
-## 0.9.30 - master
+## 0.9.30 - 2022-06-12
 
 - added builtin: `vox create`
 - upgraded some dep-libs for security.
