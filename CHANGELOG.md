@@ -1,5 +1,10 @@
 # cicada Release Notes
 
+## 0.9.30 - master
+
+- added builtin: `vox create`
+- upgraded some dep-libs for security.
+
 ## 0.9.2{8,9} - 2022-02-24
 
 - No changes to previous, just add Cargo.lock into git.

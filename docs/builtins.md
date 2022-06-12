@@ -237,11 +237,17 @@ One example:
 export VIRTUALENV_HOME="${HOME}/.local/share/venvs"
 ```
 
-Create your env with something like:
+Create your env with python:
 
 ```
-python3 -m venv ~/.local/share/venvs/my-project
+$ python3 -m venv ~/.local/share/venvs/my-project
 ```
+
+or create it with `vox`:
+```
+$ vox create my-project
+```
+this will create `my-project` venv under `$VIRTUALENV_HOME`.
 
 Then use `vox` to enter it:
 
@@ -250,7 +256,7 @@ $ vox enter my-project
 (my-project) $  # now you activated your env
 ```
 
-List your envs under `$VIRTUALENV_HOME` dir:
+List your envs under `$VIRTUALENV_HOME` directory:
 ```
 $ vox ls
 ```

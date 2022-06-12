@@ -4,6 +4,7 @@ use std::path::Path;
 
 use crate::builtins::utils::print_stderr_with_capture;
 use crate::builtins::utils::print_stdout_with_capture;
+use crate::execute;
 use crate::parsers;
 use crate::shell::{self, Shell};
 use crate::types::{self, CommandResult, CommandLine, Command};
@@ -138,6 +139,24 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
                 return cr;
             }
         }
+    }
+
+    if len == 3 && subcmd == "create" {
+        let pybin;
+        match env::var("VIRTUALENV_PYBIN") {
+            Ok(x) => {
+                pybin = x;
+            }
+            Err(_) => {
+                pybin = "python3".to_string();
+            }
+        }
+        let dir_venv = get_envs_home();
+        let venv_name = args[2].to_string();
+        let line = format!("{} -m venv \"{}/{}\"", pybin, dir_venv, venv_name);
+        print_stderr_with_capture(&line, &mut cr, cl, cmd, capture);
+        let cr_list = execute::run_command_line(sh, &line, false, false);
+        return cr_list[0].clone();
     }
 
     if len == 3 && subcmd == "enter" {
