@@ -186,7 +186,7 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
     // using semi_ok makes quite dirty here
     // it is mainly for path completion like:
     // $ ls "foo b<TAB>
-    // # then got `"foo bar"/`, then let tab again:
+    // # then got `"foo bar"/`, then hit tab again:
     // $ ls "foo bar"/<TAB>
     // # should got:
     // $ ls "foo bar/the-single-file.txt"
@@ -247,8 +247,12 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
             met_parenthesis = false;
         }
 
-        if c == '\\' && sep != "'" {
-            has_backslash = true;
+        if c == '\\' {
+            if sep == "'" || !sep_second.is_empty() {
+                token.push(c)
+            } else {
+                has_backslash = true;
+            }
             continue;
         }
 
@@ -803,6 +807,10 @@ mod tests {
             (
                 "1+2-3*(4/5.0)",
                 vec![("", "1+2-3*(4/5.0)"),],
+            ),
+            (
+                "alias c='printf \"\\ec\"'",
+                vec![("", "alias"), ("", "c='printf \"\\ec\"'")],
             ),
         ];
         for (left, right) in v {

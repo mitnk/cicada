@@ -1,5 +1,10 @@
 # cicada Release Notes
 
+## 0.9.31 - 2022.07.17
+
+- fixed an escape char `\` handling issue.
+    - e.g. `alias c='printf "\ec"'` got `\` char removed.
+
 ## 0.9.30 - 2022-06-12
 
 - added builtin: `vox create`
