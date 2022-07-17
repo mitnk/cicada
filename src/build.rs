@@ -1,6 +1,6 @@
-extern crate chrono;
+extern crate time;
 use std::process::Command;
-use chrono::prelude::Local;
+use time::OffsetDateTime;
 
 fn main() {
     match Command::new("git")
@@ -52,6 +52,19 @@ fn main() {
         }
     }
 
-    let tm = Local::now();
-    println!("cargo:rustc-env=BUILD_DATE={}", tm.to_rfc2822());
+    match OffsetDateTime::now_local() {
+        Ok(dt) => {
+            let dt_str = format!("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
+                dt.year(),
+                dt.month() as u8,
+                dt.day(),
+                dt.hour(),
+                dt.minute(),
+                dt.second(),
+                dt.millisecond(),
+            );
+            println!("cargo:rustc-env=BUILD_DATE={}", dt_str);
+        }
+        Err(_) => { }
+    }
 }

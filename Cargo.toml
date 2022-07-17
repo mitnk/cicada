@@ -2,7 +2,7 @@
 edition = "2021"
 build = "src/build.rs"
 name = "cicada"
-version = "0.9.31"
+version = "0.9.32"
 authors = ["Hugo Wang <w@mitnk.com>"]
 
 description = "A simple Bash-like Unix shell."
@@ -23,7 +23,6 @@ name = "cicada"
 doc = false
 
 [dependencies]
-chrono = "0.4"
 errno = "0.2.0"
 exec = "0.3.0"
 glob = "0.3.0"
@@ -47,5 +46,10 @@ features = ["std"]
 version = "0.27.0"
 features = ["bundled"]
 
-[build-dependencies]
-chrono = "0.4"
+[dependencies.time]
+version = "0.3"
+features = ["local-offset"]
+
+[build-dependencies.time]
+version = "0.3"
+features = ["local-offset"]

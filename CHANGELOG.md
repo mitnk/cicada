@@ -1,5 +1,10 @@
 # cicada Release Notes
 
+## 0.9.32 - 2022.07.17
+
+- Replaced dep chrono with time.
+    - due to https://github.com/rustsec/advisory-db/pull/1082
+
 ## 0.9.31 - 2022.07.17
 
 - fixed an escape char `\` handling issue.

@@ -8,7 +8,6 @@ extern crate linefeed;
 extern crate nix;
 extern crate regex;
 extern crate rusqlite;
-extern crate chrono;
 extern crate yaml_rust;
 
 extern crate clap;
@@ -23,7 +22,6 @@ use std::env;
 use std::io::Write;
 use std::sync::Arc;
 
-use chrono::prelude::Local;
 use linefeed::{Interface, ReadResult};
 
 #[macro_use]
@@ -34,6 +32,7 @@ mod builtins;
 mod calculator;
 mod completers;
 mod core;
+mod ctime;
 mod execute;
 mod history;
 mod jobc;
@@ -148,7 +147,7 @@ fn main() {
                 }
                 sh.cmd = line.clone();
 
-                let tsb = Local::now().timestamp_nanos() as f64 / 1000000000.0;
+                let tsb = ctime::DateTime::now().unix_timestamp();
                 let mut line = line.clone();
 
                 // since `!!` expansion is only meaningful in an interactive
@@ -160,7 +159,7 @@ fn main() {
                 if let Some(last) = cr_list.last() {
                     status = last.status;
                 }
-                let tse = Local::now().timestamp_nanos() as f64 / 1000000000.0;
+                let tse = ctime::DateTime::now().unix_timestamp();
 
                 if !sh.cmd.starts_with(' ') && line != sh.previous_cmd {
                     history::add(&sh, &mut rl, &line, status, tsb, tse);

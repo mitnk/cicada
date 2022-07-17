@@ -1,11 +1,11 @@
 use std::path::Path;
 
-use chrono::{DateTime, NaiveDateTime, Local, Utc};
 use rusqlite::Connection as Conn;
 use structopt::StructOpt;
 
 use crate::builtins::utils::print_stderr_with_capture;
 use crate::builtins::utils::print_stdout_with_capture;
+use crate::ctime;
 use crate::history;
 use crate::parsers;
 use crate::shell::Shell;
@@ -215,10 +215,8 @@ fn list_current_history(sh: &Shell, conn: &Conn,
                                 return (result_stdout, result_stderr);
                             }
                         };
-                        let dt = DateTime::<Utc>::from_utc(
-                            NaiveDateTime::from_timestamp(tsb as i64, 0), Utc
-                        ).with_timezone(&Local);
-                        lines.push(format!("{}: {}: {}", row_id, dt.format("%Y-%m-%d %H:%M:%S"), inp));
+                        let dt = ctime::DateTime::from_timestamp(tsb);
+                        lines.push(format!("{}: {}: {}", row_id, dt, inp));
                     } else {
                         lines.push(format!("{}: {}", row_id, inp));
                     }
