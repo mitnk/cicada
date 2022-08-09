@@ -19,7 +19,6 @@ Cicada is a simple Unix shell written in Rust.
 ## Try out cicada with Docker
 
 ```
-$ docker pull mitnk/cicada
 $ docker run --rm -it mitnk/cicada
 (in-cicada) $ cinfo
 ```
@@ -88,7 +87,6 @@ Read APIs here: [https://docs.rs/cicada/](https://docs.rs/cicada/).
 
 ## FAQs
 
-- [Why another shell?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#user-content-why-another-shell)
 - [Compare to bash/zsh/etc?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#user-content-compare-to-other-shells)
 - [Is cicada POSIX-compatible?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#user-content-is-cicada-posix-compatible)
 - [Will my bash/zsh scripts continue work in cicada?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#user-content-will-my-bashzsh-scripts-continue-work-in-cicada)

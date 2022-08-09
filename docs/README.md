@@ -18,7 +18,6 @@ Cicada is a simple bash-like Unix shell.
 ### Try out Cicada Shell with Docker
 
 ```
-$ docker pull mitnk/cicada
 $ docker run --rm -it mitnk/cicada
 (in-cicada) $ cinfo
 ```
