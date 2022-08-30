@@ -1,15 +1,14 @@
 use regex::Regex;
 
 use crate::libs;
-use crate::types::Tokens;
-use crate::types::Redirection;
 use crate::tools;
+use crate::types::{LineInfo, Redirection, Tokens};
 
 pub fn line_to_plain_tokens(line: &str) -> Vec<String> {
     let mut result = Vec::new();
-    let v = cmd_to_tokens(line);
-    for (_, r) in v {
-        result.push(r);
+    let linfo = parse_line(line);
+    for (_, r) in linfo.tokens {
+        result.push(r.clone());
     }
     result
 }
@@ -150,22 +149,25 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
 }
 
 /// parse command line to tokens
-/// >>> cmd_to_tokens("echo 'hi yoo' | grep \"hi\"");
-/// vec![
-///     ("", "echo"),
-///     ("'", "hi yoo"),
-///     ("", "|"),
-///     ("", "grep"),
-///     ("\"", "hi"),
-/// ]
+/// >>> parse_line("echo 'hi yoo' | grep \"hi\"");
+/// LineInfo {
+///    tokens: vec![
+///        ("", "echo"),
+///        ("'", "hi yoo"),
+///        ("", "|"),
+///        ("", "grep"),
+///        ("\"", "hi"),
+///    ],
+///    is_complete: true
+/// }
 // #[allow(clippy::cyclomatic_complexity)]
-pub fn cmd_to_tokens(line: &str) -> Tokens {
+pub fn parse_line(line: &str) -> LineInfo {
     let mut result = Vec::new();
     if tools::is_arithmetic(line) {
         for x in line.split(' ') {
             result.push((String::from(""), x.to_string()));
         }
-        return result;
+        return LineInfo::new(result);
     }
 
     let mut sep = String::new();
@@ -439,10 +441,26 @@ pub fn cmd_to_tokens(line: &str) -> Tokens {
         if sep.is_empty() && !sep_made.is_empty() {
             result.push((sep_made.clone(), token));
         } else {
-            result.push((sep, token));
+            result.push((sep.clone(), token));
         }
     }
-    result
+
+    let mut is_line_complete = true;
+    if result.len() > 0 {
+        let token_last = result[result.len() - 1].clone();
+        if token_last.0.is_empty() && token_last.1 == "|" {
+            is_line_complete = false;
+        }
+    }
+
+    if !sep.is_empty() {
+        is_line_complete = semi_ok;
+    }
+    if has_backslash {
+        is_line_complete = false;
+    }
+
+    LineInfo { tokens: result, is_complete: is_line_complete }
 }
 
 pub fn tokens_to_redirections(tokens: &Tokens) -> Result<(Tokens, Vec<Redirection>), String> {
@@ -556,7 +574,7 @@ pub fn unquote(text: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::cmd_to_tokens;
+    use super::parse_line;
     use super::line_to_cmds;
     use super::line_to_plain_tokens;
     use super::Tokens;
@@ -579,7 +597,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cmd_to_tokens() {
+    fn test_parse_line() {
         let v = vec![
             ("ls", vec![("", "ls")]),
             ("(ls)", vec![("", "ls")]),
@@ -816,14 +834,15 @@ mod tests {
         for (left, right) in v {
             println!("\ninput: {:?}", left);
             println!("expected: {:?}", right);
-            let args = cmd_to_tokens(left);
-            println!("real    : {:?}", args);
-            _assert_vec_tuple_eq(args, right);
+            let linfo = parse_line(left);
+            let tokens = linfo.tokens;
+            println!("real    : {:?}", tokens);
+            _assert_vec_tuple_eq(tokens, right);
         }
     }
 
     #[test]
-    fn test_parse_line() {
+    fn test_line_to_plain_tokens() {
         let v = vec![
             ("ls", vec!["ls"]),
             ("  ls   ", vec!["ls"]),

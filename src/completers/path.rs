@@ -70,8 +70,8 @@ fn needs_expand_home(line: &str) -> bool {
 /// Returns a sorted list of paths whose prefix matches the given path.
 pub fn complete_path(word: &str, for_dir: bool) -> Vec<Completion> {
     let mut res = Vec::new();
-
-    let tokens = parsers::parser_line::cmd_to_tokens(word);
+    let linfo = parsers::parser_line::parse_line(word);
+    let tokens = linfo.tokens;
     let (path, path_sep) = if tokens.is_empty() {
         (String::new(), String::new())
     } else {

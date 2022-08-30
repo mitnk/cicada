@@ -16,7 +16,8 @@ cicada = "0.9.0"
 extern crate cicada;
 
 fn main() {
-    let tokens = cicada::cmd_to_tokens("echo 'hi yoo' | `which wc`");
+    let line_info = cicada::parse_line("echo 'hi yoo' | `which wc`");
+    let tokens = line_info.tokens;
     assert_eq!(tokens.len(), 4);
 
     assert_eq!(tokens[0].0, "");

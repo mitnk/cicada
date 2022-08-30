@@ -76,7 +76,8 @@ fn drain_env_tokens(tokens: &mut Tokens) -> HashMap<String, String> {
 }
 
 fn line_to_tokens(sh: &mut Shell, line: &str) -> (Tokens, HashMap<String, String>) {
-    let mut tokens = parsers::parser_line::cmd_to_tokens(line);
+    let linfo = parsers::parser_line::parse_line(line);
+    let mut tokens = linfo.tokens;
     shell::do_expansion(sh, &mut tokens);
     let envs = drain_env_tokens(&mut tokens);
     return (tokens, envs);

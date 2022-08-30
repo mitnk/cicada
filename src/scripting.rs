@@ -130,7 +130,8 @@ pub fn run_lines(sh: &mut shell::Shell,
 }
 
 fn expand_args(line: &str, args: &[String]) -> String {
-    let mut tokens = parsers::parser_line::cmd_to_tokens(line);
+    let linfo = parsers::parser_line::parse_line(line);
+    let mut tokens = linfo.tokens;
     expand_args_in_tokens(&mut tokens, args);
     return parsers::parser_line::tokens_to_line(&tokens);
 }
@@ -138,7 +139,8 @@ fn expand_args(line: &str, args: &[String]) -> String {
 fn expand_line_to_toknes(line: &str,
                          args: &[String],
                          sh: &mut shell::Shell) -> types::Tokens {
-    let mut tokens = parsers::parser_line::cmd_to_tokens(line);
+    let linfo = parsers::parser_line::parse_line(line);
+    let mut tokens = linfo.tokens;
     expand_args_in_tokens(&mut tokens, args);
     shell::do_expansion(sh, &mut tokens);
     tokens

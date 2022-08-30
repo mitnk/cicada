@@ -70,7 +70,8 @@ fn handle_lv1_string(res: &mut Vec<Completion>,
         return;
     }
 
-    let tokens = parsers::parser_line::cmd_to_tokens(value);
+    let linfo = parsers::parser_line::parse_line(value);
+    let tokens = linfo.tokens;
     if tokens.len() == 1 && tokens[0].0 == "`" {
         log!("run subcmd: {:?}", &tokens[0].1);
         let cr = execute::run(&tokens[0].1);

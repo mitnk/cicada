@@ -18,7 +18,7 @@
 //! extern crate cicada;
 //!
 //! fn main() {
-//!     let tokens = cicada::cmd_to_tokens("echo 'hi yoo' | `which wc`");
+//!     let tokens = cicada::parse_line("echo 'hi yoo' | `which wc`");
 //!     assert_eq!(tokens.len(), 4);
 //!
 //!     assert_eq!(tokens[0].0, "");
@@ -83,10 +83,11 @@ mod signals;
 
 /// Represents an error calling `exec`.
 pub use crate::types::CommandResult;
+pub use crate::types::LineInfo;
 
 /// Parse a command to tokens.
-pub fn cmd_to_tokens(cmd: &str) -> Vec<(String, String)> {
-    return parsers::parser_line::cmd_to_tokens(cmd);
+pub fn parse_line(cmd: &str) -> LineInfo {
+    parsers::parser_line::parse_line(cmd)
 }
 
 /// Run a command or a pipeline.

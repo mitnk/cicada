@@ -1,5 +1,6 @@
 mod main;
 mod preset;
+mod multilines;
 
 use crate::libs;
 use crate::shell;
@@ -7,6 +8,7 @@ use crate::tools::clog;
 
 use self::main::get_prompt_string;
 use self::main::render_prompt;
+pub use self::multilines::EnterFunction;
 
 fn get_prompt_len(prompt: &str) -> i32 {
     let mut count = 0;

@@ -22,7 +22,7 @@ use std::env;
 use std::io::Write;
 use std::sync::Arc;
 
-use linefeed::{Interface, ReadResult};
+use linefeed::{Command, Interface, ReadResult};
 
 #[macro_use]
 mod tools;
@@ -105,6 +105,10 @@ fn main() {
             return;
         }
     }
+
+    rl.define_function("enter-function", Arc::new(prompt::EnterFunction));
+    rl.bind_sequence("\r", Command::from_str("enter-function"));
+
     history::init(&mut rl);
     rl.set_completer(Arc::new(completers::CicadaCompleter {
         sh: Arc::new(sh.clone()),
@@ -141,6 +145,7 @@ fn main() {
                     signals::block_signals();
                 }
 
+                let line = shell::trim_multiline_prompts(&line);
                 if line.trim() == "" {
                     jobc::try_wait_bg_jobs(&mut sh, true);
                     continue;

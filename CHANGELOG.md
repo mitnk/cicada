@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 0.9.33 - master
+
+- added multiple-line mode.
+
 ## 0.9.32 - 2022.07.17
 
 - Replaced dep chrono with time.

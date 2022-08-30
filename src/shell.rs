@@ -720,7 +720,8 @@ fn expand_alias(sh: &Shell, tokens: &mut types::Tokens) {
     }
 
     for (i, text) in buff.iter().rev() {
-        let tokens_ = parsers::parser_line::cmd_to_tokens(&text);
+        let linfo = parsers::parser_line::parse_line(&text);
+        let tokens_ = linfo.tokens;
         tokens.remove(*i as usize);
         for item in tokens_.iter().rev() {
             tokens.insert(*i as usize, item.clone());
@@ -1000,6 +1001,16 @@ pub fn do_expansion(sh: &mut Shell, tokens: &mut types::Tokens) {
     expand_glob(tokens);
     do_command_substitution(sh, tokens);
     expand_brace_range(tokens);
+}
+
+pub fn trim_multiline_prompts(line: &str) -> String {
+    // remove sub-prompts from multiple line mode
+    // 1. assuming '\n' char cannot be typed manually?
+    // 2. `>>` is defined as `src/prompt/multilines.rs`
+    let line_new = libs::re::replace_all(line, r"\\\n>> ", "");
+    let line_new = libs::re::replace_all(&line_new, r"\| *\n>> ", "| ");
+    let line_new = libs::re::replace_all(&line_new, r"(?P<NEWLINE>\n)>> ", "$NEWLINE");
+    line_new
 }
 
 #[cfg(test)]

@@ -122,6 +122,20 @@ pub type Token = (String, String);
 pub type Tokens = Vec<Token>;
 pub type Redirection = (String, String, String);
 
+#[derive(Debug)]
+pub struct LineInfo {
+    // e.g. echo 'foo
+    // is not a completed line, need to turn to multiple-line mode.
+    pub tokens: Tokens,
+    pub is_complete: bool,
+}
+
+impl LineInfo {
+    pub fn new(tokens: Tokens) -> Self {
+        LineInfo { tokens: tokens, is_complete: true }
+    }
+}
+
 ///
 /// command line: `ls 'foo bar' 2>&1 > /dev/null < one-file` would be:
 /// Command {
@@ -338,7 +352,8 @@ fn drain_env_tokens(tokens: &mut Tokens) -> HashMap<String, String> {
 
 impl CommandLine {
     pub fn from_line(line: &str, sh: &mut shell::Shell) -> Result<CommandLine, String> {
-        let mut tokens = parsers::parser_line::cmd_to_tokens(line);
+        let linfo = parsers::parser_line::parse_line(line);
+        let mut tokens = linfo.tokens;
         shell::do_expansion(sh, &mut tokens);
         let envs = drain_env_tokens(&mut tokens);
 

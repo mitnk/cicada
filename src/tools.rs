@@ -150,8 +150,8 @@ pub fn extend_bangbang(sh: &shell::Shell, line: &mut String) {
     let re = Regex::new(r"!!").unwrap();
     let mut replaced = false;
     let mut new_line = String::new();
-    let tokens = parsers::parser_line::cmd_to_tokens(line);
-    for (sep, token) in tokens {
+    let linfo = parsers::parser_line::parse_line(line);
+    for (sep, token) in linfo.tokens {
         if !sep.is_empty() {
             new_line.push_str(&sep);
         }

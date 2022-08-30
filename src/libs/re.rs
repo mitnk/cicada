@@ -33,6 +33,12 @@ pub fn re_contains(text: &str, ptn: &str) -> bool {
     re.is_match(text)
 }
 
+pub fn replace_all(text: &str, ptn: &str, ptn_to: &str) -> String {
+    let re = regex::Regex::new(ptn).unwrap();
+    let result = re.replace_all(text, ptn_to);
+    result.to_string()
+}
+
 #[cfg(test)]
 mod tests {
     use super::find_first_group;
