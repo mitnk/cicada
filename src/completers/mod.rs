@@ -10,6 +10,7 @@ pub mod env;
 pub mod make;
 pub mod path;
 pub mod ssh;
+pub mod utils;
 
 use crate::libs;
 use crate::parsers;
@@ -37,10 +38,9 @@ fn for_cd(line: &str) -> bool {
 }
 
 fn for_bin(line: &str) -> bool {
-    // TODO: why 'echo hi|ech<TAB>' doesn't complete in real?
-    // but passes in test cases?
-    let ptn = r"(^ *(sudo|which)? *[a-zA-Z0-9_\.-]+$)|(^.+\| *(sudo|which)? *[a-zA-Z0-9_\.-]+$)";
-    libs::re::re_contains(line, ptn)
+    let ptn = r"(^ *(sudo|which|nohup)? *[a-zA-Z0-9_\.-]+$)|(^.+\| *(sudo|which|nohup)? *[a-zA-Z0-9_\.-]+$)";
+    let result = libs::re::re_contains(line, ptn);
+    return result;
 }
 
 fn for_dots(line: &str) -> bool {
@@ -64,53 +64,42 @@ impl<Term: Terminal> Completer<Term> for CicadaCompleter {
     ) -> Option<Vec<Completion>> {
         let line = reader.buffer();
 
-        // these completions should not fail back to path completion.
-        if for_bin(line) {
+        let completions: Option<Vec<Completion>>;
+        if for_dots(line) {
+            let cpl = Arc::new(dots::DotsCompleter);
+            completions = cpl.complete(word, reader, start, _end);
+        } else if for_ssh(line) {
+            let cpl = Arc::new(ssh::SshCompleter);
+            completions = cpl.complete(word, reader, start, _end);
+        } else if for_make(line) {
+            let cpl = Arc::new(make::MakeCompleter);
+            completions = cpl.complete(word, reader, start, _end);
+        } else if for_bin(line) {
             let cpl = Arc::new(path::BinCompleter {
                 sh: self.sh.clone(),
             });
-            return cpl.complete(word, reader, start, _end);
-        }
-        if for_cd(line) {
-            let cpl = Arc::new(path::CdCompleter);
-            return cpl.complete(word, reader, start, _end);
-        }
-
-        // the following completions needs fail back to use path completion,
-        // so that `$ make generate /path/to/fi<Tab>` still works.
-        if for_ssh(line) {
-            let cpl = Arc::new(ssh::SshCompleter);
-            if let Some(x) = cpl.complete(word, reader, start, _end) {
-                if !x.is_empty() {
-                    return Some(x);
-                }
-            }
-        }
-        if for_make(line) {
-            let cpl = Arc::new(make::MakeCompleter);
-            if let Some(x) = cpl.complete(word, reader, start, _end) {
-                if !x.is_empty() {
-                    return Some(x);
-                }
-            }
-        }
-        if for_env(line) {
+            completions = cpl.complete(word, reader, start, _end);
+        } else if for_env(line) {
             let cpl = Arc::new(env::EnvCompleter);
-            if let Some(x) = cpl.complete(word, reader, start, _end) {
-                if !x.is_empty() {
-                    return Some(x);
-                }
-            }
+            completions = cpl.complete(word, reader, start, _end);
+        } else if for_cd(line) {
+            // `for_cd` should be put a bottom position, so that
+            // `cd $SOME_ENV_<TAB>` works as expected.
+            let cpl = Arc::new(path::CdCompleter);
+            // completions for `cd` should not fail back to path-completion
+            return cpl.complete(word, reader, start, _end);
+        } else {
+            completions = None;
         }
-        if for_dots(line) {
-            let cpl = Arc::new(dots::DotsCompleter);
-            if let Some(x) = cpl.complete(word, reader, start, _end) {
-                if !x.is_empty() {
-                    return Some(x);
-                }
+
+        if let Some(x) = completions {
+            if !x.is_empty() {
+                return Some(x);
             }
         }
 
+        // empty completions should fail back to path-completion,
+        // so that `$ make generate /path/to/fi<Tab>` still works.
         let cpl = Arc::new(path::PathCompleter);
         cpl.complete(word, reader, start, _end)
     }

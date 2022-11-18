@@ -668,28 +668,6 @@ fn expand_brace_range(tokens: &mut types::Tokens) {
     }
 }
 
-pub fn expand_home_string(text: &mut String) {
-    let v = vec![
-        r"(?P<head> +)~(?P<tail> +)",
-        r"(?P<head> +)~(?P<tail>/)",
-        r"^(?P<head> *)~(?P<tail>/)",
-        r"(?P<head> +)~(?P<tail> *$)",
-    ];
-    for item in &v {
-        let re;
-        if let Ok(x) = Regex::new(item) {
-            re = x;
-        } else {
-            return;
-        }
-        let home = tools::get_user_home();
-        let ss = text.clone();
-        let to = format!("$head{}$tail", home);
-        let result = re.replace_all(ss.as_str(), to.as_str());
-        *text = result.to_string();
-    }
-}
-
 fn expand_alias(sh: &Shell, tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
     let mut buff = Vec::new();

@@ -75,6 +75,9 @@ $ make install
 
 cicada will be installed under `/usr/local/bin`
 
+> I found on newer MacOS, a reboot is needed after generating a new binary.
+> This may be an bug/feature of the OS security things.
+
 ## Set cicada as your login shell
 
 **WARNING**: Please test cicada on your system before setting it as default

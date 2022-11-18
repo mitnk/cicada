@@ -1,8 +1,9 @@
 # cicada Release Notes
 
-## 0.9.33 - master
+## 0.9.33 - 2022.11.18
 
 - added multiple-line mode.
+- some completion improvements.
 
 ## 0.9.32 - 2022.07.17
 
