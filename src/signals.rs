@@ -1,12 +1,9 @@
 use errno::{errno, set_errno};
-
 use nix::sys::signal;
 use nix::sys::wait::{WaitPidFlag as WF, WaitStatus as WS, waitpid};
 use nix::unistd::Pid;
 use std::sync::Mutex;
 use std::collections::{HashMap, HashSet};
-
-use crate::tools::clog;
 
 lazy_static! {
     static ref REAP_MAP: Mutex<HashMap<i32, i32>> = Mutex::new(HashMap::new());

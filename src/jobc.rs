@@ -8,7 +8,6 @@ use nix::unistd::Pid;
 
 use crate::shell;
 use crate::signals;
-use crate::tools::clog;
 use crate::types::{self, CommandResult};
 
 pub fn get_job_line(job: &types::Job, trim: bool) -> String {

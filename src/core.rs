@@ -5,7 +5,6 @@ use std::io::{Read, Write};
 use std::os::unix::io::{FromRawFd, RawFd};
 use std::process;
 
-
 use libc;
 use nix::unistd::{ForkResult, execve, pipe};
 
@@ -16,7 +15,7 @@ use crate::libs;
 use crate::parsers;
 use crate::scripting;
 use crate::shell::{self, Shell};
-use crate::tools::{self, clog};
+use crate::tools;
 use crate::types::{CommandLine, CommandOptions, CommandResult};
 
 fn try_run_builtin_in_subprocess(sh: &mut Shell, cl: &CommandLine,

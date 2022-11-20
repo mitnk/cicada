@@ -9,7 +9,6 @@ use crate::ctime;
 use crate::history;
 use crate::parsers;
 use crate::shell::Shell;
-use crate::tools::clog;
 use crate::types::{CommandResult, CommandLine, Command};
 
 #[derive(Debug, StructOpt)]

@@ -25,6 +25,8 @@ use std::sync::Arc;
 use linefeed::{Command, Interface, ReadResult};
 
 #[macro_use]
+mod tlog;
+#[macro_use]
 mod tools;
 
 mod signals;
@@ -43,8 +45,6 @@ mod rcfile;
 mod scripting;
 mod shell;
 mod types;
-
-use crate::tools::clog;
 
 // #[allow(clippy::cast_lossless)]
 fn main() {

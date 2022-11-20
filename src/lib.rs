@@ -66,6 +66,8 @@ mod ctime;
 mod types;
 
 #[macro_use]
+mod tlog;
+#[macro_use]
 mod tools;
 
 mod builtins;

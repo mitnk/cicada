@@ -8,7 +8,6 @@ use crate::core;
 use crate::libs;
 use crate::parsers;
 use crate::shell::{self, Shell};
-use crate::tools::clog;
 use crate::types::{CommandLine, CommandResult, Tokens};
 
 /// Entry point for non-ttys (e.g. Cmd-N on MacVim)

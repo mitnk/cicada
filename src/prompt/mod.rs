@@ -4,7 +4,6 @@ mod multilines;
 
 use crate::libs;
 use crate::shell;
-use crate::tools::clog;
 
 use self::main::get_prompt_string;
 use self::main::render_prompt;

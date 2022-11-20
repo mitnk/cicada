@@ -10,14 +10,12 @@ use linefeed::complete::Suffix;
 use linefeed::complete::{Completer, Completion};
 use linefeed::prompter::Prompter;
 use linefeed::terminal::Terminal;
-
+use yaml_rust::{Yaml, YamlLoader};
 use yaml_rust::yaml::Hash;
-use yaml_rust::Yaml;
-use yaml_rust::YamlLoader;
 
 use crate::execute;
 use crate::parsers;
-use crate::tools::{self, clog};
+use crate::tools;
 
 /// Performs completion by searching dotfiles
 pub struct DotsCompleter;

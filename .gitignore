@@ -1,5 +1,6 @@
-target/
 .DS_Store
+.cargo/
+target/
 
 # cargo fmt backups
 *.bk

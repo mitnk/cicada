@@ -10,7 +10,7 @@ use rusqlite::Connection as Conn;
 use rusqlite::Error::SqliteFailure;
 
 use crate::shell;
-use crate::tools::{self, clog};
+use crate::tools;
 
 fn init_db(hfile: &str, htable: &str) {
     let path = Path::new(hfile);

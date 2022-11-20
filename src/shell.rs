@@ -12,7 +12,7 @@ use uuid::Uuid;
 use crate::core;
 use crate::libs;
 use crate::parsers;
-use crate::tools::{self, clog};
+use crate::tools;
 use crate::types::{self, CommandLine};
 
 #[derive(Debug, Clone)]

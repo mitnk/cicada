@@ -9,7 +9,6 @@ use std::path::{Path, PathBuf};
 use libc;
 use regex::Regex;
 
-use crate::ctime;
 use crate::execute;
 use crate::libs::re::re_contains;
 use crate::parsers;
@@ -27,47 +26,6 @@ macro_rules! println_stderr {
             Ok(_) => {}
             Err(e) => println!("write to stderr failed: {:?}", e)
         }
-    );
-}
-
-pub fn clog(s: &str) {
-    let file;
-    if let Ok(x) = env::var("CICADA_LOG_FILE") {
-        if x.is_empty() {
-            return;
-        }
-        file = x;
-    } else {
-        return;
-    }
-
-    let mut cfile;
-    match OpenOptions::new().append(true).create(true).open(&file) {
-        Ok(x) => cfile = x,
-        Err(e) => {
-            println!("clog: open error: {}: {}", &file, e);
-            return;
-        }
-    }
-    let pid = unsafe { libc::getpid() };
-    let now = ctime::DateTime::now();
-    let s = format!("[{}][{}] {}", now, pid, s);
-    let s = if s.ends_with('\n') { s } else { format!("{}\n", s) };
-    match cfile.write_all(s.as_bytes()) {
-        Ok(_) => {}
-        Err(e) => {
-            println!("clog: write_all failed: {}", e);
-            return;
-        }
-    }
-}
-
-macro_rules! log {
-    ($fmt:expr) => (
-        clog($fmt)
-    );
-    ($fmt:expr, $($arg:tt)*) => (
-        clog(&format!($fmt, $($arg)*));
     );
 }
 

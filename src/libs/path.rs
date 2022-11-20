@@ -6,7 +6,7 @@ use std::os::unix::fs::PermissionsExt;
 
 use regex::Regex;
 
-use crate::tools::{self, clog};
+use crate::tools;
 
 pub fn basename<'a>(path: &'a str) -> Cow<'a, str> {
     let mut pieces = path.rsplit('/');

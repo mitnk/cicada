@@ -3,7 +3,6 @@ use libc;
 use crate::builtins::utils::print_stderr_with_capture;
 use crate::jobc;
 use crate::shell::{self, Shell};
-use crate::tools::clog;
 use crate::types::{CommandResult, CommandLine, Command};
 
 pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,

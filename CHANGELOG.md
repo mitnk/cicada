@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 1.0.0 - master
+
+- Let's bump version to 1.0!
+
 ## 0.9.33 - 2022.11.18
 
 - added multiple-line mode.

@@ -6,7 +6,6 @@ use std::path::Path;
 use crate::libs;
 use crate::shell;
 use crate::tools;
-use crate::tools::clog;
 
 fn apply_underlined(prompt: &mut String) {
     prompt.push_str(libs::colored::UNDERLINED);
