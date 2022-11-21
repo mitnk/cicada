@@ -45,7 +45,7 @@ pub fn find_file_in_path(filename: &str, exec: bool) -> String {
     match env::var("PATH") {
         Ok(x) => env_path = x,
         Err(e) => {
-            println_stderr!("cicada: error in env:var(): {:?}", e);
+            println_stderr!("cicada: error with env PATH: {:?}", e);
             return String::new();
         }
     }

@@ -300,7 +300,7 @@ pub fn is_builtin(s: &str) -> bool {
     let builtins = vec![
         "alias", "bg", "cd", "cinfo", "exec", "exit", "export", "fg",
         "history", "jobs", "read", "source", "ulimit", "unalias", "vox",
-        "minfd", "set",
+        "minfd", "set", "unset",
     ];
     builtins.contains(&s)
 }

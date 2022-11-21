@@ -16,6 +16,7 @@
     - [source](#user-content-source)
     - [ulimit](#user-content-ulimit)
     - [unalias](#user-content-unalias)
+    - [unset](#user-content-unset)
     - [vox](#user-content-vox)
 
 ## alias
@@ -226,6 +227,20 @@ Currently, only `-n` (open files) and `-c` (core file size) is supported.
 ## unalias
 
 Remove an alias. Usage example: `$ unalias ls`.
+
+## unset
+
+Delete a variable or function by its name.
+
+```sh
+$ export FOO="some value"
+# prints "some value"
+$ echo $FOO
+
+$ unset FOO
+# prints ""
+$ echo $FOO
+```
 
 ## vox
 

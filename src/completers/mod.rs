@@ -80,7 +80,9 @@ impl<Term: Terminal> Completer<Term> for CicadaCompleter {
             });
             completions = cpl.complete(word, reader, start, _end);
         } else if for_env(line) {
-            let cpl = Arc::new(env::EnvCompleter);
+            let cpl = Arc::new(env::EnvCompleter {
+                sh: self.sh.clone(),
+            });
             completions = cpl.complete(word, reader, start, _end);
         } else if for_cd(line) {
             // `for_cd` should be put a bottom position, so that

@@ -172,8 +172,11 @@ fn main() {
                 }
 
                 // temporary solution for completion when alias/funcs changes
+                // FIXME: we should pass a refer of the sh, not a clone
+                // at the first place above.
                 if line.trim().starts_with("alias ") ||
                         line.trim().starts_with("unalias ") ||
+                        line.trim().starts_with("unset ") ||
                         line.trim().starts_with("source ") {
                     rl.set_completer(Arc::new(completers::CicadaCompleter {
                         sh: Arc::new(sh.clone()),

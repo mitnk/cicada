@@ -87,6 +87,9 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
     } else if cname == "unalias" {
         let cr = builtins::unalias::run(sh, cl, cmd, capture);
         return Some(cr);
+    } else if cname == "unset" {
+        let cr = builtins::unset::run(sh, cl, cmd, capture);
+        return Some(cr);
     } else if cname == "vox" {
         let cr = builtins::vox::run(sh, cl, cmd, capture);
         return Some(cr);

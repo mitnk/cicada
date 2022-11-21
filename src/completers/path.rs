@@ -42,7 +42,6 @@ impl<Term: Terminal> Completer<Term> for BinCompleter {
         _start: usize,
         _end: usize,
     ) -> Option<Vec<Completion>> {
-        // TODO: use RC::into_raw() instead
         let sh = Arc::try_unwrap(self.sh.clone());
         match sh {
             Ok(x) => Some(complete_bin(&x, word)),
@@ -227,8 +226,9 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
     }
 
     let builtins = vec![
-        "alias", "bg", "cd", "cinfo", "exec", "exit", "export", "fg", "history", "jobs", "read",
-        "source", "ulimit", "unalias", "vox", "minfd", "set",
+        "alias", "bg", "cd", "cinfo", "exec", "exit", "export", "fg",
+        "history", "jobs", "read", "source", "ulimit", "unalias", "vox",
+        "minfd", "set", "unset",
     ];
     for item in &builtins {
         if !item.starts_with(&fname) {

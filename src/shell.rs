@@ -261,6 +261,25 @@ impl Shell {
         }
     }
 
+    /// Remove environment variable, function from the environment of
+    /// the currently running process
+    pub fn remove_env(&mut self, name: &str) -> bool {
+        // function names can contain the `-` char.
+        let ptn_env = Regex::new(r"^[a-zA-Z_][a-zA-Z0-9_-]*$").unwrap();
+        if !ptn_env.is_match(name) {
+            return false;
+        }
+
+        env::remove_var(name);
+        self.envs.remove(name);
+        self.remove_func(name);
+        true
+    }
+
+    fn remove_func(&mut self, name: &str) {
+        self.funcs.remove(name);
+    }
+
     pub fn set_func(&mut self, name: &str, value: &str) {
         self.funcs.insert(name.to_string(), value.to_string());
     }
