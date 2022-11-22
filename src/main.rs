@@ -147,7 +147,7 @@ fn main() {
 
                 let line = shell::trim_multiline_prompts(&line);
                 if line.trim() == "" {
-                    jobc::try_wait_bg_jobs(&mut sh, true);
+                    jobc::try_wait_bg_jobs(&mut sh, true, sig_handler_enabled);
                     continue;
                 }
                 sh.cmd = line.clone();
@@ -183,7 +183,7 @@ fn main() {
                     }));
                 }
 
-                jobc::try_wait_bg_jobs(&mut sh, true);
+                jobc::try_wait_bg_jobs(&mut sh, true, sig_handler_enabled);
                 continue;
             }
             Ok(ReadResult::Eof) => {

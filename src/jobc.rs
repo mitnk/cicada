@@ -42,7 +42,7 @@ pub fn mark_job_as_done(sh: &mut shell::Shell, gid: i32, pid: i32, reason: &str)
 pub fn mark_job_as_stopped(sh: &mut shell::Shell, gid: i32, report: bool) {
     sh.mark_job_as_stopped(gid);
     if !report {
-        return
+        return;
     }
 
     // add an extra line to separate output of fg commands if any.
@@ -52,11 +52,12 @@ pub fn mark_job_as_stopped(sh: &mut shell::Shell, gid: i32, report: bool) {
     }
 }
 
-pub fn mark_job_member_stopped(sh: &mut shell::Shell, pid: i32, gid: i32,
-                               report: bool) {
+pub fn mark_job_member_stopped(sh: &mut shell::Shell, pid: i32, gid: i32, report: bool) {
     let _gid = if gid == 0 {
         unsafe { libc::getpgid(pid) }
-    } else { gid };
+    } else {
+        gid
+    };
 
     if let Some(job) = sh.mark_job_member_stopped(pid, gid) {
         if job.all_members_stopped() {
@@ -68,7 +69,9 @@ pub fn mark_job_member_stopped(sh: &mut shell::Shell, pid: i32, gid: i32,
 pub fn mark_job_member_continued(sh: &mut shell::Shell, pid: i32, gid: i32) {
     let _gid = if gid == 0 {
         unsafe { libc::getpgid(pid) }
-    } else { gid };
+    } else {
+        gid
+    };
 
     if let Some(job) = sh.mark_job_member_continued(pid, gid) {
         if job.all_members_running() {
@@ -119,7 +122,7 @@ pub fn waitpidx(wpid: i32, block: bool) -> types::WaitStatus {
     }
 }
 
-pub fn wait_fg_job(sh: &mut shell:: Shell, gid: i32, pids: &[i32]) -> CommandResult {
+pub fn wait_fg_job(sh: &mut shell::Shell, gid: i32, pids: &[i32]) -> CommandResult {
     let mut cmd_result = CommandResult::new();
     let mut count_waited = 0;
     let count_child = pids.len();
@@ -191,9 +194,14 @@ pub fn wait_fg_job(sh: &mut shell:: Shell, gid: i32, pids: &[i32]) -> CommandRes
     cmd_result
 }
 
-pub fn try_wait_bg_jobs(sh: &mut shell::Shell, report: bool) {
+pub fn try_wait_bg_jobs(sh: &mut shell::Shell, report: bool, sig_handler_enabled: bool) {
     if sh.jobs.is_empty() {
         return;
+    }
+
+    if !sig_handler_enabled {
+        // we need to wait pids in case CICADA_ENABLE_SIG_HANDLER=0
+        signals::handle_sigchld(Signal::SIGCHLD as i32);
     }
 
     let jobs = sh.jobs.clone();

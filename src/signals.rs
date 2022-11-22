@@ -88,7 +88,7 @@ pub fn unblock_signals() {
 }
 
 #[allow(unreachable_patterns)]
-extern fn handle_sigchld(_sig: i32) {
+pub extern fn handle_sigchld(_sig: i32) {
     let saved_errno = errno();
     let options = Some(WF::WUNTRACED | WF::WNOHANG | WF::WCONTINUED);
     loop {

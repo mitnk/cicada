@@ -11,7 +11,7 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
     }
 
     // update status of jobs if any
-    jobc::try_wait_bg_jobs(sh, false);
+    jobc::try_wait_bg_jobs(sh, false, false);
 
     let mut lines = Vec::new();
     let jobs = sh.jobs.clone();
