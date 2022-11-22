@@ -33,7 +33,7 @@ pub fn is_signal_handler_enabled() -> bool {
     match env::var("CICADA_ENABLE_SIG_HANDLER") {
         Ok(x) => {
             return x == "1";
-        },
+        }
         Err(_) => {
             return false;
         }
@@ -235,9 +235,7 @@ pub fn create_raw_fd_from_file(file_name: &str, append: bool) -> Result<i32, Str
             let fd = x.into_raw_fd();
             Ok(fd)
         }
-        Err(e) => {
-            Err(format!("{}", e))
-        }
+        Err(e) => Err(format!("{}", e)),
     }
 }
 
@@ -277,7 +275,11 @@ pub fn get_current_dir() -> String {
     str_current_dir.to_string()
 }
 
-pub fn split_into_fields(sh: &shell::Shell, line: &str, envs: &HashMap<String, String>) -> Vec<String> {
+pub fn split_into_fields(
+    sh: &shell::Shell,
+    line: &str,
+    envs: &HashMap<String, String>,
+) -> Vec<String> {
     let ifs_chars;
     if envs.contains_key("IFS") {
         ifs_chars = envs[&"IFS".to_string()].chars().collect();
@@ -290,14 +292,17 @@ pub fn split_into_fields(sh: &shell::Shell, line: &str, envs: &HashMap<String, S
     }
 
     if ifs_chars.is_empty() {
-        return line.split(&[' ', '\t', '\n'][..]).map(|x| x.to_string()).collect();
+        return line
+            .split(&[' ', '\t', '\n'][..])
+            .map(|x| x.to_string())
+            .collect();
     } else {
         return line.split(&ifs_chars[..]).map(|x| x.to_string()).collect();
     }
 }
 
 pub fn is_builtin(s: &str) -> bool {
-    let builtins = vec![
+    let builtins = [
         "alias", "bg", "cd", "cinfo", "exec", "exit", "export", "fg",
         "history", "jobs", "read", "source", "ulimit", "unalias", "vox",
         "minfd", "set", "unset",
@@ -308,8 +313,14 @@ pub fn is_builtin(s: &str) -> bool {
 pub fn init_path_env() {
     // order matters. took from `runc spec`
     let mut paths: Vec<String> = vec![];
-    for x in vec!["/usr/local/sbin", "/usr/local/bin", "/usr/sbin", "/usr/bin",
-                  "/sbin", "/bin"] {
+    for x in vec![
+        "/usr/local/sbin",
+        "/usr/local/bin",
+        "/usr/sbin",
+        "/usr/bin",
+        "/sbin",
+        "/bin",
+    ] {
         if Path::new(x).exists() {
             paths.push(x.to_string());
         }
@@ -324,6 +335,18 @@ pub fn init_path_env() {
     }
     let paths = paths.join(":");
     env::set_var("PATH", paths);
+}
+
+pub fn is_shell_altering_command(line: &str) -> bool {
+    let line = line.trim();
+    if re_contains(line, r"^[A-Za-z_][A-Za-z0-9_]*=.*$") {
+        return true;
+    }
+    line.starts_with("alias ")
+        || line.starts_with("export ")
+        || line.starts_with("unalias ")
+        || line.starts_with("unset ")
+        || line.starts_with("source ")
 }
 
 #[cfg(test)]

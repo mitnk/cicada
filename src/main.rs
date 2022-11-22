@@ -29,7 +29,6 @@ mod tlog;
 #[macro_use]
 mod tools;
 
-mod signals;
 mod builtins;
 mod calculator;
 mod completers;
@@ -44,6 +43,7 @@ mod prompt;
 mod rcfile;
 mod scripting;
 mod shell;
+mod signals;
 mod types;
 
 // #[allow(clippy::cast_lossless)]
@@ -171,17 +171,18 @@ fn main() {
                     sh.previous_cmd = line.clone();
                 }
 
-                // temporary solution for completion when alias/funcs changes
-                // FIXME: we should pass a refer of the sh, not a clone
-                // at the first place above.
-                if line.trim().starts_with("alias ") ||
-                        line.trim().starts_with("unalias ") ||
-                        line.trim().starts_with("unset ") ||
-                        line.trim().starts_with("source ") {
+                if tools::is_shell_altering_command(&line) {
+                    // since our shell object need to be passed into
+                    // `linefeed::Completer` with an Arc.
+                    // I currently do not know how to share the same sh
+                    // instance at hand with it.
+
+                    // update the Arc clone when alias/function/env changes
                     rl.set_completer(Arc::new(completers::CicadaCompleter {
                         sh: Arc::new(sh.clone()),
                     }));
                 }
+
                 jobc::try_wait_bg_jobs(&mut sh, true);
                 continue;
             }
