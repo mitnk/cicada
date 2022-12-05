@@ -28,6 +28,7 @@ pub struct Shell {
     pub previous_status: i32,
     pub is_login: bool,
     pub exit_on_error: bool,
+    pub has_terminal: bool,
     pub session_id: String,
 }
 
@@ -35,6 +36,10 @@ impl Shell {
     pub fn new() -> Shell {
         let uuid = Uuid::new_v4().as_hyphenated().to_string();
         let current_dir = tools::get_current_dir();
+        // TODO: the shell proc may have terminal later
+        // e.g. $ cicada foo.sh &
+        // then with a $ fg
+        let has_terminal = proc_has_terminal();
         let (session_id, _) = uuid.split_at(13);
         Shell {
             jobs: HashMap::new(),
@@ -48,6 +53,7 @@ impl Shell {
             previous_status: 0,
             is_login: false,
             exit_on_error: false,
+            has_terminal: has_terminal,
             session_id: session_id.to_string(),
         }
     }
@@ -1008,6 +1014,14 @@ pub fn trim_multiline_prompts(line: &str) -> String {
     let line_new = libs::re::replace_all(&line_new, r"\| *\n>> ", "| ");
     let line_new = libs::re::replace_all(&line_new, r"(?P<NEWLINE>\n)>> ", "$NEWLINE");
     line_new
+}
+
+fn proc_has_terminal() -> bool {
+    unsafe {
+        let tgid = libc::tcgetpgrp(0);
+        let pgid = libc::getpgid(0);
+        return tgid == pgid;
+    }
 }
 
 #[cfg(test)]

@@ -54,9 +54,10 @@ pub fn run_command_line(sh: &mut Shell, line: &str, tty: bool,
 fn drain_env_tokens(tokens: &mut Tokens) -> HashMap<String, String> {
     let mut envs: HashMap<String, String> = HashMap::new();
     let mut n = 0;
-    let re = Regex::new(r"^([a-zA-Z0-9_]+)=(.*)$").unwrap();
+    let ptn_env_exp = r"^([a-zA-Z_][a-zA-Z0-9_]*)=(.*)$";
+    let re = Regex::new(ptn_env_exp).unwrap();
     for (sep, text) in tokens.iter() {
-        if !sep.is_empty() || !libs::re::re_contains(text, r"^([a-zA-Z0-9_]+)=(.*)$") {
+        if !sep.is_empty() || !libs::re::re_contains(text, ptn_env_exp) {
             break;
         }
 

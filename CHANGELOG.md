@@ -1,8 +1,8 @@
 # cicada Release Notes
 
-## 1.0.0 - master
+## 0.9.34 - 2022.12.05
 
-- Let's bump version to 1.0!
+- Fixed a job control issue.
 
 ## 0.9.33 - 2022.11.18
 

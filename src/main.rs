@@ -201,6 +201,15 @@ fn main() {
             }
             Err(e) => {
                 println_stderr!("readline error: {}", e);
+                // There maybe other reason of this Err, but possibly it occurs
+                // in cases we give term to a child, and it stops, and we
+                // didn't have term back to shell in waitpid places. Here
+                // it's a last resort.
+                // FIXME: we only need this trick when job-control has issues
+                unsafe {
+                    let gid = libc::getpgid(0);
+                    shell::give_terminal_to(gid);
+                }
             }
         }
         if sig_handler_enabled {

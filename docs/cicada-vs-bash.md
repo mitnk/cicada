@@ -7,7 +7,7 @@ need to use bash as the receiver of a "copy-and-paste" command from the
 internet.
 
 For [example](https://www.gnu.org/software/gawk/manual/html_node/Quoting.html),
-the following commands in will print out `single quote: <'>`.
+the following commands in bash will print out `single quote: <'>`.
 
 ```
 $ awk 'BEGIN { print "single quote: <'"'"'>" }'

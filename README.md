@@ -84,10 +84,3 @@ $ 2 ^ 31
 ## Cicada is also a library (BETA)
 
 Read APIs here: [https://docs.rs/cicada/](https://docs.rs/cicada/).
-
-## FAQs
-
-- [Compare to bash/zsh/etc?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#user-content-compare-to-other-shells)
-- [Is cicada POSIX-compatible?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#user-content-is-cicada-posix-compatible)
-- [Will my bash/zsh scripts continue work in cicada?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#user-content-will-my-bashzsh-scripts-continue-work-in-cicada)
-- [Windows support?](https://github.com/mitnk/cicada/blob/master/docs/faq.md#user-content-windows-support)

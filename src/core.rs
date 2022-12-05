@@ -6,7 +6,7 @@ use std::os::unix::io::{FromRawFd, RawFd};
 use std::process;
 
 use libc;
-use nix::unistd::{ForkResult, execve, pipe};
+use nix::unistd::{execve, pipe, ForkResult};
 
 use crate::builtins;
 use crate::calculator;
@@ -18,18 +18,26 @@ use crate::shell::{self, Shell};
 use crate::tools;
 use crate::types::{CommandLine, CommandOptions, CommandResult};
 
-fn try_run_builtin_in_subprocess(sh: &mut Shell, cl: &CommandLine,
-                                 idx_cmd: usize, capture: bool) -> Option<i32> {
+fn try_run_builtin_in_subprocess(
+    sh: &mut Shell,
+    cl: &CommandLine,
+    idx_cmd: usize,
+    capture: bool,
+) -> Option<i32> {
     if let Some(cr) = try_run_builtin(sh, cl, idx_cmd, capture) {
         return Some(cr.status);
     }
     None
 }
 
-fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
-                   idx_cmd: usize, capture: bool) -> Option<CommandResult> {
+fn try_run_builtin(
+    sh: &mut Shell,
+    cl: &CommandLine,
+    idx_cmd: usize,
+    capture: bool,
+) -> Option<CommandResult> {
     // for builtin, only capture its outputs when it locates at the end
-    let capture = capture && idx_cmd +1 == cl.commands.len();
+    let capture = capture && idx_cmd + 1 == cl.commands.len();
 
     if idx_cmd >= cl.commands.len() {
         println_stderr!("unexpected error in try_run_builtin");
@@ -99,8 +107,13 @@ fn try_run_builtin(sh: &mut Shell, cl: &CommandLine,
 
 /// Run a pipeline (e.g. `echo hi | wc -l`)
 /// returns: (is-terminal-given, command-result)
-pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
-                    capture: bool, log_cmd: bool) -> (bool, CommandResult) {
+pub fn run_pipeline(
+    sh: &mut shell::Shell,
+    cl: &CommandLine,
+    tty: bool,
+    capture: bool,
+    log_cmd: bool,
+) -> (bool, CommandResult) {
     let mut term_given = false;
     if cl.background && capture {
         println_stderr!("cicada: cannot capture output of background cmd");
@@ -156,7 +169,11 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
     let mut pgid: i32 = 0;
     let mut fg_pids: Vec<i32> = Vec::new();
 
-    let isatty = if tty { unsafe { libc::isatty(1) == 1 } } else { false };
+    let isatty = if tty {
+        unsafe { libc::isatty(1) == 1 }
+    } else {
+        false
+    };
     let options = CommandOptions {
         isatty: isatty,
         capture_output: capture,
@@ -233,12 +250,18 @@ pub fn run_pipeline(sh: &mut shell::Shell, cl: &CommandLine, tty: bool,
 
 /// Run a single command.
 /// e.g. the `sort -k2` part of `ps ax | sort -k2 | head`
-fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
-                       options: &CommandOptions, pgid: &mut i32,
-                       term_given: &mut bool, cmd_result: &mut CommandResult,
-                       pipes: &Vec<(RawFd, RawFd)>,
-                       fds_capture_stdout: &Option<(RawFd, RawFd)>,
-                       fds_capture_stderr: &Option<(RawFd, RawFd)>) -> i32 {
+fn _run_single_command(
+    sh: &mut shell::Shell,
+    cl: &CommandLine,
+    idx_cmd: usize,
+    options: &CommandOptions,
+    pgid: &mut i32,
+    term_given: &mut bool,
+    cmd_result: &mut CommandResult,
+    pipes: &Vec<(RawFd, RawFd)>,
+    fds_capture_stdout: &Option<(RawFd, RawFd)>,
+    fds_capture_stderr: &Option<(RawFd, RawFd)>,
+) -> i32 {
     let capture = options.capture_output;
     if cl.is_single_and_builtin() {
         if let Some(cr) = try_run_builtin(sh, cl, idx_cmd, capture) {
@@ -274,7 +297,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
 
             // close pipes unrelated to current child (left side)
             if idx_cmd > 0 {
-                for i in 0..idx_cmd-1 {
+                for i in 0..idx_cmd - 1 {
                     let fds = pipes[i];
                     unsafe {
                         libc::close(fds.0);
@@ -283,7 +306,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                 }
             }
             // close pipes unrelated to current child (right side)
-            for i in idx_cmd+1..pipes_count {
+            for i in idx_cmd + 1..pipes_count {
                 let fds = pipes[i];
                 unsafe {
                     libc::close(fds.0);
@@ -521,7 +544,11 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                         }
                     }
 
-                    if options.isatty && !options.capture_output && !cl.background {
+                    if sh.has_terminal
+                        && options.isatty
+                        && !options.capture_output
+                        && !cl.background
+                    {
                         *term_given = shell::give_terminal_to(pid);
                     }
                 }
@@ -540,11 +567,11 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
 
                             let mut f = File::from_raw_fd(fds.1);
                             match f.write_all(redirect_from.1.clone().as_bytes()) {
-                                Ok(_) => {},
+                                Ok(_) => {}
                                 Err(e) => println_stderr!("cicada: write_all: {}", e),
                             }
                             match f.write_all(b"\n") {
-                                Ok(_) => {},
+                                Ok(_) => {}
                                 Err(e) => println_stderr!("cicada: write_all: {}", e),
                             }
 
@@ -578,7 +605,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                         libc::close(fds.1);
                         let mut f_out = File::from_raw_fd(fds.0);
                         match f_out.read_to_string(&mut s_out) {
-                            Ok(_) => {},
+                            Ok(_) => {}
                             Err(e) => println_stderr!("cicada: readstr: {}", e),
                         }
                         libc::close(fds.0);
@@ -587,7 +614,7 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
                         libc::close(fds.1);
                         let mut f_err = File::from_raw_fd(fds.0);
                         match f_err.read_to_string(&mut s_err) {
-                            Ok(_) => {},
+                            Ok(_) => {}
                             Err(e) => println_stderr!("cicada: readstr: {}", e),
                         }
                         libc::close(fds.0);
@@ -613,8 +640,12 @@ fn _run_single_command(sh: &mut shell::Shell, cl: &CommandLine, idx_cmd: usize,
     }
 }
 
-fn try_run_func(sh: &mut Shell, cl: &CommandLine, capture: bool,
-                log_cmd: bool) -> Option<CommandResult> {
+fn try_run_func(
+    sh: &mut Shell,
+    cl: &CommandLine,
+    capture: bool,
+    log_cmd: bool,
+) -> Option<CommandResult> {
     if cl.is_empty() {
         return None;
     }
