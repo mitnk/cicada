@@ -6,3 +6,10 @@ y
 =2=
 135
 ==
+ignore parens 1
+ignore parens 2
+foop1
+foop2
+foop3
+(foop4)
+---

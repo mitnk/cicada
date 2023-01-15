@@ -18,3 +18,13 @@ _foo=135
 echo $_foo
 unset _foo
 echo "=${_foo}="
+
+# test
+(echo "ignore parens 1")
+(echo 'ignore parens 2' | cat)
+(echo foop1)
+(echo "foop2")
+(echo "foop3")
+export fOOp4="(foop4)"
+echo $fOOp4
+echo "---"

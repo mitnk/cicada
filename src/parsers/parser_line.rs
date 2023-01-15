@@ -162,6 +162,7 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
 /// }
 // #[allow(clippy::cyclomatic_complexity)]
 pub fn parse_line(line: &str) -> LineInfo {
+    // FIXME: let rewrite this parse part and make it a separated lib
     let mut result = Vec::new();
     if tools::is_arithmetic(line) {
         for x in line.split(' ') {
@@ -181,6 +182,7 @@ pub fn parse_line(line: &str) -> LineInfo {
     let mut new_round = true;
     let mut skip_next = false;
     let mut has_dollar = false;
+    let mut parens_left_ignored = false;
 
     // for cmds like: `ll foo\>bar end` -> `ll 'foo>bar' end`
     let mut sep_made = String::new();
@@ -235,18 +237,21 @@ pub fn parse_line(line: &str) -> LineInfo {
 
         // for cases like: echo $(foo bar)
         if c == '(' && sep.is_empty() {
-            if !has_dollar {
+            if !has_dollar && token.is_empty() {
                 // temp solution for cmd like `(ls)`, `(ls -lh)`
+                parens_left_ignored = true;
                 continue;
             }
             met_parenthesis = true;
         }
-        if c == ')' && sep.is_empty() {
-            if !has_dollar {
+        if c == ')' {
+            if parens_left_ignored && !has_dollar && i == count_chars - 1 {
                 // temp solution for cmd like `(ls)`, `(ls -lh)`
                 continue;
             }
-            met_parenthesis = false;
+            if sep.is_empty() {
+                met_parenthesis = false;
+            }
         }
 
         if c == '\\' {
