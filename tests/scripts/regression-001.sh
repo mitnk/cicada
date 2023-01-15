@@ -12,3 +12,9 @@ rm -rf ./foo1
 echo =1=
 yes | cat | cat | head -n 999999 | head -n 1
 echo =2=
+
+# test env var starts with _
+_foo=135
+echo $_foo
+unset _foo
+echo "=${_foo}="

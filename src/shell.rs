@@ -440,6 +440,8 @@ pub fn expand_glob(tokens: &mut types::Tokens) {
 }
 
 fn expand_one_env(sh: &Shell, token: &str) -> String {
+    // do not combine these two into one: `\{?..\}?`,
+    // otherwize `}` in `{print $NF}` would gone.
     let re1 = Regex::new(r"^(.*?)\$([A-Za-z0-9_]+|\$|\?)(.*)$").unwrap();
     let re2 = Regex::new(r"(.*?)\$\{([A-Za-z0-9_]+|\$|\?)\}(.*)$").unwrap();
     if !re1.is_match(token) && !re2.is_match(token) {
@@ -760,22 +762,31 @@ fn expand_home(tokens: &mut types::Tokens) {
 }
 
 fn env_in_token(token: &str) -> bool {
+    if libs::re::re_contains(token, r"\$\{?[\$\?]\}?") {
+        return true;
+    }
+
+    let ptn_env_name = r"[a-zA-Z_][a-zA-Z0-9_]*";
+    let ptn_env = format!(r"\$\{{?{}\}}?", ptn_env_name);
+    if !libs::re::re_contains(token, &ptn_env) {
+        return false;
+    }
+
     // do not expand env in a command substitution, e.g.:
     // - echo $(echo '$HOME')
     // - VERSION=$(foobar -h | grep 'version: v' | awk '{print $NF}')
-    if libs::re::re_contains(token, r"^[a-zA-Z_][a-zA-Z0-9_]*=`.*`$")
-        || libs::re::re_contains(token, r"^[a-zA-Z_][a-zA-Z0-9_]*=\$\(.*\)$")
+    let ptn_cmd_sub1 = format!(r"^{}=`.*`$", ptn_env_name);
+    let ptn_cmd_sub2 = format!(r"^{}=\$\(.*\)$", ptn_env_name);
+    if libs::re::re_contains(token, &ptn_cmd_sub1)
+        || libs::re::re_contains(token, &ptn_cmd_sub2)
         || libs::re::re_contains(token, r"^\$\(.+\)$")
     {
         return false;
     }
 
-    if libs::re::re_contains(token, r"\$\{?[a-zA-Z][a-zA-Z0-9_]*\}?") {
-        return !libs::re::re_contains(token, r"='.*\$\{?[a-zA-Z][a-zA-Z0-9_]*\}?.*'$");
-    }
-
-    libs::re::re_contains(token, r"\$\{?\$\}?") ||
-        libs::re::re_contains(token, r"\$\{?\?\}?")
+    // for cmd-line like `alias foo='echo $PWD'`
+    let ptn_env = format!(r"='.*\$\{{?{}\}}?.*'$", ptn_env_name);
+    return !libs::re::re_contains(token, &ptn_env);
 }
 
 pub fn expand_env(sh: &Shell, tokens: &mut types::Tokens) {
@@ -1027,6 +1038,7 @@ fn proc_has_terminal() -> bool {
 #[cfg(test)]
 mod tests {
     use std::env;
+    use super::env_in_token;
     use super::expand_alias;
     use super::expand_brace;
     use super::expand_brace_range;
@@ -1271,6 +1283,34 @@ mod tests {
         ];
         expand_brace(&mut tokens);
         assert_vec_eq(tokens, exp_tokens);
+    }
+
+    #[test]
+    fn test_env_in_token() {
+        assert!(env_in_token("$foo"));
+        assert!(env_in_token("${foo}"));
+        assert!(env_in_token("$foo125"));
+        assert!(env_in_token("$fo_o125"));
+        assert!(env_in_token("$_foo"));
+        assert!(env_in_token("$_foo12"));
+        assert!(env_in_token("${_foo12}"));
+
+        assert!(env_in_token("$$"));
+        assert!(env_in_token("$?"));
+        assert!(env_in_token("${$}"));
+        assert!(env_in_token("${?}"));
+
+        assert!(!env_in_token("foobar"));
+        assert!(!env_in_token("{foobar}"));
+        assert!(!env_in_token("foobar123"));
+        assert!(!env_in_token("foobar_123"));
+        assert!(!env_in_token("$1"));
+        assert!(!env_in_token("$(echo $HOME)"));
+        assert!(!env_in_token("$(echo \"$HOME\")"));
+        assert!(!env_in_token("$(echo \'$HOME\')"));
+        assert!(!env_in_token("VERSION=$(foobar -h | grep 'version: v' | awk '{print $NF}')"));
+        assert!(!env_in_token("VERSION=`foobar -h | grep 'version: v' | awk '{print $NF}'`"));
+        assert!(!env_in_token("foo='echo $PWD'"));
     }
 
     #[test]
