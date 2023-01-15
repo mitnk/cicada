@@ -1,5 +1,14 @@
 # cicada Release Notes
 
+## 0.9.35 - 2023.01.15
+
+- Git branch name length in PROMPT can be adjusted.
+- Fixed an issue of env names start with `_`
+- Fixed an issue of parenthesis in command:
+  - e.g. `(echo "foo")`
+  - e.g. `foo="(135)"`
+- New builtin: unpath
+
 ## 0.9.34 - 2022.12.05
 
 - Fixed a job control issue.
