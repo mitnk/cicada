@@ -282,6 +282,17 @@ impl Shell {
         true
     }
 
+    pub fn remove_path(&mut self, path: &str) {
+        match env::var("PATH") {
+            Ok(paths) => {
+                let mut paths_new: Vec<&str> = paths.split(":").collect();
+                paths_new.retain(|&x| x != path);
+                env::set_var("PATH", paths_new.join(":").as_str());
+            }
+            Err(_) => ()
+        }
+    }
+
     fn remove_func(&mut self, name: &str) {
         self.funcs.remove(name);
     }

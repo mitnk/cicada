@@ -98,6 +98,9 @@ fn try_run_builtin(
     } else if cname == "unset" {
         let cr = builtins::unset::run(sh, cl, cmd, capture);
         return Some(cr);
+    } else if cname == "unpath" {
+        let cr = builtins::unpath::run(sh, cl, cmd, capture);
+        return Some(cr);
     } else if cname == "vox" {
         let cr = builtins::vox::run(sh, cl, cmd, capture);
         return Some(cr);

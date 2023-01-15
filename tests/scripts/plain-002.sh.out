@@ -8,3 +8,5 @@ world hello
 a= b=2 c=1
 a=1 b=2 3 4
 ===2===
+/usr/bin:/bin:/usr/local/bin
+===3===

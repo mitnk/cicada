@@ -16,6 +16,7 @@
     - [source](#user-content-source)
     - [ulimit](#user-content-ulimit)
     - [unalias](#user-content-unalias)
+    - [unpath](#user-content-unpath)
     - [unset](#user-content-unset)
     - [vox](#user-content-vox)
 
@@ -227,6 +228,17 @@ Currently, only `-n` (open files) and `-c` (core file size) is supported.
 ## unalias
 
 Remove an alias. Usage example: `$ unalias ls`.
+
+## unpath
+
+Remove one item from the system variable `PATH`. Example:
+```
+$ echo $PATH
+/usr/bin:/bin:/opt/homebrew/envs/somename/bin:/usr/local/bin
+$ unpath /opt/homebrew/envs/somename/bin
+$ echo $PATH
+/usr/bin:/bin:/usr/local/bin
+```
 
 ## unset
 

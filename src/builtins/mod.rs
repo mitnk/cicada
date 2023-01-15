@@ -15,5 +15,6 @@ pub mod vox;
 pub mod ulimit;
 pub mod minfd;
 pub mod set;
+pub mod unpath;
 pub mod unset;
 pub mod utils;

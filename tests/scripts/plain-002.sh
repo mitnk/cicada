@@ -22,3 +22,10 @@ read a b <<< '1 2 3 4'
 echo "a=$a b=$b"
 
 echo ===2===
+
+export PATH_OLD="$PATH"
+export PATH=/usr/bin:/bin:/opt/homebrew/envs/somename/bin:/usr/local/bin
+unpath /opt/homebrew/envs/somename/bin
+echo $PATH
+export PATH="$PATH_OLD"
+echo ===3===

@@ -305,7 +305,7 @@ pub fn is_builtin(s: &str) -> bool {
     let builtins = [
         "alias", "bg", "cd", "cinfo", "exec", "exit", "export", "fg",
         "history", "jobs", "read", "source", "ulimit", "unalias", "vox",
-        "minfd", "set", "unset",
+        "minfd", "set", "unset", "unpath",
     ];
     builtins.contains(&s)
 }
