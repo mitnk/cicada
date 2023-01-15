@@ -22,6 +22,13 @@ there won't be any logs be written.
 
 default: `""` (empty)
 
+## CICADA_GITBR_MAX_LEN
+
+Cicada make git branch name shorter based on this value when showing it in
+prompt.
+
+default: 32
+
 ## CICADA_GITBR_PREFIX
 
 In [prompt item](https://github.com/mitnk/cicada/blob/master/docs/prompt.md#user-content-available-prompt-items)

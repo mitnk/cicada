@@ -169,7 +169,7 @@ mod tests {
         assert_eq!("u138", render_prompt(&sh, "$FOOBAR8"));
 
         assert_eq!("$67", render_prompt(&sh, "$67"));
-        assert_eq!("<NOT_EXISTS>", render_prompt(&sh, "$NOT_EXISTS"));
+        assert_eq!("==", render_prompt(&sh, "=${NOT_EXISTS}="));
 
         assert_eq!("$", render_prompt(&sh, "$"));
         assert_eq!("$$", render_prompt(&sh, "$$"));

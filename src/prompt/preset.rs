@@ -152,7 +152,28 @@ fn apply_gitbr(prompt: &mut String) {
         if let Ok(x) = env::var("CICADA_GITBR_PREFIX") {
             prompt.push_str(&x);
         }
-        prompt.push_str(&branch);
+
+        let _len_default: i32 = 32;
+        let mut len_max = if let Ok(x) = env::var("CICADA_GITBR_MAX_LEN") {
+            match x.parse::<i32>() {
+                Ok(n) => n,
+                Err(_) => _len_default,
+            }
+        } else {
+            _len_default
+        };
+        if len_max <= 0 {
+            len_max = _len_default;
+        }
+
+        if branch.len() as i32 <= len_max {
+            prompt.push_str(&branch);
+        } else {
+            let len = branch.len() as i32;
+            let offset = (len - len_max + 2) as usize;
+            let branch_short = format!("..{}", &branch[offset..]);
+            prompt.push_str(&branch_short);
+        }
         if let Ok(x) = env::var("CICADA_GITBR_SUFFIX") {
             prompt.push_str(&x);
         }
@@ -229,12 +250,6 @@ pub fn apply_pyenv(prompt: &mut String) {
     }
 }
 
-fn apply_others(prompt: &mut String, token: &str) {
-    log!("unknown prompt item: {:?}", token);
-    let s = format!("<{}>", token);
-    prompt.push_str(&s);
-}
-
 pub fn apply_preset_item(sh: &shell::Shell, prompt: &mut String, token: &str) {
     match token.to_ascii_lowercase().as_ref() {
         "black" => apply_black(prompt),
@@ -261,6 +276,6 @@ pub fn apply_preset_item(sh: &shell::Shell, prompt: &mut String, token: &str) {
         "white" => apply_white(prompt),
         "white_b" => apply_white_b(prompt),
         "white_bg" => apply_white_bg(prompt),
-        _ => apply_others(prompt, token),
+        _ => (),
     }
 }
