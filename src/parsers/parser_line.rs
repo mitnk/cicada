@@ -245,9 +245,13 @@ pub fn parse_line(line: &str) -> LineInfo {
             met_parenthesis = true;
         }
         if c == ')' {
-            if parens_left_ignored && !has_dollar && i == count_chars - 1 {
+            if parens_left_ignored && !has_dollar {
                 // temp solution for cmd like `(ls)`, `(ls -lh)`
-                continue;
+                if i == count_chars - 1 ||
+                        (i + 1 < count_chars &&
+                         line.chars().nth(i + 1).unwrap() == ' ') {
+                    continue;
+                }
             }
             if sep.is_empty() {
                 met_parenthesis = false;

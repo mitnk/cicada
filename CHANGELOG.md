@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 0.9.36 - 2023.02.11
+
+- Fixed issues run `!sort` inside Vim.
+
 ## 0.9.35 - 2023.01.15
 
 - Git branch name length in PROMPT can be adjusted.

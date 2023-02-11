@@ -49,17 +49,23 @@ Move it to right place and add runable permisson:
 
 ```
 # on Mac
-$ mv cicada-mac-0.9.2 /usr/local/bin/cicada
+$ mv cicada-mac-arm64 /usr/local/bin/cicada
 
 # on Linux
-$ mv cicada-linux-0.9.2 /usr/local/bin/cicada
+$ mv cicada-linux-x86_64 /usr/local/bin/cicada
 
 $ chmod +x /usr/local/bin/cicada
 ```
 
-> Due to too many existing CPU arch and different libc versions on same system,
-> I tend to stop providing pre-built binaries. Please consider to use other
-> options.
+If you encounter error when running the binary downloaded:
+
+```
+... libc.so.6: version `GLIBC_2.31' not found (required by ./cicada)
+```
+
+That indicate the GLIBC version on your system is too old.  Please try install
+cicada with other options.
+
 
 ### Option C: via Source
 

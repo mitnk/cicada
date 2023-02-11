@@ -28,3 +28,11 @@ echo "=${_foo}="
 export fOOp4="(foop4)"
 echo $fOOp4
 echo "---"
+
+# commands from vim e.g. !sort
+echo c5 > .sort-input
+echo a1 >> .sort-input
+echo b3 >> .sort-input
+(sort) < .sort-input > .sort-output
+cat .sort-output
+rm -f .sort-input .sort-output
