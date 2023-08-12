@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 0.9.38 - 2023.08.12
+
+- Supports more colors in the prompt.
+
 ## 0.9.37 - 2023.08.12
 
 - upgraded dependency libs.
