@@ -19,5 +19,5 @@ jobs:
     - name: Upload release binary
       uses: actions/upload-artifact@v2
       with:
-        name: your-binary
-        path: target/armv7-unknown-linux-gnueabihf/release/cicada-armv7-unknown-linux-gnueabihf
+        name: cicada-armv7-unknown-linux-gnueabihf
+        path: target/armv7-unknown-linux-gnueabihf/release/cicada
