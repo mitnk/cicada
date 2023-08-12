@@ -1,4 +1,4 @@
-name: build-armv7
+name: cross-build-binaries
 
 on:
   push:
@@ -45,9 +45,16 @@ jobs:
     - name: Build armv7-unknown-linux-gnueabihf
       run: cross build --target armv7-unknown-linux-gnueabihf --release
 
+    - name: Rename binaries
+      run: |
+        mkdir -p cicada-bins
+        for arch in $(ls target); do
+            cp target/${arch}/release/cicada cicada-bins/cicada-${arch}
+        done
+
     - name: Upload release binary
       uses: actions/upload-artifact@v3
       with:
         name: cicada-builds
-        path: target/**/release/cicada
+        path: cicada-bins/
         retention-days: 14
