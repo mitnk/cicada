@@ -12,12 +12,43 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Install cross
-      run: cargo install cross
-    - name: Build
-      run: cross build --target armv7-unknown-linux-gnueabihf --release
-    - name: Upload release binary
-      uses: actions/upload-artifact@v2
+    - name: Cache cargo registry
+      uses: actions/cache@v3
       with:
-        name: cicada-armv7-unknown-linux-gnueabihf
-        path: target/armv7-unknown-linux-gnueabihf/release/cicada
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+    - name: Cache cargo index
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+    - name: Cache cargo build
+      uses: actions/cache@v3
+      with:
+        path: ~/.cargo/bin
+        key: ${{ runner.os }}-cargo-bin-${{ hashFiles('**/Cargo.lock') }}
+    - name: Install cross
+      run: |
+          if ! [ -x "$(command -v cross)" ]; then
+            cargo install cross
+          fi
+    - name: Build x86_64-unknown-linux-gnu
+      run: cross build --target x86_64-unknown-linux-gnu --release
+    - name: Build aarch64-unknown-linux-gnu
+      run: cross build --target aarch64-unknown-linux-gnu --release
+    - name: Build aarch64-apple-darwin
+      run: cross build --target aarch64-apple-darwin --release
+    - name: Build aarch64-unknown-linux-gnu
+      run: cross build --target aarch64-unknown-linux-gnu --release
+    - name: Build aarch64-unknown-linux-musl
+      run: cross build --target aarch64-unknown-linux-musl --release
+    - name: Build armv7-unknown-linux-gnueabihf
+      run: cross build --target armv7-unknown-linux-gnueabihf --release
+    - name: Build x86_64-apple-darwin
+      run: cross build --target x86_64-apple-darwin --release
+    - name: Upload release binary
+      uses: actions/upload-artifact@v3
+      with:
+        name: cicada-builds
+        path: target/**/release/cicada
+        retention-days: 14
