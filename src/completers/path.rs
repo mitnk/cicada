@@ -234,7 +234,7 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
         if !item.starts_with(&fname) {
             continue;
         }
-        if checker.contains(item.clone()) {
+        if checker.contains(*item) {
             continue;
         }
         checker.insert(item.to_string());

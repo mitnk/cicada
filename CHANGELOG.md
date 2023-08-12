@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 0.9.37 - 2023.08.12
+
+- upgraded dependency libs.
+
 ## 0.9.36 - 2023.02.11
 
 - Fixed issues run `!sort` inside Vim.
