@@ -1,4 +1,4 @@
-name: cross-build-binaries
+name: cross-build-linux-binaries
 
 on:
   push:
@@ -49,7 +49,9 @@ jobs:
       run: |
         mkdir -p cicada-bins
         for arch in $(ls target); do
+          if [[ -e "target/${arch}/release/cicada" ]]; then
             cp target/${arch}/release/cicada cicada-bins/cicada-${arch}
+          fi
         done
 
     - name: Upload release binary
