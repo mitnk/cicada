@@ -24,6 +24,8 @@ use std::sync::Arc;
 
 use linefeed::{Command, Interface, ReadResult};
 
+use cicada::CommandResult;
+
 #[macro_use]
 mod tlog;
 #[macro_use]
@@ -163,6 +165,22 @@ fn main() {
                 let cr_list = execute::run_command_line(&mut sh, &line, true, false);
                 if let Some(last) = cr_list.last() {
                     status = last.status;
+                    if status != 0 {
+                        // If the command failed, try to execute it with Bash
+                        let output = Command::new("bash")
+                            .arg("-c")
+                            .arg(&line)
+                            .output()
+                            .expect("Failed to execute command");
+                
+                        // Convert the output to a CommandResult
+                        let last = CommandResult {
+                            status: output.status.code().unwrap_or(1),
+                            stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+                            stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+                        };
+                        status = last.status;
+                    }
                 }
                 let tse = ctime::DateTime::now().unix_timestamp();
 
