@@ -60,36 +60,28 @@ fn main() {
 
     let mut sh = shell::Shell::new();
     let args: Vec<String> = env::args().collect();
-    // only load RC in a login shell
-    if args.len() > 0 && args[0].starts_with("-") {
+
+    if libs::progopts::is_login(&args) {
         rcfile::load_rc_files(&mut sh);
         sh.is_login = true;
     }
 
-    if args.len() > 1 {
-        if !args[1].starts_with("-") {
-            log!("run script: {:?} ", &args);
-            scripting::run_script(&mut sh, &args);
-            return;
-        }
-
-        // this section handles `cicada -c 'echo hi && echo yoo'`,
-        // e.g. it could be triggered from Vim (`:!ls` etc).
-        if args[1] == "-c" {
-            let line = tools::env_args_to_command_line();
-            log!("run with -c args: {}", &line);
-            execute::run_command_line(&mut sh, &line, false, false);
-            return;
-        }
-
-        if args[1] == "--login" || args[1] == "-l" {
-            rcfile::load_rc_files(&mut sh);
-            sh.is_login = true;
-        }
+    if libs::progopts::is_script(&args) {
+        log!("run script: {:?} ", &args);
+        scripting::run_script(&mut sh, &args);
+        return;
     }
 
-    let isatty: bool = unsafe { libc::isatty(0) == 1 };
-    if !isatty {
+    if libs::progopts::is_command_string(&args) {
+        // handles `cicada -c 'echo hi && echo yoo'`,
+        // e.g. it could be triggered from Vim (`:!ls` etc).
+        let line = tools::env_args_to_command_line();
+        log!("run with -c args: {}", &line);
+        execute::run_command_line(&mut sh, &line, false, false);
+        return;
+    }
+
+    if libs::progopts::is_non_tty() {
         // cases like open a new MacVim window,
         // (i.e. CMD+N) on an existing one
         execute::run_procs_for_non_tty(&mut sh);

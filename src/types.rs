@@ -53,7 +53,7 @@ impl WaitStatus {
     }
 
     pub fn get_errno(&self) -> nix::Error {
-        nix::Error::from_i32(self.2)
+        nix::Error::from_raw(self.2)
     }
 
     pub fn is_exited(&self) -> bool {
@@ -259,6 +259,7 @@ impl Job {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Default)]
 pub struct CommandResult {
     pub gid: i32,
@@ -296,6 +297,7 @@ impl CommandResult {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Default)]
 pub struct CommandOptions {
     pub background: bool,

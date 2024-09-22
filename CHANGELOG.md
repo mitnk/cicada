@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 0.9.39 - 2024.09.22
+
+- upgraded deps to support latest Rust.
+
 ## 0.9.38 - 2023.08.12
 
 - Supports more colors in the prompt.

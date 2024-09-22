@@ -9,7 +9,6 @@ static TIOCGWINSZ: c_ulong = 0x5413;
 #[cfg(any(
     target_os = "macos",
     target_os = "ios",
-    target_os = "bitrig",
     target_os = "dragonfly",
     target_os = "freebsd",
     target_os = "netbsd",

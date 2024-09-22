@@ -2,11 +2,13 @@ use std::env;
 use std::ffi::{CStr, CString};
 use std::fs::File;
 use std::io::{Read, Write};
-use std::os::unix::io::{FromRawFd, RawFd};
+use std::os::unix::io::FromRawFd;
+use std::os::fd::RawFd;
 use std::process;
 
 use libc;
-use nix::unistd::{execve, pipe, ForkResult};
+use nix::unistd::{execve, ForkResult};
+use libs::pipes::pipe;
 
 use crate::builtins;
 use crate::calculator;
@@ -154,16 +156,16 @@ pub fn run_pipeline(
             }
         }
     }
+
     if errored_pipes {
         // release fds that already created when errors occurred
-        unsafe {
-            for fds in pipes {
-                libc::close(fds.0);
-                libc::close(fds.1);
-            }
+        for fds in pipes {
+            libs::close(fds.0);
+            libs::close(fds.1);
         }
         return (false, CommandResult::error());
     }
+
     if pipes.len() + 1 != length {
         println!("cicada: invalid command: unmatched pipes count");
         return (false, CommandResult::error());
@@ -198,10 +200,8 @@ pub fn run_pipeline(
             Ok(fds) => fds_capture_stderr = Some(fds),
             Err(e) => {
                 if let Some(fds) = fds_capture_stdout {
-                    unsafe {
-                        libc::close(fds.0);
-                        libc::close(fds.1);
-                    }
+                    libs::close(fds.0);
+                    libs::close(fds.1);
                 }
                 println_stderr!("cicada: pipeline3: {}", e);
                 return (false, CommandResult::error());
@@ -280,6 +280,7 @@ fn _run_single_command(
     let pipes_count = pipes.len();
     let mut fds_stdin = None;
     let cmd = cl.commands.get(idx_cmd).unwrap();
+
     if cmd.has_here_string() {
         match pipe() {
             Ok(fds) => fds_stdin = Some(fds),
@@ -302,32 +303,26 @@ fn _run_single_command(
             if idx_cmd > 0 {
                 for i in 0..idx_cmd - 1 {
                     let fds = pipes[i];
-                    unsafe {
-                        libc::close(fds.0);
-                        libc::close(fds.1);
-                    }
+                    libs::close(fds.0);
+                    libs::close(fds.1);
                 }
             }
             // close pipes unrelated to current child (right side)
             for i in idx_cmd + 1..pipes_count {
                 let fds = pipes[i];
-                unsafe {
-                    libc::close(fds.0);
-                    libc::close(fds.1);
-                }
+                libs::close(fds.0);
+                libs::close(fds.1);
             }
             // close pipe fds for capturing stdout/stderr
             // (they're only used in last child)
             if idx_cmd < pipes_count {
-                unsafe {
-                    if let Some(fds) = fds_capture_stdout {
-                        libc::close(fds.0);
-                        libc::close(fds.1);
-                    }
-                    if let Some(fds) = fds_capture_stderr {
-                        libc::close(fds.0);
-                        libc::close(fds.1);
-                    }
+                if let Some(fds) = fds_capture_stdout {
+                    libs::close(fds.0);
+                    libs::close(fds.1);
+                }
+                if let Some(fds) = fds_capture_stderr {
+                    libs::close(fds.0);
+                    libs::close(fds.1);
                 }
             }
 
@@ -345,19 +340,15 @@ fn _run_single_command(
             // (in child) replace stdin/stdout with read/write ends of pipe
             if idx_cmd > 0 {
                 let fds_prev = pipes[idx_cmd - 1];
-                unsafe {
-                    libc::dup2(fds_prev.0, 0);
-                    libc::close(fds_prev.0);
-                    libc::close(fds_prev.1);
-                }
+                libs::dup2(fds_prev.0, 0);
+                libs::close(fds_prev.0);
+                libs::close(fds_prev.1);
             }
             if idx_cmd < pipes_count {
                 let fds = pipes[idx_cmd];
-                unsafe {
-                    libc::dup2(fds.1, 1);
-                    libc::close(fds.1);
-                    libc::close(fds.0);
-                }
+                libs::dup2(fds.1, 1);
+                libs::close(fds.1);
+                libs::close(fds.0);
             }
 
             if cmd.has_redirect_from() {
@@ -366,20 +357,17 @@ fn _run_single_command(
                     if fd == -1 {
                         process::exit(1);
                     }
-                    unsafe {
-                        libc::dup2(fd, 0);
-                        libc::close(fd);
-                    }
+
+                    libs::dup2(fd, 0);
+                    libs::close(fd);
                 }
             }
 
             if cmd.has_here_string() {
                 if let Some(fds) = fds_stdin {
-                    unsafe {
-                        libc::close(fds.1);
-                        libc::dup2(fds.0, 0);
-                        libc::close(fds.0);
-                    }
+                    libs::close(fds.1);
+                    libs::dup2(fds.0, 0);
+                    libs::close(fds.0);
                 }
             }
 
@@ -390,34 +378,30 @@ fn _run_single_command(
                 let op_ = &item.1;
                 let to_ = &item.2;
                 if to_ == "&1" && from_ == "2" {
-                    unsafe {
-                        if idx_cmd < pipes_count {
-                            libc::dup2(1, 2);
-                        } else if !options.capture_output {
-                            let fd = libc::dup(1);
-                            if fd == -1 {
-                                println_stderr!("cicada: dup error");
-                                process::exit(1);
-                            }
-                            libc::dup2(fd, 2);
-                        } else {
-                            // note: capture output with redirections does not
-                            // make much sense
+                    if idx_cmd < pipes_count {
+                        libs::dup2(1, 2);
+                    } else if !options.capture_output {
+                        let fd = libs::dup(1);
+                        if fd == -1 {
+                            println_stderr!("cicada: dup error");
+                            process::exit(1);
                         }
+                        libs::dup2(fd, 2);
+                    } else {
+                        // note: capture output with redirections does not
+                        // make much sense
                     }
                 } else if to_ == "&2" && from_ == "1" {
-                    unsafe {
-                        if idx_cmd < pipes_count || !options.capture_output {
-                            let fd = libc::dup(2);
-                            if fd == -1 {
-                                println_stderr!("cicada: dup error");
-                                process::exit(1);
-                            }
-                            libc::dup2(fd, 1);
-                        } else {
-                            // note: capture output with redirections does not
-                            // make much sense
+                    if idx_cmd < pipes_count || !options.capture_output {
+                        let fd = libs::dup(2);
+                        if fd == -1 {
+                            println_stderr!("cicada: dup error");
+                            process::exit(1);
                         }
+                        libs::dup2(fd, 1);
+                    } else {
+                        // note: capture output with redirections does not
+                        // make much sense
                     }
                 } else {
                     let append = op_ == ">>";
@@ -429,14 +413,10 @@ fn _run_single_command(
                             }
 
                             if from_ == "1" {
-                                unsafe {
-                                    libc::dup2(fd, 1);
-                                }
+                                libs::dup2(fd, 1);
                                 stdout_redirected = true;
                             } else {
-                                unsafe {
-                                    libc::dup2(fd, 2);
-                                }
+                                libs::dup2(fd, 2);
                                 stderr_redirected = true;
                             }
                         }
@@ -450,20 +430,18 @@ fn _run_single_command(
 
             // capture output of last process if needed.
             if idx_cmd == pipes_count && options.capture_output {
-                unsafe {
-                    if !stdout_redirected {
-                        if let Some(fds) = fds_capture_stdout {
-                            libc::close(fds.0);
-                            libc::dup2(fds.1, 1);
-                            libc::close(fds.1);
-                        }
+                if !stdout_redirected {
+                    if let Some(fds) = fds_capture_stdout {
+                        libs::close(fds.0);
+                        libs::dup2(fds.1, 1);
+                        libs::close(fds.1);
                     }
-                    if !stderr_redirected {
-                        if let Some(fds) = fds_capture_stderr {
-                            libc::close(fds.0);
-                            libc::dup2(fds.1, 2);
-                            libc::close(fds.1);
-                        }
+                }
+                if !stderr_redirected {
+                    if let Some(fds) = fds_capture_stderr {
+                        libs::close(fds.0);
+                        libs::dup2(fds.1, 2);
+                        libs::close(fds.1);
                     }
                 }
             }
@@ -566,7 +544,7 @@ fn _run_single_command(
                 if redirect_from.0 == "<<<" {
                     if let Some(fds) = fds_stdin {
                         unsafe {
-                            libc::close(fds.0);
+                            libs::close(fds.0);
 
                             let mut f = File::from_raw_fd(fds.1);
                             match f.write_all(redirect_from.1.clone().as_bytes()) {
@@ -577,8 +555,6 @@ fn _run_single_command(
                                 Ok(_) => {}
                                 Err(e) => println_stderr!("cicada: write_all: {}", e),
                             }
-
-                            libc::close(fds.1);
                         }
                     }
                 }
@@ -587,16 +563,12 @@ fn _run_single_command(
             // (in parent) close unused pipe ends
             if idx_cmd < pipes_count {
                 let fds = pipes[idx_cmd];
-                unsafe {
-                    libc::close(fds.1);
-                }
+                libs::close(fds.1);
             }
             if idx_cmd > 0 {
-                unsafe {
-                    // close pipe end only after dupped in the child
-                    let fds = pipes[idx_cmd - 1];
-                    libc::close(fds.0);
-                }
+                // close pipe end only after dupped in the child
+                let fds = pipes[idx_cmd - 1];
+                libs::close(fds.0);
             }
 
             if idx_cmd == pipes_count && options.capture_output {
@@ -605,22 +577,21 @@ fn _run_single_command(
 
                 unsafe {
                     if let Some(fds) = fds_capture_stdout {
-                        libc::close(fds.1);
-                        let mut f_out = File::from_raw_fd(fds.0);
-                        match f_out.read_to_string(&mut s_out) {
+                        libs::close(fds.1);
+
+                        let mut f = File::from_raw_fd(fds.0);
+                        match f.read_to_string(&mut s_out) {
                             Ok(_) => {}
                             Err(e) => println_stderr!("cicada: readstr: {}", e),
                         }
-                        libc::close(fds.0);
                     }
                     if let Some(fds) = fds_capture_stderr {
-                        libc::close(fds.1);
+                        libs::close(fds.1);
                         let mut f_err = File::from_raw_fd(fds.0);
                         match f_err.read_to_string(&mut s_err) {
                             Ok(_) => {}
                             Err(e) => println_stderr!("cicada: readstr: {}", e),
                         }
-                        libc::close(fds.0);
                     }
                 }
 
