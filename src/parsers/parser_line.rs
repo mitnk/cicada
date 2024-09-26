@@ -50,7 +50,7 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
     let mut sep = String::new();
     let mut token = String::new();
     let mut has_backslash = false;
-    let len = line.len();
+    let len = line.chars().count();
     for (i, c) in line.chars().enumerate() {
         if has_backslash {
             token.push('\\');
@@ -950,6 +950,13 @@ mod tests {
             ("\"".to_string(), "a\"b".to_string()),
         ];
         let line_exp = "echo \"a\\\"b\"";
+        assert_eq!(tokens_to_line(&tokens), line_exp);
+
+        let tokens = vec![
+            ("".to_string(), "echo".to_string()),
+            ("\"".to_string(), "中文".to_string()),
+        ];
+        let line_exp = "echo \"中文\"";
         assert_eq!(tokens_to_line(&tokens), line_exp);
     }
 }

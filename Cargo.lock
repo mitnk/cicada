@@ -102,7 +102,7 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
 name = "cicada"
-version = "0.9.39"
+version = "0.9.40"
 dependencies = [
  "clap 3.2.25",
  "errno 0.3.9",

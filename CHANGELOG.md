@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 0.9.40 - 2024.09.26
+
+- Fix a Unicode issue for commands end with `&`.
+
 ## 0.9.39 - 2024.09.22
 
 - upgraded deps to support latest Rust.
