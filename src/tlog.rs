@@ -17,8 +17,8 @@ macro_rules! log {
             let msg = $fmt;
             match std::fs::OpenOptions::new().append(true).create(true).open(&log_file) {
                 Ok(mut cfile) => {
-                    let pid = crate::tlog::getpid();
-                    let now = crate::ctime::DateTime::now();
+                    let pid = $crate::tlog::getpid();
+                    let now = $crate::ctime::DateTime::now();
                     let msg = format!("[{}][{}] {}", now, pid, msg);
                     let msg = if msg.ends_with('\n') { msg } else { format!("{}\n", msg) };
                     match cfile.write_all(msg.as_bytes()) {

@@ -8,7 +8,7 @@ use regex::Regex;
 
 use crate::tools;
 
-pub fn basename<'a>(path: &'a str) -> Cow<'a, str> {
+pub fn basename(path: &str) -> Cow<'_, str> {
     let mut pieces = path.rsplit('/');
     match pieces.next() {
         Some(p) => p.into(),
@@ -41,43 +41,39 @@ pub fn expand_home(text: &str) -> String {
 }
 
 pub fn find_file_in_path(filename: &str, exec: bool) -> String {
-    let env_path;
-    match env::var("PATH") {
-        Ok(x) => env_path = x,
+    let env_path = match env::var("PATH") {
+        Ok(x) => x,
         Err(e) => {
             println_stderr!("cicada: error with env PATH: {:?}", e);
             return String::new();
         }
-    }
+    };
     let vec_path: Vec<&str> = env_path.split(':').collect();
     for p in &vec_path {
         match read_dir(p) {
             Ok(list) => {
-                for entry in list {
-                    if let Ok(entry) = entry {
-                        if let Ok(name) = entry.file_name().into_string() {
-                            if name != filename {
-                                continue;
-                            }
+                for entry in list.flatten() {
+                    if let Ok(name) = entry.file_name().into_string() {
+                        if name != filename {
+                            continue;
+                        }
 
-                            if exec {
-                                let _mode;
-                                match entry.metadata() {
-                                    Ok(x) => _mode = x,
-                                    Err(e) => {
-                                        println_stderr!("cicada: metadata error: {:?}", e);
-                                        continue;
-                                    }
-                                }
-                                let mode = _mode.permissions().mode();
-                                if mode & 0o111 == 0 {
-                                    // not binary
+                        if exec {
+                            let _mode = match entry.metadata() {
+                                Ok(x) => x,
+                                Err(e) => {
+                                    println_stderr!("cicada: metadata error: {:?}", e);
                                     continue;
                                 }
+                            };
+                            let mode = _mode.permissions().mode();
+                            if mode & 0o111 == 0 {
+                                // not binary
+                                continue;
                             }
-
-                            return entry.path().to_string_lossy().to_string();
                         }
+
+                        return entry.path().to_string_lossy().to_string();
                     }
                 }
             }
@@ -93,21 +89,20 @@ pub fn find_file_in_path(filename: &str, exec: bool) -> String {
 }
 
 pub fn current_dir() -> String {
-    let _current_dir;
-    match env::current_dir() {
-        Ok(x) => _current_dir = x,
+    let _current_dir = match env::current_dir() {
+        Ok(x) => x,
         Err(e) => {
             log!("cicada: PROMPT: env current_dir error: {}", e);
             return String::new();
         }
-    }
-    let current_dir;
-    match _current_dir.to_str() {
-        Some(x) => current_dir = x,
+    };
+    let current_dir = match _current_dir.to_str() {
+        Some(x) => x,
         None => {
             log!("cicada: PROMPT: to_str error");
             return String::new();
         }
-    }
+    };
+
     current_dir.to_string()
 }

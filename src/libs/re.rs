@@ -1,11 +1,10 @@
 use regex;
 
 pub fn find_first_group(ptn: &str, text: &str) -> Option<String> {
-    let re;
-    match regex::Regex::new(ptn) {
-        Ok(x) => re = x,
+    let re = match regex::Regex::new(ptn) {
+        Ok(x) => x,
         Err(_) => return None,
-    }
+    };
     match re.captures(text) {
         Some(caps) => {
             if let Some(x) = caps.get(1) {
@@ -20,16 +19,13 @@ pub fn find_first_group(ptn: &str, text: &str) -> Option<String> {
 }
 
 pub fn re_contains(text: &str, ptn: &str) -> bool {
-    let re;
-    match regex::Regex::new(ptn) {
-        Ok(x) => {
-            re = x;
-        }
+    let re = match regex::Regex::new(ptn) {
+        Ok(x) => x,
         Err(e) => {
             println!("Regex new error: {:?}", e);
             return false;
         }
-    }
+    };
     re.is_match(text)
 }
 

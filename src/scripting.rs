@@ -114,7 +114,7 @@ pub fn run_lines(sh: &mut shell::Shell,
                  args: &Vec<String>,
                  capture: bool) -> Vec<CommandResult> {
     let mut cr_list = Vec::new();
-    match parsers::locust::parse_lines(&lines) {
+    match parsers::locust::parse_lines(lines) {
         Ok(pairs_exp) => {
             for pair in pairs_exp {
                 let (mut _cr_list, _cont, _brk) = run_exp(sh, pair, args, false, capture);
@@ -133,7 +133,7 @@ fn expand_args(line: &str, args: &[String]) -> String {
     let linfo = parsers::parser_line::parse_line(line);
     let mut tokens = linfo.tokens;
     expand_args_in_tokens(&mut tokens, args);
-    return parsers::parser_line::tokens_to_line(&tokens);
+    parsers::parser_line::tokens_to_line(&tokens)
 }
 
 fn expand_line_to_toknes(line: &str,
@@ -209,7 +209,7 @@ fn expand_args_in_tokens(tokens: &mut types::Tokens, args: &[String]) {
     }
 
     for (i, text) in buff.iter().rev() {
-        tokens[*i as usize].1 = text.to_string();
+        tokens[*i].1 = text.to_string();
     }
 }
 
@@ -284,7 +284,7 @@ fn run_exp_if(sh: &mut shell::Shell,
 
 fn get_for_result_from_init(sh: &mut shell::Shell,
                             pair_init: Pair<parsers::locust::Rule>,
-                            args: &Vec<String>) -> Vec<String> {
+                            args: &[String]) -> Vec<String> {
     let mut result: Vec<String> = Vec::new();
     let pairs = pair_init.into_inner();
     for pair in pairs {
@@ -308,7 +308,7 @@ fn get_for_result_from_init(sh: &mut shell::Shell,
 
 fn get_for_result_list(sh: &mut shell::Shell,
                        pair_head: Pair<parsers::locust::Rule>,
-                       args: &Vec<String>) -> Vec<String> {
+                       args: &[String]) -> Vec<String> {
     let pairs = pair_head.into_inner();
     for pair in pairs {
         let rule = pair.as_rule();
@@ -316,7 +316,7 @@ fn get_for_result_list(sh: &mut shell::Shell,
             return get_for_result_from_init(sh, pair, args);
         }
     }
-    return Vec::new();
+    Vec::new()
 }
 
 fn get_for_var_name(pair_head: Pair<parsers::locust::Rule>) -> String {
@@ -354,7 +354,7 @@ fn run_exp_for(sh: &mut shell::Shell,
         }
         if rule == parsers::locust::Rule::EXP_BODY {
             for value in &result_list {
-                sh.set_env(&var_name, &value);
+                sh.set_env(&var_name, value);
                 let (mut _cr_list, _cont, _brk) = run_exp(
                     sh, pair.clone(), args, true, capture);
                 cr_list.append(&mut _cr_list);

@@ -132,7 +132,7 @@ pub struct LineInfo {
 
 impl LineInfo {
     pub fn new(tokens: Tokens) -> Self {
-        LineInfo { tokens: tokens, is_complete: true }
+        LineInfo { tokens, is_complete: true }
     }
 }
 
@@ -213,8 +213,8 @@ impl Command {
 
         Ok(Command{
             tokens: tokens_final,
-            redirects_to: redirects_to,
-            redirect_from: redirect_from,
+            redirects_to,
+            redirect_from,
         })
     }
 
@@ -247,11 +247,11 @@ pub struct Job {
 impl Job {
     pub fn all_members_stopped(&self) -> bool {
         for pid in &self.pids {
-            if !self.pids_stopped.contains(&pid) {
+            if !self.pids_stopped.contains(pid) {
                 return false;
             }
         }
-        return true;
+        true
     }
 
     pub fn all_members_running(&self) -> bool {
@@ -280,8 +280,8 @@ impl CommandResult {
 
     pub fn from_status(gid: i32, status: i32) -> CommandResult {
         CommandResult {
-            gid: gid,
-            status: status,
+            gid,
+            status,
             stdout: String::new(),
             stderr: String::new(),
         }
@@ -380,9 +380,9 @@ impl CommandLine {
 
         Ok(CommandLine{
             line: line.to_string(),
-            commands: commands,
-            envs: envs,
-            background: background,
+            commands,
+            envs,
+            background,
         })
     }
 

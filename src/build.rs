@@ -4,7 +4,7 @@ use time::OffsetDateTime;
 
 fn main() {
     match Command::new("git")
-        .args(&["rev-parse", "--short", "HEAD"])
+        .args(["rev-parse", "--short", "HEAD"])
         .output()
     {
         Ok(x) => {
@@ -17,7 +17,7 @@ fn main() {
     }
 
     match Command::new("git")
-        .args(&["rev-parse", "--abbrev-ref", "HEAD"])
+        .args(["rev-parse", "--abbrev-ref", "HEAD"])
         .output()
     {
         Ok(x) => {
@@ -30,7 +30,7 @@ fn main() {
     }
 
     match Command::new("git")
-        .args(&["status", "--porcelain"])
+        .args(["status", "--porcelain"])
         .output()
     {
         Ok(x) => {
@@ -42,7 +42,7 @@ fn main() {
         }
     }
 
-    match Command::new("rustc").args(&["-V"]).output() {
+    match Command::new("rustc").args(["-V"]).output() {
         Ok(x) => {
             let output = String::from_utf8_lossy(&x.stdout);
             println!("cargo:rustc-env=BUILD_RUSTC_VERSION={}", output);
@@ -52,19 +52,16 @@ fn main() {
         }
     }
 
-    match OffsetDateTime::now_local() {
-        Ok(dt) => {
-            let dt_str = format!("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
-                dt.year(),
-                dt.month() as u8,
-                dt.day(),
-                dt.hour(),
-                dt.minute(),
-                dt.second(),
-                dt.millisecond(),
-            );
-            println!("cargo:rustc-env=BUILD_DATE={}", dt_str);
-        }
-        Err(_) => { }
+    if let Ok(dt) = OffsetDateTime::now_local() {
+        let dt_str = format!("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
+            dt.year(),
+            dt.month() as u8,
+            dt.day(),
+            dt.hour(),
+            dt.minute(),
+            dt.second(),
+            dt.millisecond(),
+        );
+        println!("cargo:rustc-env=BUILD_DATE={}", dt_str);
     }
 }

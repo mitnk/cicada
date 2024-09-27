@@ -17,9 +17,8 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
 
     let mut job_id = -1;
     if tokens.len() == 1 {
-        for (gid, _) in sh.jobs.iter() {
+        if let Some((gid, _)) = sh.jobs.iter().next() {
             job_id = *gid;
-            break;
         }
     }
 
@@ -71,12 +70,12 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
             }
             None => {
                 let info = "cicada: bg: not such job";
-                print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+                print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
                 return cr;
             }
         }
     }
 
     jobc::mark_job_as_running(sh, gid, true);
-    return cr;
+    cr
 }

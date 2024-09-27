@@ -94,30 +94,30 @@ pub fn waitpidx(wpid: i32, block: bool) -> types::WaitStatus {
     match waitpid(Pid::from_raw(wpid), options) {
         Ok(WS::Exited(pid, status)) => {
             let pid = i32::from(pid);
-            return types::WaitStatus::from_exited(pid, status);
+            types::WaitStatus::from_exited(pid, status)
         }
         Ok(WS::Stopped(pid, sig)) => {
             let pid = i32::from(pid);
-            return types::WaitStatus::from_stopped(pid, sig as i32);
+            types::WaitStatus::from_stopped(pid, sig as i32)
         }
         Ok(WS::Continued(pid)) => {
             let pid = i32::from(pid);
-            return types::WaitStatus::from_continuted(pid);
+            types::WaitStatus::from_continuted(pid)
         }
         Ok(WS::Signaled(pid, sig, _core_dumped)) => {
             let pid = i32::from(pid);
-            return types::WaitStatus::from_signaled(pid, sig as i32);
+            types::WaitStatus::from_signaled(pid, sig as i32)
         }
         Ok(WS::StillAlive) => {
-            return types::WaitStatus::empty();
+            types::WaitStatus::empty()
         }
         Ok(_others) => {
             // this is for PtraceEvent and PtraceSyscall on Linux,
             // unreachable on other platforms.
-            return types::WaitStatus::from_others();
+            types::WaitStatus::from_others()
         }
         Err(e) => {
-            return types::WaitStatus::from_error(e as i32);
+            types::WaitStatus::from_error(e as i32)
         }
     }
 }
@@ -129,7 +129,7 @@ pub fn wait_fg_job(sh: &mut shell::Shell, gid: i32, pids: &[i32]) -> CommandResu
     if count_child == 0 {
         return cmd_result;
     }
-    let pid_last = pids.last().unwrap().clone();
+    let pid_last = pids.last().unwrap();
 
     loop {
         let ws = waitpidx(-1, true);
@@ -182,7 +182,7 @@ pub fn wait_fg_job(sh: &mut shell::Shell, gid: i32, pids: &[i32]) -> CommandResu
             }
         }
 
-        if is_a_fg_child && pid == pid_last {
+        if is_a_fg_child && pid == *pid_last {
             let status = ws.get_status();
             cmd_result.status = status;
         }

@@ -9,7 +9,7 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
 
     if tokens.len() != 2 {
         let info = "cicada: unpath: syntax error";
-        print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+        print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
         return cr;
     }
 

@@ -18,9 +18,8 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
 
     let mut job_id = -1;
     if tokens.len() == 1 {
-        for (gid, _) in sh.jobs.iter() {
+        if let Some((gid, _)) = sh.jobs.iter().next() {
             job_id = *gid;
-            break;
         }
     }
 
@@ -52,7 +51,7 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
     {
         let mut result = sh.get_job_by_id(job_id);
         // fall back to find job by using prcess group id
-        if let None = result {
+        if result.is_none() {
             result = sh.get_job_by_gid(job_id);
         }
 
@@ -89,6 +88,6 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
             log!("failed to give term to back to shell : {}", gid_shell);
         }
 
-        return cr;
+        cr
     }
 }

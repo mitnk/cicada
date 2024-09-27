@@ -10,25 +10,11 @@ use crate::shell::{self, Shell};
 use crate::types::{self, CommandResult, CommandLine, Command};
 
 fn in_env() -> bool {
-    if let Ok(x) = env::var("VIRTUAL_ENV") {
-        if x != "" {
-            return true;
-        }
-    }
-    false
+    env::var("VIRTUAL_ENV").map_or(false, |x| !x.is_empty())
 }
 
 fn get_envs_home() -> String {
-    let home_envs;
-    match env::var("VIRTUALENV_HOME") {
-        Ok(x) => {
-            home_envs = x;
-        }
-        Err(_) => {
-            home_envs = String::new();
-        }
-    }
-    home_envs
+    env::var("VIRTUALENV_HOME").unwrap_or_default()
 }
 
 fn get_all_venvs() -> Result<Vec<String>, String> {
@@ -50,16 +36,14 @@ fn get_all_venvs() -> Result<Vec<String>, String> {
     let mut venvs = Vec::new();
     let pdir = home_envs.clone();
     if let Ok(list) = fs::read_dir(home_envs) {
-        for ent in list {
-            if let Ok(ent) = ent {
-                let ent_name = ent.file_name();
-                if let Ok(path) = ent_name.into_string() {
-                    let full_path = format!("{}/{}/bin/activate", pdir, path);
-                    if !Path::new(full_path.as_str()).exists() {
-                        continue;
-                    }
-                    venvs.push(path);
+        for ent in list.flatten() {
+            let ent_name = ent.file_name();
+            if let Ok(path) = ent_name.into_string() {
+                let full_path = format!("{}/{}/bin/activate", pdir, path);
+                if !Path::new(full_path.as_str()).exists() {
+                    continue;
                 }
+                venvs.push(path);
             }
         }
     }
@@ -69,7 +53,7 @@ fn get_all_venvs() -> Result<Vec<String>, String> {
 
 fn enter_env(sh: &Shell, path: &str) -> String {
     if in_env() {
-        return format!("vox: already in env");
+        return "vox: already in env".to_string();
     }
 
     let home_envs = get_envs_home();
@@ -93,13 +77,12 @@ fn exit_env(sh: &Shell) -> String {
         return String::from("vox: not in an env");
     }
 
-    let env_path;
-    match env::var("PATH") {
-        Ok(x) => env_path = x,
+    let env_path = match env::var("PATH") {
+        Ok(x) => x,
         Err(_) => {
             return String::from("vox: cannot read PATH env");
         }
-    }
+    };
 
     let mut _tokens: Vec<&str> = env_path.split(':').collect();
     let mut path_virtual_env = String::from("${VIRTUAL_ENV}/bin");
@@ -142,15 +125,10 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
     }
 
     if len == 3 && subcmd == "create" {
-        let pybin;
-        match env::var("VIRTUALENV_PYBIN") {
-            Ok(x) => {
-                pybin = x;
-            }
-            Err(_) => {
-                pybin = "python3".to_string();
-            }
-        }
+        let pybin = match env::var("VIRTUALENV_PYBIN") {
+            Ok(x) => x,
+            Err(_) => "python3".to_string(),
+        };
         let dir_venv = get_envs_home();
         let venv_name = args[2].to_string();
         let line = format!("{} -m venv \"{}/{}\"", pybin, dir_venv, venv_name);
@@ -164,16 +142,16 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
         if !_err.is_empty() {
             print_stderr_with_capture(&_err, &mut cr, cl, cmd, capture);
         }
-        return cr;
+        cr
     } else if len == 2 && subcmd == "exit" {
         let _err = exit_env(sh);
         if !_err.is_empty() {
             print_stderr_with_capture(&_err, &mut cr, cl, cmd, capture);
         }
-        return cr;
+        cr
     } else {
         let info = "cicada: vox: invalid option";
-        print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
-        return cr;
+        print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
+        cr
     }
 }

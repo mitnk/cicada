@@ -29,29 +29,26 @@ fn complete_ssh(path: &str) -> Vec<Completion> {
     let ssh_config = home + "/.ssh/config";
     if let Ok(f) = File::open(&ssh_config) {
         let file = BufReader::new(&f);
-        let re;
-        match Regex::new(r"^ *(?i)host +([^ ]+)") {
-            Ok(x) => re = x,
+        let re = match Regex::new(r"^ *(?i)host +([^ ]+)") {
+            Ok(x) => x,
             Err(e) => {
                 println!("Regex build error: {:?}", e);
                 return res;
             }
-        }
-        for (_, line) in file.lines().enumerate() {
-            if let Ok(line) = line {
-                if !re.is_match(&line) {
+        };
+        for line in file.lines().map_while(Result::ok) {
+            if !re.is_match(&line) {
+                continue;
+            }
+            for cap in re.captures_iter(&line) {
+                if !cap[1].starts_with(path) {
                     continue;
                 }
-                for cap in re.captures_iter(&line) {
-                    if !cap[1].starts_with(path) {
-                        continue;
-                    }
-                    res.push(Completion {
-                        completion: cap[1].to_string(),
-                        display: None,
-                        suffix: Suffix::Default,
-                    });
-                }
+                res.push(Completion {
+                    completion: cap[1].to_string(),
+                    display: None,
+                    suffix: Suffix::Default,
+                });
             }
         }
     }

@@ -29,7 +29,7 @@ pub fn run(sh: &mut shell::Shell, cl: &CommandLine, cmd: &Command,
     };
 
     if dir_to == "-" {
-        if sh.previous_dir == "" {
+        if sh.previous_dir.is_empty() {
             let info = "no previous dir";
             print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
             return cr;

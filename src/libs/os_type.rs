@@ -3,9 +3,9 @@ use crate::execute;
 pub fn get_os_name() -> String {
     let uname = get_uname();
     if uname.to_lowercase() == "darwin" {
-        return get_macos_name();
+        get_macos_name()
     } else {
-        return get_other_os_name();
+        get_other_os_name()
     }
 }
 
@@ -22,7 +22,7 @@ fn get_other_os_name() -> String {
     if !name.is_empty() {
         return name;
     }
-    return get_uname_mo()
+    get_uname_mo()
 }
 
 fn get_release_value(ptn: &str) -> String {

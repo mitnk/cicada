@@ -6,7 +6,6 @@ use std::os::unix::io::FromRawFd;
 use std::os::fd::RawFd;
 use std::process;
 
-use libc;
 use nix::unistd::{execve, ForkResult};
 use libs::pipes::pipe;
 
@@ -130,7 +129,7 @@ pub fn run_pipeline(
     }
 
     // FIXME: move func-run into run single command
-    if let Some(cr) = try_run_func(sh, &cl, capture, log_cmd) {
+    if let Some(cr) = try_run_func(sh, cl, capture, log_cmd) {
         return (term_given, cr);
     }
 
@@ -180,7 +179,7 @@ pub fn run_pipeline(
         false
     };
     let options = CommandOptions {
-        isatty: isatty,
+        isatty,
         capture_output: capture,
         background: cl.background,
         envs: cl.envs.clone(),
@@ -211,7 +210,7 @@ pub fn run_pipeline(
 
     let mut cmd_result = CommandResult::new();
     for i in 0..length {
-        let child_id: i32 = _run_single_command(
+        let child_id: i32 = run_single_program(
             sh,
             cl,
             i,
@@ -242,7 +241,7 @@ pub fn run_pipeline(
     if !fg_pids.is_empty() {
         let _cr = jobc::wait_fg_job(sh, pgid, &fg_pids);
         // for capture commands, e.g. `echo foo` in `echo "hello $(echo foo)"
-        // the cmd_result is already built in loop calling _run_single_command()
+        // the cmd_result is already built in loop calling run_single_program()
         // above.
         if !capture {
             cmd_result = _cr;
@@ -253,7 +252,9 @@ pub fn run_pipeline(
 
 /// Run a single command.
 /// e.g. the `sort -k2` part of `ps ax | sort -k2 | head`
-fn _run_single_command(
+#[allow(clippy::needless_range_loop)]
+#[allow(clippy::too_many_arguments)]
+fn run_single_program(
     sh: &mut shell::Shell,
     cl: &CommandLine,
     idx_cmd: usize,
@@ -261,7 +262,7 @@ fn _run_single_command(
     pgid: &mut i32,
     term_given: &mut bool,
     cmd_result: &mut CommandResult,
-    pipes: &Vec<(RawFd, RawFd)>,
+    pipes: &[(RawFd, RawFd)],
     fds_capture_stdout: &Option<(RawFd, RawFd)>,
     fds_capture_stderr: &Option<(RawFd, RawFd)>,
 ) -> i32 {
@@ -469,7 +470,7 @@ fn _run_single_command(
             let path = if program.contains('/') {
                 program.clone()
             } else {
-                libs::path::find_file_in_path(&program, true)
+                libs::path::find_file_in_path(program, true)
             };
             if path.is_empty() {
                 println_stderr!("cicada: {}: command not found", program);
@@ -603,7 +604,7 @@ fn _run_single_command(
                 };
             }
 
-            return pid;
+            pid
         }
 
         Err(_) => {
@@ -637,9 +638,9 @@ fn try_run_func(
         let mut stdout = String::new();
         let mut stderr = String::new();
         for cr in cr_list {
-            stdout.push_str(&cr.stdout.trim());
+            stdout.push_str(cr.stdout.trim());
             stdout.push(' ');
-            stderr.push_str(&cr.stderr.trim());
+            stderr.push_str(cr.stderr.trim());
             stderr.push(' ');
         }
         let mut cr = CommandResult::new();
@@ -687,7 +688,7 @@ pub fn run_calculator(line: &str) -> Result<String, &str> {
             }
         }
         Err(_) => {
-            return Err("syntax error");
+            Err("syntax error")
         }
     }
 }

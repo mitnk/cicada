@@ -45,21 +45,18 @@ pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command,
                 println_stderr!("cicada: clap: {}", e);
             }
         }
-        print!("\n");
+        println!();
         return CommandResult::new();
     }
 
-    let matches;
-    match app.try_get_matches_from(&args) {
-        Ok(x) => {
-            matches = x;
-        }
+    let matches = match app.try_get_matches_from(&args) {
+        Ok(x) => x,
         Err(e) => {
             let info = format!("ulimit error: {}", e);
             print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
             return cr;
         }
-    }
+    };
 
     let open_files;
     match matches.value_of_t("open_files") {
@@ -99,7 +96,7 @@ pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command,
     }
 
     let for_hard = matches.is_present("for_hard");
-    if matches.is_present("report_all") || options.len() == 0 {
+    if matches.is_present("report_all") || options.is_empty() {
         let (_out, _err) = report_all(for_hard);
         if !_out.is_empty() {
             print_stdout_with_capture(&_out, &mut cr, cl, cmd, capture);
@@ -198,7 +195,7 @@ fn get_limit(limit_name: &str, single_print: bool,
         limit_id = libc::RLIMIT_CORE;
     } else {
         let info = "ulimit: error: invalid limit name";
-        result_stderr.push_str(&info);
+        result_stderr.push_str(info);
         return (result_stdout, result_stderr);
     }
 
@@ -212,12 +209,7 @@ fn get_limit(limit_name: &str, single_print: bool,
             return (result_stdout, result_stderr);
         }
 
-        let to_print;
-        if for_hard {
-            to_print = rlp.rlim_max;
-        } else {
-            to_print = rlp.rlim_cur;
-        }
+        let to_print = if for_hard { rlp.rlim_max } else { rlp.rlim_cur };
 
         if single_print {
             if to_print == libc::RLIM_INFINITY {
@@ -226,14 +218,12 @@ fn get_limit(limit_name: &str, single_print: bool,
                 let info = format!("{}\n", to_print);
                 result_stdout.push_str(&info);
             }
+        } else if to_print == libc::RLIM_INFINITY {
+            let info = format!("{}\t\tunlimited\n", desc);
+            result_stdout.push_str(&info);
         } else {
-            if to_print == libc::RLIM_INFINITY {
-                let info = format!("{}\t\tunlimited\n", desc);
-                result_stdout.push_str(&info);
-            } else {
-                let info = format!("{}\t\t{}\n", desc, to_print);
-                result_stdout.push_str(&info);
-            }
+            let info = format!("{}\t\t{}\n", desc, to_print);
+            result_stdout.push_str(&info);
         }
     }
 

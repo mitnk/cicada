@@ -25,12 +25,7 @@ pub fn eval_int(expression: Pairs<Rule>) -> i64 {
     PREC_CLIMBER.climb(
         expression,
         |pair: Pair<Rule>| match pair.as_rule() {
-            Rule::num => {
-                match pair.as_str().parse::<i64>() {
-                    Ok(n) => n,
-                    Err(_) => 0,
-                }
-            }
+            Rule::num => pair.as_str().parse::<i64>().unwrap_or(0),
             Rule::expr => eval_int(pair.into_inner()),
             _ => unreachable!(),
         },
@@ -55,12 +50,7 @@ pub fn eval_float(expression: Pairs<Rule>) -> f64 {
     PREC_CLIMBER.climb(
         expression,
         |pair: Pair<Rule>| match pair.as_rule() {
-            Rule::num => {
-                match pair.as_str().parse::<f64>() {
-                    Ok(f) => f,
-                    Err(_) => 0.0,
-                }
-            }
+            Rule::num => pair.as_str().parse::<f64>().unwrap_or(0.0),
             Rule::expr => eval_float(pair.into_inner()),
             _ => unreachable!(),
         },

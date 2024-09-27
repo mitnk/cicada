@@ -33,7 +33,7 @@ pub fn expand_env_string(text: &mut String) {
     }
     let ptn = r"^\$([A-Za-z_][A-Za-z0-9_]*)";
     let mut env_value = String::new();
-    match libs::re::find_first_group(ptn, &text) {
+    match libs::re::find_first_group(ptn, text) {
         Some(x) => {
             if let Ok(val) = env::var(&x) {
                 env_value = val;
@@ -48,5 +48,5 @@ pub fn expand_env_string(text: &mut String) {
         return;
     }
     let t = text.clone();
-    *text = libs::re::replace_all(&t, &ptn, &env_value);
+    *text = libs::re::replace_all(&t, ptn, &env_value);
 }

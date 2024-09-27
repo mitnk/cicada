@@ -66,7 +66,7 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
     let path = Path::new(hfile.as_str());
     if !path.exists() {
         let info = "no history file";
-        print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+        print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
         return cr;
     }
     let conn = match Conn::open(&hfile) {
@@ -98,12 +98,12 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
                         let info = format!("deleted {} items", _count);
                         print_stdout_with_capture(&info, &mut cr, cl, cmd, capture);
                     }
-                    return cr;
+                    cr
                 }
                 Some(SubCommand::Add {timestamp: ts, input}) => {
                     let ts = ts.unwrap_or(0 as f64);
                     add_history(sh, ts, &input);
-                    return cr;
+                    cr
                 }
                 None => {
                     let (str_out, str_err) = list_current_history(sh, &conn, &opt);
@@ -113,7 +113,7 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
                     if !str_err.is_empty() {
                         print_stderr_with_capture(&str_err, &mut cr, cl, cmd, capture);
                     }
-                    return cr;
+                    cr
                 }
             }
         }
@@ -126,7 +126,7 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
                 print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
                 cr.status = 1;
             }
-            return cr;
+            cr
         }
     }
 }
@@ -144,7 +144,7 @@ fn list_current_history(sh: &Shell, conn: &Conn,
     let history_table = history::get_history_table();
     let mut sql = format!("SELECT ROWID, inp, tsb FROM {} WHERE ROWID > 0",
                           history_table);
-    if opt.pattern.len() > 0 {
+    if !opt.pattern.is_empty() {
         sql = format!("{} AND inp LIKE '%{}%'", sql, opt.pattern)
     }
     if opt.session {
@@ -202,9 +202,9 @@ fn list_current_history(sh: &Shell, conn: &Conn,
                     };
 
                     if opt.no_id {
-                        lines.push(format!("{}", inp));
+                        lines.push(inp.to_string());
                     } else if opt.only_id {
-                        lines.push(format!("{}", row_id));
+                        lines.push(row_id.to_string());
                     } else if opt.show_date {
                         let tsb: f64 = match row.get(2) {
                             Ok(x) => x,
@@ -240,12 +240,10 @@ fn delete_history_item(conn: &Conn, rowid: usize) -> bool {
     let history_table = history::get_history_table();
     let sql = format!("DELETE from {} where rowid = {}", history_table, rowid);
     match conn.execute(&sql, []) {
-        Ok(_) => {
-            return true;
-        }
+        Ok(_) => true,
         Err(e) => {
-            log!("history: prepare error - {:?}", e);
-            return false;
+            log!("history: error when delete: {:?}", e);
+            false
         }
     }
 }

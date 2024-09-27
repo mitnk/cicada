@@ -15,22 +15,20 @@ use crate::tools;
 fn init_db(hfile: &str, htable: &str) {
     let path = Path::new(hfile);
     if !path.exists() {
-        let _parent;
-        match path.parent() {
-            Some(x) => _parent = x,
+        let _parent = match path.parent() {
+            Some(x) => x,
             None => {
                 println_stderr!("cicada: history init - no parent found");
                 return;
             }
-        }
-        let parent;
-        match _parent.to_str() {
-            Some(x) => parent = x,
+        };
+        let parent = match _parent.to_str() {
+            Some(x) => x,
             None => {
                 println_stderr!("cicada: parent to_str is None");
                 return;
             }
-        }
+        };
         match fs::create_dir_all(parent) {
             Ok(_) => {}
             Err(e) => {
@@ -48,7 +46,7 @@ fn init_db(hfile: &str, htable: &str) {
         }
     }
 
-    let conn = match Conn::open(&hfile) {
+    let conn = match Conn::open(hfile) {
         Ok(x) => x,
         Err(e) => {
             println_stderr!("cicada: history: open db error: {}", e);
@@ -126,34 +124,32 @@ pub fn init(rl: &mut Interface<DefaultTerminal>) {
     };
 
     let mut dict_helper: HashMap<String, bool> = HashMap::new();
-    for x in rows {
-        if let Ok(inp) = x {
-            let _inp: String = inp;
-            if dict_helper.contains_key(&_inp) {
-                continue;
-            }
-            dict_helper.insert(_inp.clone(), true);
-            rl.add_history(_inp.trim().to_string());
+    for x in rows.flatten() {
+        let inp: String = x;
+        if dict_helper.contains_key(&inp) {
+            continue;
         }
+        dict_helper.insert(inp.clone(), true);
+        rl.add_history(inp.trim().to_string());
     }
 }
 
 pub fn get_history_file() -> String {
     if let Ok(hfile) = env::var("HISTORY_FILE") {
-        return hfile;
+        hfile
     } else if let Ok(d) = env::var("XDG_DATA_HOME") {
-        return format!("{}/{}", d, "cicada/history.sqlite");
+        format!("{}/{}", d, "cicada/history.sqlite")
     } else {
         let home = tools::get_user_home();
-        return format!("{}/{}", home, ".local/share/cicada/history.sqlite");
+        format!("{}/{}", home, ".local/share/cicada/history.sqlite")
     }
 }
 
 pub fn get_history_table() -> String {
     if let Ok(hfile) = env::var("HISTORY_TABLE") {
-        return hfile;
+        hfile
     } else {
-        return String::from("cicada_history");
+        String::from("cicada_history")
     }
 }
 

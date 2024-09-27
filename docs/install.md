@@ -6,10 +6,10 @@ There are a few ways to install cicada into your system.
 
 ### Alpine Linux
 
-[https://pkgs.alpinelinux.org/package/edge/testing/x86_64/cicada](https://pkgs.alpinelinux.org/package/edge/testing/x86_64/cicada)
+[https://pkgs.alpinelinux.org/package/edge/community/x86_64/cicada](https://pkgs.alpinelinux.org/package/edge/community/x86_64/cicada)
 
 ```
-$ apk add cicada -X https://dl-cdn.alpinelinux.org/alpine/edge/testing/
+$ sudo apk add cicada -X https://dl-cdn.alpinelinux.org/alpine/edge/community/
 ```
 
 ### Arch Linux

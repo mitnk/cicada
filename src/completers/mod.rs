@@ -39,8 +39,7 @@ fn for_cd(line: &str) -> bool {
 
 fn for_bin(line: &str) -> bool {
     let ptn = r"(^ *(sudo|which|nohup)? *[a-zA-Z0-9_\.-]+$)|(^.+\| *(sudo|which|nohup)? *[a-zA-Z0-9_\.-]+$)";
-    let result = libs::re::re_contains(line, ptn);
-    return result;
+    libs::re::re_contains(line, ptn)
 }
 
 fn for_dots(line: &str) -> bool {

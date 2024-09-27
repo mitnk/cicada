@@ -111,49 +111,47 @@ pub fn complete_path(word: &str, for_dir: bool) -> Vec<Completion> {
     };
     // let dir_lookup = _dir_lookup.unwrap_or(".");
     if let Ok(entries) = read_dir(dir_lookup) {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let pathbuf = entry.path();
-                let is_dir = pathbuf.is_dir();
-                if for_dir && !is_dir {
-                    continue;
-                }
+        for entry in entries.flatten() {
+            let pathbuf = entry.path();
+            let is_dir = pathbuf.is_dir();
+            if for_dir && !is_dir {
+                continue;
+            }
 
-                let entry_name = entry.file_name();
-                // TODO: Deal with non-UTF8 paths in some way
-                if let Ok(_path) = entry_name.into_string() {
-                    if _path.starts_with(&file_name) {
-                        let (name, display) = if dir_orig != "" {
-                            (
-                                format!("{}{}{}", dir_orig, MAIN_SEPARATOR, _path),
-                                Some(_path),
-                            )
-                        } else {
-                            (_path, None)
-                        };
-                        let mut name = str::replace(name.as_str(), "//", "/");
-                        if path_sep.is_empty() && !is_env {
-                            name = tools::escape_path(&name);
-                        }
-                        let mut quoted = false;
-                        if !path_sep.is_empty() {
-                            name = tools::wrap_sep_string(&path_sep, &name);
-                            quoted = true;
-                        }
-                        let suffix = if is_dir {
-                            if quoted {
-                                name.pop();
-                            }
-                            Suffix::Some(MAIN_SEPARATOR)
-                        } else {
-                            Suffix::Default
-                        };
-                        res.push(Completion {
-                            completion: name,
-                            display,
-                            suffix,
-                        });
+            let entry_name = entry.file_name();
+            // TODO: Deal with non-UTF8 paths in some way
+            if let Ok(_path) = entry_name.into_string() {
+                if _path.starts_with(&file_name) {
+                    let (name, display) = if !dir_orig.is_empty() {
+                        (
+                            format!("{}{}{}", dir_orig, MAIN_SEPARATOR, _path),
+                            Some(_path),
+                        )
+                    } else {
+                        (_path, None)
+                    };
+                    let mut name = str::replace(name.as_str(), "//", "/");
+                    if path_sep.is_empty() && !is_env {
+                        name = tools::escape_path(&name);
                     }
+                    let mut quoted = false;
+                    if !path_sep.is_empty() {
+                        name = tools::wrap_sep_string(&path_sep, &name);
+                        quoted = true;
+                    }
+                    let suffix = if is_dir {
+                        if quoted {
+                            name.pop();
+                        }
+                        Suffix::Some(MAIN_SEPARATOR)
+                    } else {
+                        Suffix::Default
+                    };
+                    res.push(Completion {
+                        completion: name,
+                        display,
+                        suffix,
+                    });
                 }
             }
         }
@@ -172,8 +170,8 @@ fn split_pathname(path: &str, prefix: &str) -> (String, String, String) {
     match path.rfind('/') {
         Some(pos) => (
             prefix.to_string(),
-            (&path[..=pos]).to_string(),
-            (&path[pos + 1..]).to_string(),
+            path[..=pos].to_string(),
+            path[pos + 1..].to_string(),
         ),
         None => (prefix.to_string(), String::new(), path.to_string()),
     }
@@ -183,15 +181,13 @@ fn split_pathname(path: &str, prefix: &str) -> (String, String, String) {
 fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
     let mut res = Vec::new();
     let (prefix, _, fname) = split_pathname(path, "");
-    let env_path;
-
-    match env::var("PATH") {
-        Ok(x) => env_path = x,
+    let env_path = match env::var("PATH") {
+        Ok(x) => x,
         Err(e) => {
             println_stderr!("cicada: env error when complete_bin: {:?}", e);
             return res;
         }
-    }
+    };
 
     let mut checker: HashSet<String> = HashSet::new();
 
@@ -250,39 +246,36 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
 
     for p in &path_list {
         if let Ok(list) = read_dir(p) {
-            for entry in list {
-                if let Ok(entry) = entry {
-                    if let Ok(name) = entry.file_name().into_string() {
-                        if name.starts_with(&fname) {
-                            let _mode;
-                            match entry.metadata() {
-                                Ok(x) => _mode = x,
-                                Err(e) => {
-                                    println_stderr!("cicada: metadata error: {:?}", e);
-                                    continue;
-                                }
-                            }
-                            let mode = _mode.permissions().mode();
-                            if mode & 0o111 == 0 {
-                                // not binary
+            for entry in list.flatten() {
+                if let Ok(name) = entry.file_name().into_string() {
+                    if name.starts_with(&fname) {
+                        let _mode = match entry.metadata() {
+                            Ok(x) => x,
+                            Err(e) => {
+                                println_stderr!("cicada: metadata error: {:?}", e);
                                 continue;
                             }
-                            if checker.contains(&name) {
-                                continue;
-                            }
-
-                            let display = None;
-                            let suffix = Suffix::Default;
-                            checker.insert(name.clone());
-                            // TODO: need to handle quoted: `$ "foo#bar"`
-                            let name_e = tools::escape_path(&name);
-                            let name_e = format!("{}{}", prefix, name_e);
-                            res.push(Completion {
-                                completion: name_e,
-                                display,
-                                suffix,
-                            });
+                        };
+                        let mode = _mode.permissions().mode();
+                        if mode & 0o111 == 0 {
+                            // not binary
+                            continue;
                         }
+                        if checker.contains(&name) {
+                            continue;
+                        }
+
+                        let display = None;
+                        let suffix = Suffix::Default;
+                        checker.insert(name.clone());
+                        // TODO: need to handle quoted: `$ "foo#bar"`
+                        let name_e = tools::escape_path(&name);
+                        let name_e = format!("{}{}", prefix, name_e);
+                        res.push(Completion {
+                            completion: name_e,
+                            display,
+                            suffix,
+                        });
                     }
                 }
             }

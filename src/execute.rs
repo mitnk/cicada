@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::io::{self, Read, Write};
 
-use libc;
 use regex::Regex;
 
 use crate::core;
@@ -31,7 +30,7 @@ pub fn run_command_line(sh: &mut Shell, line: &str, tty: bool,
     let mut cr_list = Vec::new();
     let mut status = 0;
     let mut sep = String::new();
-    for token in parsers::parser_line::line_to_cmds(&line) {
+    for token in parsers::parser_line::line_to_cmds(line) {
         if token == ";" || token == "&&" || token == "||" {
             sep = token.clone();
             continue;
@@ -80,7 +79,7 @@ fn line_to_tokens(sh: &mut Shell, line: &str) -> (Tokens, HashMap<String, String
     let mut tokens = linfo.tokens;
     shell::do_expansion(sh, &mut tokens);
     let envs = drain_env_tokens(&mut tokens);
-    return (tokens, envs);
+    (tokens, envs)
 }
 
 fn set_shell_vars(sh: &mut Shell, envs: &HashMap<String, String>) {
@@ -95,7 +94,7 @@ fn set_shell_vars(sh: &mut Shell, envs: &HashMap<String, String>) {
 fn run_proc(sh: &mut Shell, line: &str, tty: bool,
             capture: bool) -> CommandResult {
     let log_cmd = !sh.cmd.starts_with(' ');
-    match CommandLine::from_line(&line, sh) {
+    match CommandLine::from_line(line, sh) {
         Ok(cl) => {
             if cl.is_empty() {
                 // for commands with only envs, e.g.
@@ -114,23 +113,24 @@ fn run_proc(sh: &mut Shell, line: &str, tty: bool,
                     shell::give_terminal_to(gid);
                 }
             }
-            return cr;
+
+            cr
         }
         Err(e) => {
             println_stderr!("cicada: {}", e);
-            return CommandResult::from_status(0, 1);
+            CommandResult::from_status(0, 1)
         }
     }
 }
 
-fn run_with_shell<'a, 'b>(sh: &'a mut Shell, line: &'b str) -> CommandResult {
-    let (tokens, envs) = line_to_tokens(sh, &line);
+fn run_with_shell(sh: &mut Shell, line: &str) -> CommandResult {
+    let (tokens, envs) = line_to_tokens(sh, line);
     if tokens.is_empty() {
         set_shell_vars(sh, &envs);
         return CommandResult::new();
     }
 
-    match CommandLine::from_line(&line, sh) {
+    match CommandLine::from_line(line, sh) {
         Ok(c) => {
             let (term_given, cr) = core::run_pipeline(sh, &c, false, true, false);
             if term_given {
@@ -140,18 +140,18 @@ fn run_with_shell<'a, 'b>(sh: &'a mut Shell, line: &'b str) -> CommandResult {
                 }
             }
 
-            return cr;
+            cr
         }
         Err(e) => {
             println_stderr!("cicada: {}", e);
-            return CommandResult::from_status(0, 1);
+            CommandResult::from_status(0, 1)
         }
     }
 }
 
 pub fn run(line: &str) -> CommandResult {
     let mut sh = Shell::new();
-    return run_with_shell(&mut sh, line);
+    run_with_shell(&mut sh, line)
 }
 
 #[cfg(test)]

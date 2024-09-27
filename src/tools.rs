@@ -6,7 +6,6 @@ use std::io::Write;
 use std::os::unix::io::IntoRawFd;
 use std::path::{Path, PathBuf};
 
-use libc;
 use regex::Regex;
 
 use crate::execute;
@@ -30,14 +29,7 @@ macro_rules! println_stderr {
 }
 
 pub fn is_signal_handler_enabled() -> bool {
-    match env::var("CICADA_ENABLE_SIG_HANDLER") {
-        Ok(x) => {
-            return x == "1";
-        }
-        Err(_) => {
-            return false;
-        }
-    }
+    env::var("CICADA_ENABLE_SIG_HANDLER").map_or(false, |x| x == "1")
 }
 
 pub fn get_user_name() -> String {
@@ -242,7 +234,7 @@ pub fn create_raw_fd_from_file(file_name: &str, append: bool) -> Result<i32, Str
 pub fn get_fd_from_file(file_name: &str) -> i32 {
     let path = Path::new(file_name);
     let display = path.display();
-    let file = match File::open(&path) {
+    let file = match File::open(path) {
         Err(why) => {
             println_stderr!("cicada: {}: {}", display, why);
             return -1;
@@ -313,7 +305,7 @@ pub fn is_builtin(s: &str) -> bool {
 pub fn init_path_env() {
     // order matters. took from `runc spec`
     let mut paths: Vec<String> = vec![];
-    for x in vec![
+    for x in [
         "/usr/local/sbin",
         "/usr/local/bin",
         "/usr/sbin",

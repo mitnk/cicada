@@ -8,15 +8,10 @@ pub struct DateTime {
 
 impl DateTime {
     pub fn now() -> Self {
-        let odt: OffsetDateTime;
-        match OffsetDateTime::now_local() {
-            Ok(dt) => {
-                odt = dt;
-            }
-            Err(_) => {
-                odt = OffsetDateTime::now_utc();
-            }
-        }
+        let odt: OffsetDateTime = match OffsetDateTime::now_local() {
+            Ok(dt) => dt,
+            Err(_) => OffsetDateTime::now_utc(),
+        };
         DateTime { odt }
     }
 
@@ -24,13 +19,10 @@ impl DateTime {
         let dummy_now = Self::now();
         let offset_seconds = dummy_now.odt.offset().whole_minutes() * 60;
         let ts_nano = (ts + offset_seconds as f64) * 1000000000.0;
-        let odt: OffsetDateTime;
-        match OffsetDateTime::from_unix_timestamp_nanos(ts_nano as i128) {
-            Ok(x) => odt = x,
-            Err(_) => {
-                odt = OffsetDateTime::now_utc();
-            }
-        }
+        let odt: OffsetDateTime = match OffsetDateTime::from_unix_timestamp_nanos(ts_nano as i128) {
+            Ok(x) => x,
+            Err(_) => OffsetDateTime::now_utc(),
+        };
         DateTime { odt }
     }
 

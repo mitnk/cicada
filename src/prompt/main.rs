@@ -43,12 +43,12 @@ fn apply_prompt_item(sh: &shell::Shell, result: &mut String, token: &str) {
 }
 
 fn apply_command(result: &mut String, token: &str, prefix: &str, suffix: &str) {
-    let cr = execute::run(&token);
+    let cr = execute::run(token);
     let output = cr.stdout.trim();
     if !output.is_empty() {
-        result.push_str(&prefix);
-        result.push_str(&output);
-        result.push_str(&suffix);
+        result.push_str(prefix);
+        result.push_str(output);
+        result.push_str(suffix);
     }
 }
 

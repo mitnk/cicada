@@ -94,14 +94,14 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
                     token.push(c);
                     continue;
                 } else {
-                    let c_next;
-                    match line.chars().nth(i + 1) {
-                        Some(x) => c_next = x,
+                    let c_next = match line.chars().nth(i + 1) {
+                        Some(x) => x,
                         None => {
                             println!("chars nth error - should never happen");
                             continue;
                         }
-                    }
+                    };
+
                     if c_next != c {
                         token.push(c);
                         continue;
@@ -455,7 +455,7 @@ pub fn parse_line(line: &str) -> LineInfo {
     }
 
     let mut is_line_complete = true;
-    if result.len() > 0 {
+    if !result.is_empty() {
         let token_last = result[result.len() - 1].clone();
         if token_last.0.is_empty() && token_last.1 == "|" {
             is_line_complete = false;
@@ -492,7 +492,7 @@ pub fn tokens_to_redirections(tokens: &Tokens) -> Result<(Tokens, Vec<Redirectio
                 return Err(String::from("bad redirection syntax near &"));
             }
 
-            let s3 = format!("{}", word);
+            let s3 = word.to_string();
             if libs::re::re_contains(&to_be_continued_s1, r"^\d+$") {
                 if to_be_continued_s1 != "1" && to_be_continued_s1 != "2" {
                     return Err(String::from("Bad file descriptor #3"));
@@ -501,7 +501,7 @@ pub fn tokens_to_redirections(tokens: &Tokens) -> Result<(Tokens, Vec<Redirectio
                 let s2 = to_be_continued_s2.clone();
                 redirects.push((s1, s2, s3));
             } else {
-                if to_be_continued_s1 != "" {
+                if !to_be_continued_s1.is_empty() {
                     tokens_new.push((sep.clone(), to_be_continued_s1.to_string()));
                 }
                 redirects.push(("1".to_string(), to_be_continued_s2.clone(), s3));
@@ -523,7 +523,7 @@ pub fn tokens_to_redirections(tokens: &Tokens) -> Result<(Tokens, Vec<Redirectio
                 return Err(String::from("Failed to build Regex"));
             }
 
-            if let Some(caps) = re.captures(&word) {
+            if let Some(caps) = re.captures(word) {
                 let s1 = caps.get(1).unwrap().as_str();
                 let s2 = caps.get(2).unwrap().as_str();
                 let s3 = caps.get(3).unwrap().as_str();
@@ -537,7 +537,7 @@ pub fn tokens_to_redirections(tokens: &Tokens) -> Result<(Tokens, Vec<Redirectio
                     }
                     redirects.push((s1.to_string(), s2.to_string(), s3.to_string()));
                 } else {
-                    if s1 != "" {
+                    if !s1.is_empty() {
                         tokens_new.push((sep.clone(), s1.to_string()));
                     }
                     redirects.push((String::from("1"), s2.to_string(), s3.to_string()));
@@ -551,7 +551,7 @@ pub fn tokens_to_redirections(tokens: &Tokens) -> Result<(Tokens, Vec<Redirectio
                 return Err(String::from("Failed to build Regex"));
             }
 
-            if let Some(caps) = re.captures(&word) {
+            if let Some(caps) = re.captures(word) {
                 let s1 = caps.get(1).unwrap().as_str();
                 let s2 = caps.get(2).unwrap().as_str();
 

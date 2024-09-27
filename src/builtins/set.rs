@@ -25,11 +25,11 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
         Ok(opt) => {
             if opt.exit_on_error {
                 sh.exit_on_error = true;
-                return cr;
+                cr
             } else {
                 let info = "cicada: set: option not implemented";
-                print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
-                return cr;
+                print_stderr_with_capture(info, &mut cr, cl, cmd, capture);
+                cr
             }
         }
         Err(e) => {
@@ -41,7 +41,7 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
                 print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
                 cr.status = 1;
             }
-            return cr;
+            cr
         }
     }
 }

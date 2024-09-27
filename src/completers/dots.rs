@@ -59,7 +59,8 @@ fn get_dot_file(line: &str) -> (String, String) {
     } else {
         ""
     };
-    return (dot_file, sub_cmd.to_string());
+
+    (dot_file, sub_cmd.to_string())
 }
 
 fn handle_lv1_string(res: &mut Vec<Completion>,
@@ -78,7 +79,7 @@ fn handle_lv1_string(res: &mut Vec<Completion>,
             if s.trim().is_empty() {
                 continue;
             }
-            handle_lv1_string(res, &s, word);
+            handle_lv1_string(res, s, word);
         }
         return;
     }
@@ -136,16 +137,13 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
         }
     }
 
-    let docs;
-    match YamlLoader::load_from_str(&s) {
-        Ok(x) => {
-            docs = x;
-        }
+    let docs = match YamlLoader::load_from_str(&s) {
+        Ok(x) => x,
         Err(e) => {
             println_stderr!("\ncicada: Bad Yaml file: {}: {:?}", dot_file, e);
             return res;
         }
-    }
+    };
 
     for doc in docs.iter() {
         match *doc {
@@ -162,7 +160,7 @@ fn complete_dots(line: &str, word: &str) -> Vec<Completion> {
                             if sub_cmd.is_empty() {
                                 for k in h.keys() {
                                     if let Yaml::String(value) = k {
-                                        handle_lv1_string(&mut res, &value, word);
+                                        handle_lv1_string(&mut res, value, word);
                                     }
                                 }
                             } else {

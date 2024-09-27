@@ -330,32 +330,29 @@ fn apply_gitbr(prompt: &mut String) {
 }
 
 fn apply_cwd(prompt: &mut String) {
-    let _current_dir;
-    match env::current_dir() {
-        Ok(x) => _current_dir = x,
+    let _current_dir = match env::current_dir() {
+        Ok(x) => x,
         Err(e) => {
             println_stderr!("cicada: PROMPT: env current_dir error: {}", e);
             return;
         }
-    }
-    let current_dir;
-    match _current_dir.to_str() {
-        Some(x) => current_dir = x,
+    };
+    let current_dir = match _current_dir.to_str() {
+        Some(x) => x,
         None => {
             println_stderr!("cicada: PROMPT: to_str error");
             return;
         }
-    }
+    };
     let _tokens: Vec<&str> = current_dir.split('/').collect();
 
-    let last;
-    match _tokens.last() {
-        Some(x) => last = x,
+    let last = match _tokens.last() {
+        Some(x) => x,
         None => {
             log!("cicada: PROMPT: token last error");
             return;
         }
-    }
+    };
 
     let home = tools::get_user_home();
     let pwd = if last.is_empty() {
@@ -381,14 +378,14 @@ pub fn apply_pyenv(prompt: &mut String) {
     if let Ok(x) = env::var("VIRTUAL_ENV") {
         if !x.is_empty() {
             let _tokens: Vec<&str> = x.split('/').collect();
-            let env_name;
-            match _tokens.last() {
-                Some(x) => env_name = x,
+            let env_name = match _tokens.last() {
+                Some(x) => x,
                 None => {
                     log!("prompt token last error");
                     return;
                 }
-            }
+            };
+
             apply_blue_b(prompt);
             prompt.push('(');
             prompt.push_str(env_name);
