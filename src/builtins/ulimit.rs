@@ -1,161 +1,83 @@
-use clap::{Arg, Command as ClapCommand, ErrorKind};
-use libc;
-
-use std::io::{Error, Write};
-
+use clap::{Parser, CommandFactory};
+use std::io::Error;
 use crate::builtins::utils::print_stderr_with_capture;
 use crate::builtins::utils::print_stdout_with_capture;
 use crate::parsers;
 use crate::shell::Shell;
 use crate::types::{CommandResult, CommandLine, Command};
 
-pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command,
-           capture: bool) -> CommandResult {
+#[derive(Parser)]
+#[command(name = "ulimit", about = "show / modify shell resource limits")]
+#[allow(non_snake_case)]
+struct App {
+    #[arg(short, help = "All current limits are reported.")]
+    a: bool,
+    #[arg(short, value_name = "NEW VALUE", help = "The maximum number of open file descriptors.")]
+    n: Option<Option<u64>>,
+    #[arg(short, value_name = "NEW VALUE", help = "The maximum size of core files created.")]
+    c: Option<Option<u64>>,
+    #[arg(short = 'S', help = "Set a soft limit for the given resource. (default)")]
+    S: bool,
+    #[arg(short = 'H', help = "Set a hard limit for the given resource.")]
+    H: bool,
+}
+
+pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> CommandResult {
     let mut cr = CommandResult::new();
     let tokens = &cmd.tokens;
     let args = parsers::parser_line::tokens_to_args(tokens);
-    // NOTE: these default_missing_value -1 is for reporting only
-    // we cannot change the limit less then zero.
-    let mut app = ClapCommand::new("ulimit")
-        .about("Show / Modify shell resource limits")
-        .arg(Arg::new("report_all")
-             .short('a')
-             .help("Report all limits"))
-        .arg(Arg::new("for_hard")
-             .short('H')
-             .help("specify the hard limit"))
-        .arg(Arg::new("for_soft")
-             .short('S')
-             .help("specify the soft limit (default)"))
-        .arg(Arg::new("open_files")
-             .short('n')
-             .default_missing_value("-1")
-             .takes_value(true))
-        .arg(Arg::new("core_file_size")
-             .short('c')
-             .default_missing_value("-1")
-             .takes_value(true));
 
-    if tokens.len() == 2 && (tokens[1].1 == "-h" || tokens[1].1 == "--help") {
-        use std::io;
-        let mut out = io::stdout();
-        match app.write_help(&mut out) {
-            Ok(_) => {},
-            Err(e) => {
-                println_stderr!("cicada: clap: {}", e);
-            }
-        }
+    if args.contains(&"--help".to_string()) || args.contains(&"-h".to_string()) {
+        App::command().print_help().unwrap();
         println!();
-        return CommandResult::new();
-    }
-
-    let matches = match app.try_get_matches_from(&args) {
-        Ok(x) => x,
-        Err(e) => {
-            let info = format!("ulimit error: {}", e);
-            print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
-            return cr;
-        }
-    };
-
-    let open_files;
-    match matches.value_of_t("open_files") {
-        Ok(x) => open_files = x,
-        Err(e) => {
-            match e.kind() {
-                ErrorKind::ArgumentNotFound => open_files = -1,
-                _ => {
-                    let info = format!("cicada: ulimit: invalid params: {}", e);
-                    print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
-                    return cr;
-                }
-            }
-        }
-    }
-
-    let core_file_size;
-    match matches.value_of_t("core_file_size") {
-        Ok(x) => core_file_size = x,
-        Err(e) => {
-            match e.kind() {
-                ErrorKind::ArgumentNotFound => core_file_size = -1,
-                _ => {
-                    let info = format!("cicada: ulimit: invalid params: {}", e);
-                    print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
-                    return cr;
-                }
-            }
-        }
-    }
-
-    let mut options = Vec::new();
-    for (_, o) in tokens {
-        if o.starts_with('-') && (o != "-H" && o != "-S" && o != "-a") {
-            options.push(o);
-        }
-    }
-
-    let for_hard = matches.is_present("for_hard");
-    if matches.is_present("report_all") || options.is_empty() {
-        let (_out, _err) = report_all(for_hard);
-        if !_out.is_empty() {
-            print_stdout_with_capture(&_out, &mut cr, cl, cmd, capture);
-        }
-        if !_err.is_empty() {
-            print_stderr_with_capture(&_err, &mut cr, cl, cmd, capture);
-        }
         return cr;
     }
 
-    if open_files > -1 {
-        let _err = set_limit("open_files", open_files as u64, for_hard);
-        if !_err.is_empty() {
-            print_stderr_with_capture(&_err, &mut cr, cl, cmd, capture);
-            return cr;
-        }
-    }
-    if core_file_size > -1 {
-        let _err = set_limit("core_file_size", core_file_size as u64, for_hard);
-        if !_err.is_empty() {
-            print_stderr_with_capture(&_err, &mut cr, cl, cmd, capture);
-            return cr;
-        }
+    let app = App::parse_from(args);
+
+    if app.H && app.S {
+        println!("cicada: ulimit: Cannot both hard and soft.");
+        cr.status = 1;
+        return cr;
     }
 
-    let (_out, _err) = report_needed(&options, for_hard, open_files, core_file_size);
-    if !_out.is_empty() {
-        print_stdout_with_capture(&_out, &mut cr, cl, cmd, capture);
+    let mut all_stdout = String::new();
+    let mut all_stderr = String::new();
+
+    if app.a {
+        report_all(&app, &mut all_stdout, &mut all_stderr);
+    } else if handle_limit(app.n, "open_files", app.H, &mut all_stdout, &mut all_stderr)
+        || handle_limit(app.c, "core_file_size", app.H, &mut all_stdout, &mut all_stderr) {
+    } else {
+        report_all(&app, &mut all_stdout, &mut all_stderr);
     }
-    if !_err.is_empty() {
-        print_stderr_with_capture(&_err, &mut cr, cl, cmd, capture);
+
+    if !all_stdout.is_empty() {
+        print_stdout_with_capture(&all_stdout, &mut cr, cl, cmd, capture);
     }
+    if !all_stderr.is_empty() {
+        print_stderr_with_capture(&all_stderr, &mut cr, cl, cmd, capture);
+    }
+
     cr
 }
 
 fn set_limit(limit_name: &str, value: u64, for_hard: bool) -> String {
-    // Since libc::RLIMIT_NOFILE etc has different types on different OS
-    // so we cannot pass them via params, see issue:
-    // https://github.com/rust-lang/libc/issues/2029
-    let limit_id;
-    if limit_name == "open_files" {
-        limit_id = libc::RLIMIT_NOFILE
-    } else if limit_name == "core_file_size" {
-        limit_id = libc::RLIMIT_CORE
-    } else {
-        return String::from("invalid limit name");
-    }
+    let limit_id = match limit_name {
+        "open_files" => libc::RLIMIT_NOFILE,
+        "core_file_size" => libc::RLIMIT_CORE,
+        _ => return String::from("invalid limit name"),
+    };
 
-    let mut rlp = libc::rlimit {rlim_cur: 0, rlim_max: 0};
-    let rlim: *mut libc::rlimit = &mut rlp;
+    let mut rlp = libc::rlimit { rlim_cur: 0, rlim_max: 0 };
+
     unsafe {
-        let res = libc::getrlimit(limit_id, rlim);
-        if res != 0 {
-            let info = format!("cicada: ulimit: error when getting limit: {}",
-                               Error::last_os_error());
-            return String::from(&info);
+        if libc::getrlimit(limit_id, &mut rlp) != 0 {
+            return format!("cicada: ulimit: error getting limit: {}", Error::last_os_error());
         }
     }
 
+    // to make Raspbian GNU/Linux 10 armv7l work
     if for_hard {
         #[cfg(target_pointer_width = "32")]
         { rlp.rlim_max = value as u32; }
@@ -169,115 +91,76 @@ fn set_limit(limit_name: &str, value: u64, for_hard: bool) -> String {
     }
 
     unsafe {
-        let res = libc::setrlimit(limit_id, rlim);
-        if res != 0 {
-            let info = format!("cicada: ulimit: error when setting limit: {}",
-                               Error::last_os_error());
-            return String::from(&info);
+        if libc::setrlimit(limit_id, &rlp) != 0 {
+            return format!("cicada: ulimit: error setting limit: {}", Error::last_os_error());
         }
     }
 
     String::new()
 }
 
-fn get_limit(limit_name: &str, single_print: bool,
-             for_hard: bool) -> (String, String) {
-    let mut result_stderr = String::new();
+fn get_limit(limit_name: &str, single_print: bool, for_hard: bool) -> (String, String) {
+    let (desc, limit_id) = match limit_name {
+        "open_files" => ("open files", libc::RLIMIT_NOFILE),
+        "core_file_size" => ("core file size", libc::RLIMIT_CORE),
+        _ => return (String::new(), String::from("ulimit: error: invalid limit name")),
+    };
+
+    let mut rlp = libc::rlimit { rlim_cur: 0, rlim_max: 0 };
+
     let mut result_stdout = String::new();
+    let mut result_stderr = String::new();
 
-    let desc;
-    let limit_id;
-    if limit_name == "open_files" {
-        desc = "open files";
-        limit_id = libc::RLIMIT_NOFILE;
-    } else if limit_name == "core_file_size" {
-        desc = "core file size";
-        limit_id = libc::RLIMIT_CORE;
-    } else {
-        let info = "ulimit: error: invalid limit name";
-        result_stderr.push_str(info);
-        return (result_stdout, result_stderr);
-    }
-
-    let mut rlp = libc::rlimit {rlim_cur: 0, rlim_max: 0};
-    let r: *mut libc::rlimit = &mut rlp;
     unsafe {
-        let res = libc::getrlimit(limit_id, r);
-        if res != 0 {
-            let info = format!("error when getting limit: {}", Error::last_os_error());
-            result_stderr.push_str(&info);
+        if libc::getrlimit(limit_id, &mut rlp) != 0 {
+            result_stderr.push_str(&format!("error getting limit: {}", Error::last_os_error()));
             return (result_stdout, result_stderr);
         }
 
         let to_print = if for_hard { rlp.rlim_max } else { rlp.rlim_cur };
 
-        if single_print {
-            if to_print == libc::RLIM_INFINITY {
-                result_stdout.push_str("unlimited\n");
-            } else {
-                let info = format!("{}\n", to_print);
-                result_stdout.push_str(&info);
-            }
-        } else if to_print == libc::RLIM_INFINITY {
-            let info = format!("{}\t\tunlimited\n", desc);
-            result_stdout.push_str(&info);
+        let info = if to_print == libc::RLIM_INFINITY {
+            if single_print { "unlimited\n".to_string() } else { format!("{}\t\tunlimited\n", desc) }
+        } else if single_print {
+            format!("{}\n", to_print)
         } else {
-            let info = format!("{}\t\t{}\n", desc, to_print);
-            result_stdout.push_str(&info);
-        }
+            format!("{}\t\t{}\n", desc, to_print)
+        };
+
+        result_stdout.push_str(&info);
     }
 
     (result_stdout, result_stderr)
 }
 
-fn report_all(for_hard: bool) -> (String, String) {
-    let mut result_stderr = String::new();
-    let mut result_stdout = String::new();
-
-    let (_out, _err) = get_limit("open_files", false, for_hard);
-    if !_out.is_empty() {
-        result_stdout.push_str(&_out);
+fn report_all(app: &App, all_stdout: &mut String, all_stderr: &mut String) {
+    for limit_name in &["open_files", "core_file_size"] {
+        let (out, err) = get_limit(limit_name, false, app.H);
+        all_stdout.push_str(&out);
+        all_stderr.push_str(&err);
     }
-    if !_err.is_empty() {
-        result_stderr.push_str(&_err);
-    }
-    let (_out, _err) = get_limit("core_file_size", false, for_hard);
-    if !_out.is_empty() {
-        result_stdout.push_str(&_out);
-    }
-    if !_err.is_empty() {
-        result_stderr.push_str(&_err);
-    }
-
-    (result_stdout, result_stderr)
 }
 
-fn report_needed(options: &Vec<&String>, for_hard: bool, open_files: i64,
-                 core_file_size: i64) -> (String, String) {
-    let mut result_stderr = String::new();
-    let mut result_stdout = String::new();
-
-    let single_print = options.len() == 1;
-    for o in options {
-        if *o == "-n" && open_files == -1 {
-            let (_out, _err) = get_limit("open_files", single_print, for_hard);
-            if !_out.is_empty() {
-                result_stdout.push_str(&_out);
-            }
-            if !_err.is_empty() {
-                result_stderr.push_str(&_err);
-            }
+fn handle_limit(
+    limit_option: Option<Option<u64>>,
+    limit_name: &str,
+    for_hard: bool,
+    all_stdout: &mut String,
+    all_stderr: &mut String) -> bool {
+    match limit_option {
+        None => false,
+        Some(None) => {
+            let (out, err) = get_limit(limit_name, true, for_hard);
+            all_stdout.push_str(&out);
+            all_stderr.push_str(&err);
+            true
         }
-        if *o == "-c" && core_file_size == -1 {
-            let (_out, _err) = get_limit("core_file_size", single_print, for_hard);
-            if !_out.is_empty() {
-                result_stdout.push_str(&_out);
+        Some(Some(value)) => {
+            let err = set_limit(limit_name, value, for_hard);
+            if !err.is_empty() {
+                all_stderr.push_str(&err);
             }
-            if !_err.is_empty() {
-                result_stderr.push_str(&_err);
-            }
+            true
         }
     }
-
-    (result_stdout, result_stderr)
 }

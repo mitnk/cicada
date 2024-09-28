@@ -2,7 +2,7 @@
 edition = "2021"
 build = "src/build.rs"
 name = "cicada"
-version = "0.9.41"
+version = "1.0.0"
 authors = ["Hugo Wang <w@mitnk.com>"]
 
 description = "A simple Bash-like Unix shell."
@@ -41,10 +41,9 @@ version = "0.29.0"
 features = ["fs", "process", "signal"]
 
 [dependencies.clap]
-# todo: upgrade clap to 4.x
-version = "=3.2"
+version = "4.5"
 default-features = false
-features = ["std"]
+features = ["std", "derive", "help"]
 
 [dependencies.rusqlite]
 version = "0.32"

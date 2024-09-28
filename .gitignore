@@ -7,4 +7,6 @@ target/
 *.txt
 *.diff
 *.patch
+*.log
+*.tgz
 tmpfile-test-cicada-scripts.out

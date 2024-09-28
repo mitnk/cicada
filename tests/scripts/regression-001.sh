@@ -36,3 +36,10 @@ echo b3 >> .sort-input
 (sort) < .sort-input > .sort-output
 cat .sort-output
 rm -f .sort-input .sort-output
+
+echo '---- for ulimit ---'
+ulimit -n 1234
+ulimit -c 5678
+ulimit -n
+ulimit -c
+ulimit | wc
