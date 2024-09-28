@@ -29,9 +29,8 @@ glob = "0.3.0"
 lazy_static = "1.5.0"
 libc = "0.2.0"
 linefeed = "0.6.0"
-# todo: upgrade pest to 2.7+
-pest = "=2.3.1"
-pest_derive = "2.0"
+pest = "2.7"
+pest_derive = "2.7"
 regex = "1"
 yaml-rust = "0.4.0"
 uuid = { version = "1.4", features = ["serde", "v4"] }

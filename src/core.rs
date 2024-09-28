@@ -680,11 +680,13 @@ fn try_run_calculator(line: &str, capture: bool) -> Option<CommandResult> {
 pub fn run_calculator(line: &str) -> Result<String, &str> {
     let parse_result = calculator::calculate(line);
     match parse_result {
-        Ok(calc) => {
+        Ok(mut calc) => {
+            let expr = calc.next().unwrap().into_inner();
+
             if line.contains('.') {
-                Ok(format!("{}", calculator::eval_float(calc)))
+                Ok(format!("{}", calculator::eval_float(expr)))
             } else {
-                Ok(format!("{}", calculator::eval_int(calc)))
+                Ok(format!("{}", calculator::eval_int(expr)))
             }
         }
         Err(_) => {

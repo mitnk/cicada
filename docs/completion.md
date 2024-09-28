@@ -91,10 +91,6 @@ Put your completion files under `$XDG_CONFIG_HOME/cicada/completers`
 (by default it's `~/.config/cicada/completers/`).
 The completion files look like this:
 
-> **NOTE:** cicada 0.9.x also loads completers from `~/.cicada/completers`
-> (if `~/.config/cicada/completers` not exist) for
-> compatibility. From 1.0, cicada will not read this location anymore.
-
 ```
 $ ls ~/.config/cicada/completers/
 brew.yaml git.yaml  pip.yaml  vox.yaml
