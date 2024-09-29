@@ -1,5 +1,10 @@
 # cicada Release Notes
 
+## 1.0.1 - 2024.09.29
+
+- update version of cicada in the lock file.
+- Drop buildability on my RPi3 (revert this commit to build).
+
 ## 1.0.0 - 2024.09.29
 
 - Bumped version to 1.0!

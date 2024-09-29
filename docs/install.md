@@ -25,6 +25,15 @@ $ cd cicada-shell/
 $ makepkg -si
 ```
 
+### Termux
+
+Termux is an Android [terminal emulater](https://wiki.termux.com/wiki/Main_Page).
+
+To install cicada in Termux, just input:
+```
+$ pkg install cicada
+```
+
 ## Generic Install Options
 
 ### Option A: cargo

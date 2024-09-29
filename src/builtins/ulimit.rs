@@ -79,15 +79,9 @@ fn set_limit(limit_name: &str, value: u64, for_hard: bool) -> String {
 
     // to make Raspbian GNU/Linux 10 armv7l work
     if for_hard {
-        #[cfg(target_pointer_width = "32")]
-        { rlp.rlim_max = value as u32; }
-        #[cfg(target_pointer_width = "64")]
-        { rlp.rlim_max = value; }
+        rlp.rlim_max = value;
     } else {
-        #[cfg(target_pointer_width = "32")]
-        { rlp.rlim_cur = value as u32; }
-        #[cfg(target_pointer_width = "64")]
-        { rlp.rlim_cur = value; }
+        rlp.rlim_cur = value;
     }
 
     unsafe {
