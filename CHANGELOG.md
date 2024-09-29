@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 1.0.2 - 2024.09.29
+
+- Revert 1.0.1 to support `armv7-unknown-linux-gnueabihf`.
+
 ## 1.0.1 - 2024.09.29
 
 - update version of cicada in the lock file.
