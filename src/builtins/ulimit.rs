@@ -77,15 +77,23 @@ fn set_limit(limit_name: &str, value: u64, for_hard: bool) -> String {
         }
     }
 
-    // to support armv7-unknown-linux-gnueabihf
+    // to support armv7-linux-gnueabihf & 32-bit musl systems
     if for_hard {
-        #[cfg(target_pointer_width = "32")]
+        #[cfg(all(target_pointer_width = "32", not(target_env = "musl")))]
         { rlp.rlim_max = value as u32; }
+
+        #[cfg(all(target_pointer_width = "32", target_env = "musl"))]
+        { rlp.rlim_max = value as u64; }
+
         #[cfg(target_pointer_width = "64")]
         { rlp.rlim_max = value; }
     } else {
-        #[cfg(target_pointer_width = "32")]
+        #[cfg(all(target_pointer_width = "32", not(target_env = "musl")))]
         { rlp.rlim_cur = value as u32; }
+
+        #[cfg(all(target_pointer_width = "32", target_env = "musl"))]
+        { rlp.rlim_cur = value as u64; }
+
         #[cfg(target_pointer_width = "64")]
         { rlp.rlim_cur = value; }
     }
