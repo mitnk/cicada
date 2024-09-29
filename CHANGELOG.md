@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 1.0.0 - 2024.09.29
+
+- Bumped version to 1.0!
+
 ## 0.9.40 - 2024.09.26
 
 - Fix a Unicode issue for commands end with `&`.

@@ -49,10 +49,10 @@ Move it to right place and add runable permisson:
 
 ```
 # on Mac
-$ mv cicada-mac-arm64 /usr/local/bin/cicada
+$ mv cicada-aarch64-apple-darwin /usr/local/bin/cicada
 
 # on Linux
-$ mv cicada-linux-x86_64 /usr/local/bin/cicada
+$ mv cicada-x86_64-unknown-linux-gnu /usr/local/bin/cicada
 
 $ chmod +x /usr/local/bin/cicada
 ```
@@ -83,6 +83,9 @@ cicada will be installed under `/usr/local/bin`
 
 > I found on newer MacOS, a reboot is needed after generating a new binary.
 > This may be an bug/feature of the OS security things.
+>
+> UPDATE: a reboot can be avoided if we run:
+> `rm -f /usr/local/bin/cicada && cp /path/of/new/cicada /usr/local/bin/`
 
 ## Set cicada as your login shell
 
