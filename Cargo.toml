@@ -12,6 +12,7 @@ categories = ["command-line-utilities", "command-line-interface", "development-t
 license = "MIT"
 
 [profile.release]
+lto = true
 strip = true
 
 [lib]
