@@ -45,9 +45,9 @@ ulimit -c
 ulimit | wc
 
 echo '--- for exit code ---'
-./target/debug/cicada -c 'cinfo1'
+./target/debug/cicada -c cinfo1
 echo $?
-echo '/bin/ls does-not-exist.txt' > tmp.sh
-./target/debug/cicada tmp.sh
+echo 'exit 3' > exit3.sh
+./target/debug/cicada exit3.sh
 echo $?
-rm -f tmp.sh
+rm -f exit3.sh
