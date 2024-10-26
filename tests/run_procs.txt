@@ -4,10 +4,13 @@ Cargo\.toml
 (ls)
 Cargo\.toml
 
-ls foo.txt
+rm -f foo335892.txt
 
-ls.*foo\.txt.*such file
-ls foo.txt | wc
+
+ls foo335892.txt
+
+ls.*foo335892\.txt.*such file
+ls foo335892.txt | wc
 ^0.*0.*0$
 ^$
 ls foo.txt 2>&1 | wc

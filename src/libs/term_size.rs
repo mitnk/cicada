@@ -56,8 +56,7 @@ unsafe fn get_dimensions_any() -> winsize {
 ///
 /// To get the dimensions of your terminal window, simply use the following:
 ///
-/// ```no_run
-/// # use term_size;
+/// ```ignore
 /// if let Some((w, h)) = term_size::dimensions() {
 ///     println!("Width: {}\nHeight: {}", w, h);
 /// } else {

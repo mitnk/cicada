@@ -106,6 +106,13 @@ pub fn run_script(sh: &mut shell::Shell, args: &Vec<String>) -> i32 {
     if let Some(last) = cr_list.last() {
         status = last.status;
     }
+
+    // FIXME: We probably need to fix the issue in the `set` builtin,
+    // which currently set `exit_on_error` at the shell session level,
+    // we should instead set in a script-level.
+    // Here is a work-around ugly fix.
+    sh.exit_on_error = false;
+
     status
 }
 

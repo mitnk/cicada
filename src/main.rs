@@ -68,8 +68,8 @@ fn main() {
 
     if libs::progopts::is_script(&args) {
         log!("run script: {:?} ", &args);
-        scripting::run_script(&mut sh, &args);
-        return;
+        let status = scripting::run_script(&mut sh, &args);
+        std::process::exit(status);
     }
 
     if libs::progopts::is_command_string(&args) {
@@ -78,7 +78,7 @@ fn main() {
         let line = tools::env_args_to_command_line();
         log!("run with -c args: {}", &line);
         execute::run_command_line(&mut sh, &line, false, false);
-        return;
+        std::process::exit(sh.previous_status);
     }
 
     if libs::progopts::is_non_tty() {
@@ -152,6 +152,7 @@ fn main() {
                 tools::extend_bangbang(&sh, &mut line);
 
                 let mut status = 0;
+                log!("run execute::run_command_line: {}", line);
                 let cr_list = execute::run_command_line(&mut sh, &line, true, false);
                 if let Some(last) = cr_list.last() {
                     status = last.status;

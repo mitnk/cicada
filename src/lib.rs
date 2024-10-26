@@ -7,9 +7,9 @@
 //!
 //! **Add cicada into Cargo.toml**
 //!
-//! ```no_run
+//! ```ignore
 //! [dependencies]
-//! cicada = "0.9.0"
+//! cicada = "1.0"
 //! ```
 //!
 //! **Use cicada functions**
@@ -18,7 +18,10 @@
 //! extern crate cicada;
 //!
 //! fn main() {
-//!     let tokens = cicada::parse_line("echo 'hi yoo' | `which wc`");
+//!     let info = cicada::parse_line("echo 'hi yoo' | `which wc`");
+//!     assert!(info.is_complete);
+//!
+//!     let tokens = info.tokens;
 //!     assert_eq!(tokens.len(), 4);
 //!
 //!     assert_eq!(tokens[0].0, "");

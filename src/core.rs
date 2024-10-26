@@ -528,7 +528,6 @@ fn run_single_program(
 
                     if sh.has_terminal
                         && options.isatty
-                        && !options.capture_output
                         && !cl.background
                     {
                         *term_given = shell::give_terminal_to(pid);

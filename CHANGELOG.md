@@ -1,5 +1,12 @@
 # cicada Release Notes
 
+## 1.0.3 - 2024.10.26
+
+- Enabled lto for Rust for a smaller binary size.
+- Made commands like "vim $(fzf)" work.
+- Fixed an issue of `set -e`
+- Fixed an issue of exit code for `cicada foo.sh`.
+
 ## 1.0.2 - 2024.09.29
 
 - Revert 1.0.1 to support `armv7-unknown-linux-gnueabihf`.
