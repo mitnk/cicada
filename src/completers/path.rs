@@ -206,7 +206,7 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
             suffix: Suffix::Default,
         });
     }
-    for alias in sh.alias.keys() {
+    for alias in sh.aliases.keys() {
         if !alias.starts_with(&fname) {
             continue;
         }

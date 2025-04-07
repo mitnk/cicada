@@ -67,6 +67,10 @@ fn main() {
         sh.is_login = true;
     }
 
+    // Initialize command cache for highlighting
+    highlight::init_command_cache();
+    highlight::update_aliases(&sh);
+
     if libs::progopts::is_script(&args) {
         log!("run script: {:?} ", &args);
         let status = scripting::run_script(&mut sh, &args);
@@ -178,6 +182,9 @@ fn main() {
                     rl.set_completer(Arc::new(completers::CicadaCompleter {
                         sh: Arc::new(sh.clone()),
                     }));
+
+                    // Update aliases in the highlighter when they might have changed
+                    highlight::update_aliases(&sh);
                 }
 
                 jobc::try_wait_bg_jobs(&mut sh, true, sig_handler_enabled);
