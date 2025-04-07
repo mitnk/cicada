@@ -11,6 +11,7 @@ use linefeed::highlighting::{Highlighter, Style};
 
 use crate::tools;
 use crate::shell;
+use crate::parsers::parser_line;
 
 #[derive(Clone)]
 pub struct CicadaHighlighter;
@@ -77,6 +78,79 @@ fn scan_available_commands() -> HashSet<String> {
     commands
 }
 
+fn is_command(word: &str) -> bool {
+    if tools::is_builtin(word) {
+        return true;
+    }
+    if let Ok(aliases) = ALIASES.lock() {
+        if aliases.contains(word) {
+            return true;
+        }
+    }
+    if let Ok(commands) = AVAILABLE_COMMANDS.lock() {
+        if commands.contains(word) {
+            return true;
+        }
+    }
+    false
+}
+
+fn find_token_range_heuristic(line: &str, start_byte: usize, token: &(String, String)) -> Option<Range<usize>> {
+    let (sep, word) = token;
+
+    // Find the start of the token, skipping leading whitespace from the search start position
+    let mut search_area = &line[start_byte..];
+    let token_start_byte = if let Some(non_ws_offset) = search_area.find(|c: char| !c.is_whitespace()) {
+        // Calculate the actual byte index of the first non-whitespace character
+        start_byte + search_area.char_indices().nth(non_ws_offset).map_or(0, |(idx, _)| idx)
+    } else {
+        return None; // Only whitespace left
+    };
+
+    search_area = &line[token_start_byte..];
+
+    // Estimate the end byte based on the token structure
+    let mut estimated_len = 0;
+    let mut current_search_offset = 0;
+
+    // Match separator prefix if needed (e.g., `"` or `'`)
+    if !sep.is_empty() && search_area.starts_with(sep) {
+        estimated_len += sep.len();
+        current_search_offset += sep.len();
+    }
+
+    // Match the word content
+    // Use starts_with for a basic check, assuming the word appears next
+    if search_area[current_search_offset..].starts_with(word) {
+         estimated_len += word.len();
+         current_search_offset += word.len();
+
+         // Match separator suffix if needed
+        if !sep.is_empty() && search_area[current_search_offset..].starts_with(sep) {
+            estimated_len += sep.len();
+        }
+
+        Some(token_start_byte..(token_start_byte + estimated_len))
+
+    } else if word.is_empty() && !sep.is_empty() && search_area.starts_with(sep) && search_area[sep.len()..].starts_with(sep) {
+         // Handle empty quoted string like "" or ''
+         estimated_len += sep.len() * 2;
+         Some(token_start_byte..(token_start_byte + estimated_len))
+    }
+    else {
+        // Fallback: Maybe it's just the word without quotes, or a separator like `|`
+        if search_area.starts_with(word) {
+             Some(token_start_byte..(token_start_byte + word.len()))
+        } else {
+             // Could not reliably map the token back to the original string segment
+             // This might happen with complex escapes or parser ambiguities
+             // As a basic fallback, consume up to the next space or end of line? Unsafe.
+             // Return None to signal failure for this token.
+             None
+        }
+    }
+}
+
 impl Highlighter for CicadaHighlighter {
     fn highlight(&self, line: &str) -> Vec<(Range<usize>, Style)> {
         let mut styles = Vec::new();
@@ -84,59 +158,59 @@ impl Highlighter for CicadaHighlighter {
             return styles;
         }
 
-        // Trim leading whitespace and find the start index of the actual command
-        let trimmed_line = line.trim_start();
-        let leading_whitespace_len = line.len() - trimmed_line.len();
-
-        if trimmed_line.is_empty() {
+        let line_info = parser_line::parse_line(line);
+        if line_info.tokens.is_empty() {
+            // If parser returns no tokens, style whole line as default
             styles.push((0..line.len(), Style::Default));
             return styles;
         }
 
-        // Find where the command ends in the trimmed line
-        let first_word_end_in_trimmed = trimmed_line.find(char::is_whitespace).unwrap_or(trimmed_line.len());
+        let mut current_byte_idx = 0;
+        let mut is_start_of_segment = true;
 
-        // Calculate the actual start and end indices in the original line
-        let command_start_index = leading_whitespace_len;
-        let command_end_index = leading_whitespace_len + first_word_end_in_trimmed;
+        for token in &line_info.tokens {
+            // Find the range in the original line for this token
+            match find_token_range_heuristic(line, current_byte_idx, token) {
+                Some(token_range) => {
+                    // Style potential whitespace before the token
+                    if token_range.start > current_byte_idx {
+                        styles.push((current_byte_idx..token_range.start, Style::Default));
+                    }
 
-        // Get the command part from the trimmed line
-        let command = &trimmed_line[..first_word_end_in_trimmed];
+                    let (_sep, word) = token;
+                    let mut current_token_style = Style::Default;
 
-        // Check if this is an exact match for a known command, builtin, or alias
-        let is_exact_command = if let Ok(commands) = AVAILABLE_COMMANDS.lock() {
-            commands.contains(command)
-        } else {
-            false
-        };
+                    if is_start_of_segment && !word.is_empty() {
+                        if is_command(word) {
+                            current_token_style = Style::AnsiColor(GREEN.to_string());
+                        }
+                        // Only the first non-empty token in a segment can be a command
+                        is_start_of_segment = false;
+                    }
 
-        let is_builtin = tools::is_builtin(command);
+                    styles.push((token_range.clone(), current_token_style));
 
-        let is_alias = if let Ok(aliases) = ALIASES.lock() {
-            aliases.contains(command)
-        } else {
-            false
-        };
+                    // Check if this token marks the end of a command segment
+                    if ["|", "&&", "||", ";"].contains(&word.as_str()) {
+                        is_start_of_segment = true;
+                    }
 
-        if is_exact_command || is_builtin || is_alias {
-            // Style leading whitespace (if any) as default
-            if command_start_index > 0 {
-                styles.push((0..command_start_index, Style::Default));
+                    current_byte_idx = token_range.end;
+                }
+                None => {
+                    // If we can't map a token, style the rest of the line as default and stop.
+                    if current_byte_idx < line.len() {
+                       styles.push((current_byte_idx..line.len(), Style::Default));
+                    }
+                    current_byte_idx = line.len(); // Mark as done
+                    break; // Stop processing further tokens
+                }
             }
+        }
 
-            // Style the command green
-            styles.push((
-                command_start_index..command_end_index,
-                Style::AnsiColor(GREEN.to_string()),
-            ));
-
-            // Style the rest of the line as default if there is more text
-            if command_end_index < line.len() {
-                styles.push((command_end_index..line.len(), Style::Default));
-            }
-        } else {
-            // If it's not a command, style the whole line as default
-            styles.push((0..line.len(), Style::Default));
+        // Style any remaining characters after the last processed token
+        if current_byte_idx < line.len() {
+            styles.push((current_byte_idx..line.len(), Style::Default));
         }
 
         styles

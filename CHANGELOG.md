@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 1.1.0 - master
+
+- Added highlighting for command parts while typing in the terminal.
+
 ## 1.0.3 - 2024.10.26
 
 - Enabled lto for Rust for a smaller binary size.

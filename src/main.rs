@@ -160,7 +160,6 @@ fn main() {
                 tools::extend_bangbang(&sh, &mut line);
 
                 let mut status = 0;
-                log!("run execute::run_command_line: {}", line);
                 let cr_list = execute::run_command_line(&mut sh, &line, true, false);
                 if let Some(last) = cr_list.last() {
                     status = last.status;
