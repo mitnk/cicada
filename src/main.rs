@@ -36,6 +36,7 @@ mod core;
 mod ctime;
 mod execute;
 mod history;
+mod highlight;
 mod jobc;
 mod libs;
 mod parsers;
@@ -100,6 +101,9 @@ fn main() {
 
     rl.define_function("enter-function", Arc::new(prompt::EnterFunction));
     rl.bind_sequence("\r", Command::from_str("enter-function"));
+
+    let highlighter = highlight::create_highlighter();
+    rl.set_highlighter(highlighter);
 
     history::init(&mut rl);
     rl.set_completer(Arc::new(completers::CicadaCompleter {
