@@ -1,8 +1,10 @@
 # cicada Release Notes
 
-## 1.1.0 - master
+## 1.1.0 - 2025.04.08
 
 - Added highlighting for command parts while typing in the terminal.
+- Updated `history` builtin item printing from desc to asc.
+- When opened in VS Code, make cicada a login shell to load rc-file.
 
 ## 1.0.3 - 2024.10.26
 

@@ -231,6 +231,7 @@ fn list_current_history(sh: &Shell, conn: &Conn,
         }
     }
 
+    lines.reverse();
     let buffer = lines.join("\n");
 
     (buffer, result_stderr)

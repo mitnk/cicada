@@ -486,14 +486,14 @@ impl<'a, Term: Terminal> WriteLock<'a, Term> {
 
     pub fn continue_history_search(&mut self, reverse: bool) -> io::Result<()> {
         if let Some(idx) = self.find_history_search(reverse) {
+            // Use the same logic as select_history_entry for redraw robustness.
+            self.move_to(0)?;
             self.set_history_entry(Some(idx));
+            self.new_buffer()?;
 
-            let pos = self.cursor;
-            let end = self.buffer.len();
-
-            self.draw_buffer(pos)?;
-            self.clear_to_screen_end()?;
-            self.move_from(end)?;
+            // After redrawing, move cursor to position after the original search prefix.
+            let prefix_len = self.search_buffer.len();
+            self.move_to(prefix_len)?;
         }
 
         Ok(())
