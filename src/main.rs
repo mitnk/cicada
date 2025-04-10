@@ -36,6 +36,7 @@ mod core;
 mod ctime;
 mod execute;
 mod history;
+mod highlight;
 mod jobc;
 mod libs;
 mod parsers;
@@ -65,6 +66,10 @@ fn main() {
         rcfile::load_rc_files(&mut sh);
         sh.is_login = true;
     }
+
+    // Initialize command cache for highlighting
+    highlight::init_command_cache();
+    highlight::update_aliases(&sh);
 
     if libs::progopts::is_script(&args) {
         log!("run script: {:?} ", &args);
@@ -100,6 +105,9 @@ fn main() {
 
     rl.define_function("enter-function", Arc::new(prompt::EnterFunction));
     rl.bind_sequence("\r", Command::from_str("enter-function"));
+
+    let highlighter = highlight::create_highlighter();
+    rl.set_highlighter(highlighter);
 
     history::init(&mut rl);
     rl.set_completer(Arc::new(completers::CicadaCompleter {
@@ -152,7 +160,6 @@ fn main() {
                 tools::extend_bangbang(&sh, &mut line);
 
                 let mut status = 0;
-                log!("run execute::run_command_line: {}", line);
                 let cr_list = execute::run_command_line(&mut sh, &line, true, false);
                 if let Some(last) = cr_list.last() {
                     status = last.status;
@@ -174,6 +181,9 @@ fn main() {
                     rl.set_completer(Arc::new(completers::CicadaCompleter {
                         sh: Arc::new(sh.clone()),
                     }));
+
+                    // Update aliases in the highlighter when they might have changed
+                    highlight::update_aliases(&sh);
                 }
 
                 jobc::try_wait_bg_jobs(&mut sh, true, sig_handler_enabled);

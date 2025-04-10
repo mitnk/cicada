@@ -16,7 +16,7 @@ use crate::types::{self, CommandLine};
 #[derive(Debug, Clone)]
 pub struct Shell {
     pub jobs: HashMap<i32, types::Job>,
-    pub alias: HashMap<String, String>,
+    pub aliases: HashMap<String, String>,
     pub envs: HashMap<String, String>,
     pub funcs: HashMap<String, String>,
     pub cmd: String,
@@ -41,7 +41,7 @@ impl Shell {
         let (session_id, _) = uuid.split_at(13);
         Shell {
             jobs: HashMap::new(),
-            alias: HashMap::new(),
+            aliases: HashMap::new(),
             envs: HashMap::new(),
             funcs: HashMap::new(),
             cmd: String::new(),
@@ -302,27 +302,27 @@ impl Shell {
 
     pub fn get_alias_list(&self) -> Vec<(String, String)> {
         let mut result = Vec::new();
-        for (name, value) in &self.alias {
+        for (name, value) in &self.aliases {
             result.push((name.clone(), value.clone()));
         }
         result
     }
 
     pub fn add_alias(&mut self, name: &str, value: &str) {
-        self.alias.insert(name.to_string(), value.to_string());
+        self.aliases.insert(name.to_string(), value.to_string());
     }
 
     pub fn is_alias(&self, name: &str) -> bool {
-        self.alias.contains_key(name)
+        self.aliases.contains_key(name)
     }
 
     pub fn remove_alias(&mut self, name: &str) -> bool {
-        let opt = self.alias.remove(name);
+        let opt = self.aliases.remove(name);
         opt.is_some()
     }
 
     pub fn get_alias_content(&self, name: &str) -> Option<String> {
-        let result = match self.alias.get(name) {
+        let result = match self.aliases.get(name) {
             Some(x) => x.to_string(),
             None => String::new(),
         };

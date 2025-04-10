@@ -7,6 +7,12 @@ pub fn is_login(args: &[String]) -> bool {
         return true;
     }
 
+    if let Ok(term_program) = std::env::var("TERM_PROGRAM") {
+        if term_program == "vscode" {
+            return true;
+        }
+    }
+
     false
 }
 
