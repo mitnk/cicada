@@ -4,7 +4,7 @@ extern crate errno;
 extern crate exec;
 extern crate glob;
 extern crate libc;
-extern crate linefeed;
+extern crate lineread;
 extern crate nix;
 extern crate regex;
 extern crate rusqlite;
@@ -22,7 +22,7 @@ use std::env;
 use std::io::Write;
 use std::sync::Arc;
 
-use linefeed::{Command, Interface, ReadResult};
+use lineread::{Command, Interface, ReadResult};
 
 #[macro_use]
 mod tlog;
@@ -98,7 +98,7 @@ fn main() {
         Ok(x) => rl = x,
         Err(e) => {
             // non-tty will raise errors here
-            println!("cicada: linefeed error: {}", e);
+            println!("cicada: lineread error: {}", e);
             return;
         }
     }
@@ -173,7 +173,7 @@ fn main() {
 
                 if tools::is_shell_altering_command(&line) {
                     // since our shell object need to be passed into
-                    // `linefeed::Completer` with an Arc.
+                    // `lineread::Completer` with an Arc.
                     // I currently do not know how to share the same sh
                     // instance at hand with it.
 

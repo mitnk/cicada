@@ -1,4 +1,4 @@
-// setting prompt in crate linefeed needs wrap every SEQ chars
+// setting prompt in crate lineread needs wrap every SEQ chars
 // with prefixing with '\x01' and suffix with '\x02'.
 // Color Reference: https://misc.flogisoft.com/bash/tip_colors_and_formatting
 

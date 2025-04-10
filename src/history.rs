@@ -4,8 +4,8 @@ use std::fs;
 use std::io::Write;
 use std::path::Path;
 
-use linefeed::terminal::DefaultTerminal;
-use linefeed::Interface;
+use lineread::terminal::DefaultTerminal;
+use lineread::Interface;
 use rusqlite::Connection as Conn;
 use rusqlite::Error::SqliteFailure;
 

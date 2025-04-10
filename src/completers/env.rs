@@ -1,9 +1,9 @@
 use std::env;
 use std::sync::Arc;
 
-use linefeed::complete::{Completer, Completion, Suffix};
-use linefeed::prompter::Prompter;
-use linefeed::terminal::Terminal;
+use lineread::complete::{Completer, Completion, Suffix};
+use lineread::prompter::Prompter;
+use lineread::terminal::Terminal;
 
 use crate::shell;
 

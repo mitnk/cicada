@@ -3,9 +3,9 @@ use std::io::{BufRead, BufReader};
 
 use regex::Regex;
 
-use linefeed::complete::{Completer, Completion, Suffix};
-use linefeed::terminal::Terminal;
-use linefeed::Prompter;
+use lineread::complete::{Completer, Completion, Suffix};
+use lineread::terminal::Terminal;
+use lineread::Prompter;
 
 use crate::tools;
 

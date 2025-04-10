@@ -7,9 +7,9 @@ use std::os::unix::fs::PermissionsExt;
 use std::path::MAIN_SEPARATOR;
 use std::sync::Arc;
 
-use linefeed::complete::{Completer, Completion, Suffix};
-use linefeed::terminal::Terminal;
-use linefeed::Prompter;
+use lineread::complete::{Completer, Completion, Suffix};
+use lineread::terminal::Terminal;
+use lineread::Prompter;
 
 use crate::completers::utils;
 use crate::libs;

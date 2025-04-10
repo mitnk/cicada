@@ -3,13 +3,13 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::Path;
 
-use linefeed::complete::escape;
-use linefeed::complete::escaped_word_start;
-use linefeed::complete::unescape;
-use linefeed::complete::Suffix;
-use linefeed::complete::{Completer, Completion};
-use linefeed::prompter::Prompter;
-use linefeed::terminal::Terminal;
+use lineread::complete::escape;
+use lineread::complete::escaped_word_start;
+use lineread::complete::unescape;
+use lineread::complete::Suffix;
+use lineread::complete::{Completer, Completion};
+use lineread::prompter::Prompter;
+use lineread::terminal::Terminal;
 use yaml_rust::{Yaml, YamlLoader};
 use yaml_rust::yaml::Hash;
 

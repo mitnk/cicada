@@ -1,9 +1,9 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use linefeed::complete::{Completer, Completion};
-use linefeed::prompter::Prompter;
-use linefeed::terminal::Terminal;
+use lineread::complete::{Completer, Completion};
+use lineread::prompter::Prompter;
+use lineread::terminal::Terminal;
 
 pub mod dots;
 pub mod env;

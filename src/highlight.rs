@@ -7,7 +7,7 @@ use std::fs;
 use std::sync::Mutex;
 use std::os::unix::fs::PermissionsExt;
 
-use linefeed::highlighting::{Highlighter, Style};
+use lineread::highlighting::{Highlighter, Style};
 
 use crate::tools;
 use crate::shell;
@@ -16,7 +16,7 @@ use crate::parsers::parser_line;
 #[derive(Clone)]
 pub struct CicadaHighlighter;
 
-// ANSI color codes wrapped with \x01 and \x02 for linefeed
+// ANSI color codes wrapped with \x01 and \x02 for lineread
 const GREEN: &str = "\x01\x1b[0;32m\x02";
 
 lazy_static! {

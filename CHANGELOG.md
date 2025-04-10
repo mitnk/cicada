@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 1.1.1 - 2025.04.10
+
+- Had to fork linefeed to publish to crates.io
+
 ## 1.1.0 - 2025.04.10
 
 - Added highlighting for command parts while typing in the terminal.

@@ -102,7 +102,7 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
 name = "cicada"
-version = "1.1.0"
+version = "1.1.1"
 dependencies = [
  "clap 4.5.35",
  "errno 0.3.11",
@@ -110,7 +110,7 @@ dependencies = [
  "glob",
  "lazy_static",
  "libc",
- "linefeed",
+ "lineread",
  "nix 0.29.0",
  "pest",
  "pest_derive",
@@ -428,8 +428,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "linefeed"
+name = "lineread"
 version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9aa5189ae0ca789e3cea18e2b5c49640ddb82bbb402b294d1fbd90aab2314cf"
 dependencies = [
  "dirs 1.0.5",
  "mortal",

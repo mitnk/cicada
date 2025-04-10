@@ -1,5 +1,5 @@
 use std::io;
-use linefeed::{Function, Prompter, Terminal};
+use lineread::{Function, Prompter, Terminal};
 
 use crate::parsers::parser_line;
 

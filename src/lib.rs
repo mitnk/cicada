@@ -54,7 +54,7 @@ extern crate errno;
 extern crate exec;
 extern crate glob;
 extern crate libc;
-extern crate linefeed;
+extern crate lineread;
 extern crate nix;
 extern crate regex;
 extern crate rusqlite;
