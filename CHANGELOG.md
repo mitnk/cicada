@@ -1,6 +1,6 @@
 # cicada Release Notes
 
-## 1.1.0 - 2025.04.08
+## 1.1.0 - 2025.04.10
 
 - Added highlighting for command parts while typing in the terminal.
 - Updated `history` builtin item printing from desc to asc.
