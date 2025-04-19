@@ -429,9 +429,9 @@ dependencies = [
 
 [[package]]
 name = "lineread"
-version = "0.7.1-beta"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fca8986d268a6f3b738bfbe79a683560bbc43fd3549c3f4fa615d9f04bfac1f3"
+checksum = "6a9be906e0eb9edfe92d65d3c0f611a330f371e89949ea92b4e7c21d9f350c37"
 dependencies = [
  "dirs 1.0.5",
  "mortal",

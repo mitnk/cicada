@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 1.1.2 - 2025.04.19
+
+- Fix issues in `reverse-i-search`.
+
 ## 1.1.1 - 2025.04.10
 
 - Had to fork linefeed to publish to crates.io
