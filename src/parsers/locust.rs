@@ -6,7 +6,7 @@ use pest::error::Error;
 #[grammar = "parsers/grammar.pest"]
 struct Locust;
 
-pub fn parse_lines(lines: &str) -> Result<Pairs<crate::parsers::locust::Rule>, Error<crate::parsers::locust::Rule>> {
+pub fn parse_lines(lines: &str) -> Result<Pairs<'_, crate::parsers::locust::Rule>, Error<crate::parsers::locust::Rule>> {
     Locust::parse(Rule::EXP, lines)
 }
 

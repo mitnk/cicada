@@ -39,7 +39,7 @@ uuid = { version = "1.4", features = ["serde", "v4"] }
 structopt = { version = "0.3", default-features = false }
 
 [dependencies.nix]
-version = "0.29.0"
+version = "0.30.1"
 features = ["fs", "process", "signal"]
 
 [dependencies.clap]
@@ -48,7 +48,7 @@ default-features = false
 features = ["std", "derive", "help"]
 
 [dependencies.rusqlite]
-version = "0.32"
+version = "0.37"
 features = ["bundled"]
 
 [dependencies.time]

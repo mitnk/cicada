@@ -15,9 +15,8 @@ pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command,
     );
     match fd {
         Ok(fd) => {
-            let info = format!("{}", fd);
+            let info = format!("{:#?}", fd);
             print_stdout_with_capture(&info, &mut cr, cl, cmd, capture);
-            unsafe { libc::close(fd); }
         }
         Err(e) => {
             println_stderr!("cicada: minfd: error: {}", e);
