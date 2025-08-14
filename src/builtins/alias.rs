@@ -1,13 +1,17 @@
 use regex::Regex;
 
+use crate::builtins::utils::print_stderr_with_capture;
+use crate::builtins::utils::print_stdout_with_capture;
 use crate::shell;
 use crate::tools;
 use crate::types::{Command, CommandLine, CommandResult};
-use crate::builtins::utils::print_stderr_with_capture;
-use crate::builtins::utils::print_stdout_with_capture;
 
-pub fn run(sh: &mut shell::Shell, cl: &CommandLine, cmd: &Command,
-           capture: bool) -> CommandResult {
+pub fn run(
+    sh: &mut shell::Shell,
+    cl: &CommandLine,
+    cmd: &Command,
+    capture: bool,
+) -> CommandResult {
     let mut cr = CommandResult::new();
     let tokens = cmd.tokens.clone();
 
@@ -44,8 +48,12 @@ pub fn run(sh: &mut shell::Shell, cl: &CommandLine, cmd: &Command,
     CommandResult::new()
 }
 
-fn show_alias_list(sh: &shell::Shell, cmd: &Command,
-                   cl: &CommandLine, capture: bool) -> CommandResult {
+fn show_alias_list(
+    sh: &shell::Shell,
+    cmd: &Command,
+    cl: &CommandLine,
+    capture: bool,
+) -> CommandResult {
     let mut lines = Vec::new();
     for (name, value) in sh.get_alias_list() {
         let line = format!("alias {}='{}'", name, value);
@@ -57,8 +65,13 @@ fn show_alias_list(sh: &shell::Shell, cmd: &Command,
     cr
 }
 
-fn show_single_alias(sh: &shell::Shell, name_to_find: &str, cmd: &Command,
-                     cl: &CommandLine, capture: bool) -> CommandResult {
+fn show_single_alias(
+    sh: &shell::Shell,
+    name_to_find: &str,
+    cmd: &Command,
+    cl: &CommandLine,
+    capture: bool,
+) -> CommandResult {
     let mut cr = CommandResult::new();
     if let Some(content) = sh.get_alias_content(name_to_find) {
         let info = format!("alias {}='{}'", name_to_find, content);

@@ -5,8 +5,7 @@ use crate::rcfile;
 use crate::shell::Shell;
 use crate::types::{Command, CommandLine, CommandResult};
 
-pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command,
-           capture: bool) -> CommandResult {
+pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> CommandResult {
     let mut info = vec![];
     const VERSION: &str = env!("CARGO_PKG_VERSION");
     info.push(("version", VERSION));

@@ -25,8 +25,12 @@ pub fn run_procs_for_non_tty(sh: &mut Shell) {
     }
 }
 
-pub fn run_command_line(sh: &mut Shell, line: &str, tty: bool,
-                        capture: bool) -> Vec<CommandResult> {
+pub fn run_command_line(
+    sh: &mut Shell,
+    line: &str,
+    tty: bool,
+    capture: bool,
+) -> Vec<CommandResult> {
     let mut cr_list = Vec::new();
     let mut status = 0;
     let mut sep = String::new();
@@ -91,8 +95,7 @@ fn set_shell_vars(sh: &mut Shell, envs: &HashMap<String, String>) {
 /// Run simple command or pipeline without using `&&`, `||`, `;`.
 /// example 1: `ls`
 /// example 2: `ls | wc`
-fn run_proc(sh: &mut Shell, line: &str, tty: bool,
-            capture: bool) -> CommandResult {
+fn run_proc(sh: &mut Shell, line: &str, tty: bool, capture: bool) -> CommandResult {
     let log_cmd = !sh.cmd.starts_with(' ');
     match CommandLine::from_line(line, sh) {
         Ok(cl) => {
@@ -157,9 +160,9 @@ pub fn run(line: &str) -> CommandResult {
 #[cfg(test)]
 mod tests {
     use super::core::run_calculator;
+    use super::libs;
     use super::run_with_shell;
     use super::shell;
-    use super::libs;
 
     #[test]
     fn test_run_calculator() {
@@ -167,10 +170,7 @@ mod tests {
             run_calculator("(1 + 2 * 3.0 - 1.5) / 0.2"),
             Ok("27.5".to_string())
         );
-        assert_eq!(
-            run_calculator("(5 + 2 * 3 - 4) / 3"),
-            Ok("2".to_string())
-        );
+        assert_eq!(run_calculator("(5 + 2 * 3 - 4) / 3"), Ok("2".to_string()));
         assert_eq!(
             run_calculator("((2 ^ 35) + (3^7) - 9740555) / 10000000"),
             Ok("3435".to_string())

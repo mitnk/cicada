@@ -19,7 +19,8 @@ impl DateTime {
         let dummy_now = Self::now();
         let offset_seconds = dummy_now.odt.offset().whole_minutes() * 60;
         let ts_nano = (ts + offset_seconds as f64) * 1000000000.0;
-        let odt: OffsetDateTime = match OffsetDateTime::from_unix_timestamp_nanos(ts_nano as i128) {
+        let odt: OffsetDateTime = match OffsetDateTime::from_unix_timestamp_nanos(ts_nano as i128)
+        {
             Ok(x) => x,
             Err(_) => OffsetDateTime::now_utc(),
         };
@@ -33,7 +34,9 @@ impl DateTime {
 
 impl fmt::Display for DateTime {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
+        write!(
+            f,
+            "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
             self.odt.year(),
             self.odt.month() as u8,
             self.odt.day(),

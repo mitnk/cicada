@@ -2,10 +2,10 @@ use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
+use crate::libs;
 use crate::parsers;
 use crate::parsers::parser_line::tokens_to_redirections;
 use crate::shell;
-use crate::libs;
 use crate::tools;
 
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -132,7 +132,10 @@ pub struct LineInfo {
 
 impl LineInfo {
     pub fn new(tokens: Tokens) -> Self {
-        LineInfo { tokens, is_complete: true }
+        LineInfo {
+            tokens,
+            is_complete: true,
+        }
     }
 }
 
@@ -211,7 +214,7 @@ impl Command {
             Some((redirects_from_type, redirects_from_value))
         };
 
-        Ok(Command{
+        Ok(Command {
             tokens: tokens_final,
             redirects_to,
             redirect_from,
@@ -219,13 +222,11 @@ impl Command {
     }
 
     pub fn has_redirect_from(&self) -> bool {
-        self.redirect_from.is_some() &&
-        self.redirect_from.clone().unwrap().0 == "<"
+        self.redirect_from.is_some() && self.redirect_from.clone().unwrap().0 == "<"
     }
 
     pub fn has_here_string(&self) -> bool {
-        self.redirect_from.is_some() &&
-        self.redirect_from.clone().unwrap().0 == "<<<"
+        self.redirect_from.is_some() && self.redirect_from.clone().unwrap().0 == "<<<"
     }
 
     pub fn is_builtin(&self) -> bool {
@@ -378,7 +379,7 @@ impl CommandLine {
             }
         }
 
-        Ok(CommandLine{
+        Ok(CommandLine {
             line: line.to_string(),
             commands,
             envs,

@@ -247,9 +247,9 @@ pub fn parse_line(line: &str) -> LineInfo {
         if c == ')' {
             if parens_left_ignored && !has_dollar {
                 // temp solution for cmd like `(ls)`, `(ls -lh)`
-                if i == count_chars - 1 ||
-                        (i + 1 < count_chars &&
-                         line.chars().nth(i + 1).unwrap() == ' ') {
+                if i == count_chars - 1
+                    || (i + 1 < count_chars && line.chars().nth(i + 1).unwrap() == ' ')
+                {
                     continue;
                 }
             }
@@ -469,7 +469,10 @@ pub fn parse_line(line: &str) -> LineInfo {
         is_line_complete = false;
     }
 
-    LineInfo { tokens: result, is_complete: is_line_complete }
+    LineInfo {
+        tokens: result,
+        is_complete: is_line_complete,
+    }
 }
 
 pub fn tokens_to_redirections(tokens: &Tokens) -> Result<(Tokens, Vec<Redirection>), String> {
@@ -583,11 +586,11 @@ pub fn unquote(text: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_line;
     use super::line_to_cmds;
     use super::line_to_plain_tokens;
-    use super::Tokens;
+    use super::parse_line;
     use super::tokens_to_line;
+    use super::Tokens;
 
     fn _assert_vec_tuple_eq(a: Tokens, b: Vec<(&str, &str)>) {
         assert_eq!(a.len(), b.len());
@@ -624,16 +627,26 @@ mod tests {
             ("echo \"hi $USER\"", vec![("", "echo"), ("\"", "hi $USER")]),
             ("echo 'hi $USER'", vec![("", "echo"), ("'", "hi $USER")]),
             ("echo '###'", vec![("", "echo"), ("'", "###")]),
-
             ("rd0 >", vec![("", "rd0"), ("", ">")]),
             ("rd1 \\>", vec![("", "rd1"), ("'", ">")]),
-            ("rd2 foo > bar", vec![("", "rd2"), ("", "foo"), ("", ">"), ("", "bar")]),
+            (
+                "rd2 foo > bar",
+                vec![("", "rd2"), ("", "foo"), ("", ">"), ("", "bar")],
+            ),
             ("rd3 foo>bar", vec![("", "rd3"), ("", "foo>bar")]),
             ("rd4 foo\\>bar", vec![("", "rd4"), ("'", "foo>bar")]),
-            ("rd51 foo\\>bar end", vec![("", "rd51"), ("'", "foo>bar"), ("", "end")]),
-            ("rd52 foo\\>bar\\ baz", vec![("", "rd52"), ("'", "foo>bar baz")]),
-            ("rd6 foo\\>bar\\ baz end", vec![("", "rd6"), ("'", "foo>bar baz"), ("", "end")]),
-
+            (
+                "rd51 foo\\>bar end",
+                vec![("", "rd51"), ("'", "foo>bar"), ("", "end")],
+            ),
+            (
+                "rd52 foo\\>bar\\ baz",
+                vec![("", "rd52"), ("'", "foo>bar baz")],
+            ),
+            (
+                "rd6 foo\\>bar\\ baz end",
+                vec![("", "rd6"), ("'", "foo>bar baz"), ("", "end")],
+            ),
             ("echo a\\ bc", vec![("", "echo"), ("", "a bc")]),
             ("echo a\\ b cd", vec![("", "echo"), ("", "a b"), ("", "cd")]),
             (
@@ -826,15 +839,11 @@ mod tests {
             ),
             ("echo \\$\\(date\\)", vec![("", "echo"), ("\\", "$(date)")]),
             ("ll foo\\#bar", vec![("", "ll"), ("", "foo#bar")]),
-
             (
                 "(1 + 2) ^ 31",
                 vec![("", "(1"), ("", "+"), ("", "2)"), ("", "^"), ("", "31")],
             ),
-            (
-                "1+2-3*(4/5.0)",
-                vec![("", "1+2-3*(4/5.0)"),],
-            ),
+            ("1+2-3*(4/5.0)", vec![("", "1+2-3*(4/5.0)")]),
             (
                 "alias c='printf \"\\ec\"'",
                 vec![("", "alias"), ("", "c='printf \"\\ec\"'")],

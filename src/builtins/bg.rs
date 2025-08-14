@@ -2,10 +2,9 @@ use crate::builtins::utils::print_stderr_with_capture;
 use crate::jobc;
 use crate::libc;
 use crate::shell::Shell;
-use crate::types::{CommandResult, CommandLine, Command};
+use crate::types::{Command, CommandLine, CommandResult};
 
-pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
-           capture: bool) -> CommandResult {
+pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> CommandResult {
     let tokens = cmd.tokens.clone();
     let mut cr = CommandResult::new();
 

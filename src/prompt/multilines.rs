@@ -1,5 +1,5 @@
-use std::io;
 use lineread::{Function, Prompter, Terminal};
+use std::io;
 
 use crate::parsers::parser_line;
 
@@ -13,7 +13,7 @@ impl<T: Terminal> Function<T> for EnterFunction {
             prompter.accept_input()
         } else if count > 0 {
             match prompter.insert(count as usize, '\n') {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(e) => {
                     println!("sub-prompt error: {}", e);
                 }

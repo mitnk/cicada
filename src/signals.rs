@@ -1,9 +1,9 @@
 use errno::{errno, set_errno};
 use nix::sys::signal;
-use nix::sys::wait::{WaitPidFlag as WF, WaitStatus as WS, waitpid};
+use nix::sys::wait::{waitpid, WaitPidFlag as WF, WaitStatus as WS};
 use nix::unistd::Pid;
-use std::sync::Mutex;
 use std::collections::{HashMap, HashSet};
+use std::sync::Mutex;
 
 lazy_static! {
     static ref REAP_MAP: Mutex<HashMap<i32, i32>> = Mutex::new(HashMap::new());
@@ -69,7 +69,7 @@ pub fn block_signals() {
     let mut sigset = signal::SigSet::empty();
     sigset.add(signal::SIGCHLD);
     match signal::sigprocmask(signal::SigmaskHow::SIG_BLOCK, Some(&sigset), None) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => {
             log!("sigprocmask block error: {:?}", e);
         }
@@ -80,7 +80,7 @@ pub fn unblock_signals() {
     let mut sigset = signal::SigSet::empty();
     sigset.add(signal::SIGCHLD);
     match signal::sigprocmask(signal::SigmaskHow::SIG_UNBLOCK, Some(&sigset), None) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(e) => {
             log!("sigprocmask unblock error: {:?}", e);
         }
@@ -135,7 +135,7 @@ pub fn setup_sigchld_handler() {
     let sa = signal::SigAction::new(handler, flags, sigset);
     unsafe {
         match signal::sigaction(signal::SIGCHLD, &sa) {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(e) => {
                 log!("sigaction error: {:?}", e);
             }

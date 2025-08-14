@@ -179,11 +179,7 @@ fn delete_duplicated_histories() {
                     );
                     return;
                 }
-                println_stderr!(
-                    "cicada: history: delete dups error: {}: {:?}",
-                    &ee,
-                    &msg
-                );
+                println_stderr!("cicada: history: delete dups error: {}: {:?}", &ee, &msg);
             }
             _ => {
                 println_stderr!("cicada: history: delete dup error: {}", e);
@@ -192,8 +188,7 @@ fn delete_duplicated_histories() {
     }
 }
 
-pub fn add_raw(sh: &shell::Shell, line: &str, status: i32,
-               tsb: f64, tse: f64) {
+pub fn add_raw(sh: &shell::Shell, line: &str, status: i32, tsb: f64, tse: f64) {
     let hfile = get_history_file();
     let history_table = get_history_table();
     if !Path::new(&hfile).exists() {
@@ -225,8 +220,14 @@ pub fn add_raw(sh: &shell::Shell, line: &str, status: i32,
     }
 }
 
-pub fn add(sh: &shell::Shell, rl: &mut Interface<DefaultTerminal>, line: &str,
-           status: i32, tsb: f64, tse: f64) {
+pub fn add(
+    sh: &shell::Shell,
+    rl: &mut Interface<DefaultTerminal>,
+    line: &str,
+    status: i32,
+    tsb: f64,
+    tse: f64,
+) {
     add_raw(sh, line, status, tsb, tse);
     rl.add_history(line.to_string());
 }

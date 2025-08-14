@@ -2,12 +2,12 @@ use std::env;
 use std::ffi::{CStr, CString};
 use std::fs::File;
 use std::io::{Read, Write};
-use std::os::unix::io::FromRawFd;
 use std::os::fd::RawFd;
+use std::os::unix::io::FromRawFd;
 use std::process;
 
-use nix::unistd::{execve, ForkResult};
 use libs::pipes::pipe;
+use nix::unistd::{execve, ForkResult};
 
 use crate::builtins;
 use crate::calculator;
@@ -526,10 +526,7 @@ fn run_single_program(
                         }
                     }
 
-                    if sh.has_terminal
-                        && options.isatty
-                        && !cl.background
-                    {
+                    if sh.has_terminal && options.isatty && !cl.background {
                         *term_given = shell::give_terminal_to(pid);
                     }
                 }
@@ -688,8 +685,6 @@ pub fn run_calculator(line: &str) -> Result<String, &str> {
                 Ok(format!("{}", calculator::eval_int(expr)))
             }
         }
-        Err(_) => {
-            Err("syntax error")
-        }
+        Err(_) => Err("syntax error"),
     }
 }

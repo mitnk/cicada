@@ -1,9 +1,9 @@
 // via: https://github.com/pest-parser/book/blob/b6a42eb7/examples/calculator/src/main.rs
 use std::num::Wrapping as W;
 
-use pest::Parser;
 use pest::iterators::{Pair, Pairs};
 use pest::pratt_parser::{Assoc, Op, PrattParser};
+use pest::Parser;
 
 #[derive(Parser)]
 #[grammar = "calculator/grammar.pest"]
@@ -11,8 +11,8 @@ struct Calculator;
 
 lazy_static! {
     static ref PRATT_PARSER: PrattParser<Rule> = {
-        use Rule::*;
         use Assoc::*;
+        use Rule::*;
 
         PrattParser::new()
             .op(Op::infix(add, Left) | Op::infix(subtract, Left))
@@ -63,6 +63,8 @@ pub fn eval_float(expression: Pairs<Rule>) -> f64 {
         .parse(expression)
 }
 
-pub fn calculate(line: &str) -> Result<pest::iterators::Pairs<'_, Rule>, pest::error::Error<Rule>> {
+pub fn calculate(
+    line: &str,
+) -> Result<pest::iterators::Pairs<'_, Rule>, pest::error::Error<Rule>> {
     Calculator::parse(Rule::calculation, line)
 }

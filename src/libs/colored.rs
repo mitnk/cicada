@@ -52,20 +52,20 @@ pub const GREEN_B: &str = "\x01\x1B[32m\x1B[1m\x02";
 
 // Background
 pub const DEFAULT_BG: &str = "\x01\x1B[49m\x02";
-pub const BLACK_BG: &str   = "\x01\x1B[40m\x02";
-pub const RED_BG: &str     = "\x01\x1B[41m\x02";
-pub const GREEN_BG: &str   = "\x01\x1B[42m\x02";
-pub const YELLOW_BG: &str   = "\x01\x1B[43m\x02";
-pub const BLUE_BG: &str    = "\x01\x1B[44m\x02";
-pub const MAGENTA_BG: &str    = "\x01\x1B[45m\x02";
-pub const CYAN_BG: &str    = "\x01\x1B[46m\x02";
-pub const GRAY_L_BG: &str    = "\x01\x1B[47m\x02";
+pub const BLACK_BG: &str = "\x01\x1B[40m\x02";
+pub const RED_BG: &str = "\x01\x1B[41m\x02";
+pub const GREEN_BG: &str = "\x01\x1B[42m\x02";
+pub const YELLOW_BG: &str = "\x01\x1B[43m\x02";
+pub const BLUE_BG: &str = "\x01\x1B[44m\x02";
+pub const MAGENTA_BG: &str = "\x01\x1B[45m\x02";
+pub const CYAN_BG: &str = "\x01\x1B[46m\x02";
+pub const GRAY_L_BG: &str = "\x01\x1B[47m\x02";
 
-pub const GRAY_D_BG: &str   = "\x01\x1B[100m\x02";
-pub const RED_L_BG: &str   = "\x01\x1B[101m\x02";
-pub const GREEN_L_BG: &str   = "\x01\x1B[102m\x02";
-pub const YELLOW_L_BG: &str   = "\x01\x1B[103m\x02";
-pub const BLUE_L_BG: &str   = "\x01\x1B[104m\x02";
-pub const MAGENTA_L_BG: &str   = "\x01\x1B[105m\x02";
-pub const CYAN_L_BG: &str   = "\x01\x1B[106m\x02";
-pub const WHITE_BG: &str   = "\x01\x1B[107m\x02";
+pub const GRAY_D_BG: &str = "\x01\x1B[100m\x02";
+pub const RED_L_BG: &str = "\x01\x1B[101m\x02";
+pub const GREEN_L_BG: &str = "\x01\x1B[102m\x02";
+pub const YELLOW_L_BG: &str = "\x01\x1B[103m\x02";
+pub const BLUE_L_BG: &str = "\x01\x1B[104m\x02";
+pub const MAGENTA_L_BG: &str = "\x01\x1B[105m\x02";
+pub const CYAN_L_BG: &str = "\x01\x1B[106m\x02";
+pub const WHITE_BG: &str = "\x01\x1B[107m\x02";

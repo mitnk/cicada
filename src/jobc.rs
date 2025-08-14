@@ -108,17 +108,13 @@ pub fn waitpidx(wpid: i32, block: bool) -> types::WaitStatus {
             let pid = i32::from(pid);
             types::WaitStatus::from_signaled(pid, sig as i32)
         }
-        Ok(WS::StillAlive) => {
-            types::WaitStatus::empty()
-        }
+        Ok(WS::StillAlive) => types::WaitStatus::empty(),
         Ok(_others) => {
             // this is for PtraceEvent and PtraceSyscall on Linux,
             // unreachable on other platforms.
             types::WaitStatus::from_others()
         }
-        Err(e) => {
-            types::WaitStatus::from_error(e as i32)
-        }
+        Err(e) => types::WaitStatus::from_error(e as i32),
     }
 }
 

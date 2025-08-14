@@ -1,8 +1,8 @@
 // via: nix v0.26.4. We do not want to use OwnedFd in newer version nix.
-use std::os::fd::RawFd;
+use libc::c_int;
 use nix::Error;
 use std::mem;
-use libc::c_int;
+use std::os::fd::RawFd;
 
 pub fn pipe() -> std::result::Result<(RawFd, RawFd), Error> {
     let mut fds = mem::MaybeUninit::<[c_int; 2]>::uninit();

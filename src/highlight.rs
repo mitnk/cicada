@@ -1,17 +1,17 @@
-use std::ops::Range;
-use std::sync::Arc;
 use std::collections::HashSet;
-use std::path::Path;
 use std::env;
 use std::fs;
-use std::sync::Mutex;
+use std::ops::Range;
 use std::os::unix::fs::PermissionsExt;
+use std::path::Path;
+use std::sync::Arc;
+use std::sync::Mutex;
 
 use lineread::highlighting::{Highlighter, Style};
 
-use crate::tools;
-use crate::shell;
 use crate::parsers::parser_line;
+use crate::shell;
+use crate::tools;
 
 #[derive(Clone)]
 pub struct CicadaHighlighter;
@@ -95,17 +95,26 @@ fn is_command(word: &str) -> bool {
     false
 }
 
-fn find_token_range_heuristic(line: &str, start_byte: usize, token: &(String, String)) -> Option<Range<usize>> {
+fn find_token_range_heuristic(
+    line: &str,
+    start_byte: usize,
+    token: &(String, String),
+) -> Option<Range<usize>> {
     let (sep, word) = token;
 
     // Find the start of the token, skipping leading whitespace from the search start position
     let mut search_area = &line[start_byte..];
-    let token_start_byte = if let Some(non_ws_offset) = search_area.find(|c: char| !c.is_whitespace()) {
-        // Calculate the actual byte index of the first non-whitespace character
-        start_byte + search_area.char_indices().nth(non_ws_offset).map_or(0, |(idx, _)| idx)
-    } else {
-        return None; // Only whitespace left
-    };
+    let token_start_byte =
+        if let Some(non_ws_offset) = search_area.find(|c: char| !c.is_whitespace()) {
+            // Calculate the actual byte index of the first non-whitespace character
+            start_byte
+                + search_area
+                    .char_indices()
+                    .nth(non_ws_offset)
+                    .map_or(0, |(idx, _)| idx)
+        } else {
+            return None; // Only whitespace left
+        };
 
     search_area = &line[token_start_byte..];
 
@@ -122,31 +131,33 @@ fn find_token_range_heuristic(line: &str, start_byte: usize, token: &(String, St
     // Match the word content
     // Use starts_with for a basic check, assuming the word appears next
     if search_area[current_search_offset..].starts_with(word) {
-         estimated_len += word.len();
-         current_search_offset += word.len();
+        estimated_len += word.len();
+        current_search_offset += word.len();
 
-         // Match separator suffix if needed
+        // Match separator suffix if needed
         if !sep.is_empty() && search_area[current_search_offset..].starts_with(sep) {
             estimated_len += sep.len();
         }
 
         Some(token_start_byte..(token_start_byte + estimated_len))
-
-    } else if word.is_empty() && !sep.is_empty() && search_area.starts_with(sep) && search_area[sep.len()..].starts_with(sep) {
-         // Handle empty quoted string like "" or ''
-         estimated_len += sep.len() * 2;
-         Some(token_start_byte..(token_start_byte + estimated_len))
-    }
-    else {
+    } else if word.is_empty()
+        && !sep.is_empty()
+        && search_area.starts_with(sep)
+        && search_area[sep.len()..].starts_with(sep)
+    {
+        // Handle empty quoted string like "" or ''
+        estimated_len += sep.len() * 2;
+        Some(token_start_byte..(token_start_byte + estimated_len))
+    } else {
         // Fallback: Maybe it's just the word without quotes, or a separator like `|`
         if search_area.starts_with(word) {
-             Some(token_start_byte..(token_start_byte + word.len()))
+            Some(token_start_byte..(token_start_byte + word.len()))
         } else {
-             // Could not reliably map the token back to the original string segment
-             // This might happen with complex escapes or parser ambiguities
-             // As a basic fallback, consume up to the next space or end of line? Unsafe.
-             // Return None to signal failure for this token.
-             None
+            // Could not reliably map the token back to the original string segment
+            // This might happen with complex escapes or parser ambiguities
+            // As a basic fallback, consume up to the next space or end of line? Unsafe.
+            // Return None to signal failure for this token.
+            None
         }
     }
 }
@@ -200,7 +211,7 @@ impl Highlighter for CicadaHighlighter {
                 None => {
                     // If we can't map a token, style the rest of the line as default and stop.
                     if current_byte_idx < line.len() {
-                       styles.push((current_byte_idx..line.len(), Style::Default));
+                        styles.push((current_byte_idx..line.len(), Style::Default));
                     }
                     current_byte_idx = line.len(); // Mark as done
                     break; // Stop processing further tokens

@@ -10,8 +10,8 @@ use lineread::complete::Suffix;
 use lineread::complete::{Completer, Completion};
 use lineread::prompter::Prompter;
 use lineread::terminal::Terminal;
-use yaml_rust::{Yaml, YamlLoader};
 use yaml_rust::yaml::Hash;
+use yaml_rust::{Yaml, YamlLoader};
 
 use crate::execute;
 use crate::parsers;
@@ -63,8 +63,7 @@ fn get_dot_file(line: &str) -> (String, String) {
     (dot_file, sub_cmd.to_string())
 }
 
-fn handle_lv1_string(res: &mut Vec<Completion>,
-                     value: &str, word: &str) {
+fn handle_lv1_string(res: &mut Vec<Completion>, value: &str, word: &str) {
     if !value.starts_with(word) && !value.starts_with('`') {
         return;
     }
@@ -93,8 +92,7 @@ fn handle_lv1_string(res: &mut Vec<Completion>,
     });
 }
 
-fn handle_lv1_hash(res: &mut Vec<Completion>,
-                   h: &Hash, word: &str) {
+fn handle_lv1_hash(res: &mut Vec<Completion>, h: &Hash, word: &str) {
     for v in h.values() {
         if let Yaml::Array(ref arr) = v {
             for s in arr {

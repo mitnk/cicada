@@ -7,7 +7,7 @@ use crate::builtins::utils::print_stdout_with_capture;
 use crate::execute;
 use crate::parsers;
 use crate::shell::{self, Shell};
-use crate::types::{self, CommandResult, CommandLine, Command};
+use crate::types::{self, Command, CommandLine, CommandResult};
 
 fn in_env() -> bool {
     env::var("VIRTUAL_ENV").map_or(false, |x| !x.is_empty())
@@ -102,8 +102,7 @@ fn exit_env(sh: &Shell) -> String {
     String::new()
 }
 
-pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
-           capture: bool) -> CommandResult {
+pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> CommandResult {
     let mut cr = CommandResult::new();
     let tokens = cmd.tokens.clone();
     let args = parsers::parser_line::tokens_to_args(&tokens);

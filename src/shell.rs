@@ -93,8 +93,7 @@ impl Shell {
         self.jobs.get(&job_id)
     }
 
-    pub fn mark_job_member_continued(&mut self, pid: i32,
-                                     gid: i32) -> Option<&types::Job> {
+    pub fn mark_job_member_continued(&mut self, pid: i32, gid: i32) -> Option<&types::Job> {
         if self.jobs.is_empty() {
             return None;
         }
@@ -109,7 +108,6 @@ impl Shell {
                 }
             }
 
-
             i += 1;
             if i >= 65535 {
                 break;
@@ -119,8 +117,7 @@ impl Shell {
         self.jobs.get(&idx_found)
     }
 
-    pub fn mark_job_member_stopped(&mut self, pid: i32,
-                                   gid: i32) -> Option<&types::Job> {
+    pub fn mark_job_member_stopped(&mut self, pid: i32, gid: i32) -> Option<&types::Job> {
         if self.jobs.is_empty() {
             return None;
         }
@@ -134,7 +131,6 @@ impl Shell {
                     break;
                 }
             }
-
 
             i += 1;
             if i >= 65535 {
@@ -256,12 +252,10 @@ impl Shell {
     pub fn get_env(&self, name: &str) -> Option<String> {
         match self.envs.get(name) {
             Some(x) => Some(x.to_string()),
-            None => {
-                match env::var(name) {
-                    Ok(x) => Some(x),
-                    Err(_) => None,
-                }
-            }
+            None => match env::var(name) {
+                Ok(x) => Some(x),
+                Err(_) => None,
+            },
         }
     }
 
@@ -524,9 +518,7 @@ fn brace_getitem(s: &str, depth: i32) -> (Vec<String>, String) {
             let c;
             match ss.chars().next() {
                 Some(x) => c = x,
-                None => {
-                    return (out, ss)
-                }
+                None => return (out, ss),
             }
 
             tmp = format!("\\{}", c);
@@ -815,8 +807,8 @@ pub fn expand_env(sh: &Shell, tokens: &mut types::Tokens) {
 }
 
 fn should_do_dollar_command_extension(line: &str) -> bool {
-    libs::re::re_contains(line, r"\$\([^\)]+\)") &&
-    !libs::re::re_contains(line, r"='.*\$\([^\)]+\).*'$")
+    libs::re::re_contains(line, r"\$\([^\)]+\)")
+        && !libs::re::re_contains(line, r"='.*\$\([^\)]+\).*'$")
 }
 
 fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens) {
@@ -1027,7 +1019,6 @@ fn proc_has_terminal() -> bool {
 
 #[cfg(test)]
 mod tests {
-    use std::env;
     use super::env_in_token;
     use super::expand_alias;
     use super::expand_brace;
@@ -1037,6 +1028,7 @@ mod tests {
     use super::needs_globbing;
     use super::should_do_dollar_command_extension;
     use super::Shell;
+    use std::env;
 
     #[test]
     fn test_needs_globbing() {
@@ -1081,21 +1073,13 @@ mod tests {
         expand_env(&sh, &mut tokens);
         assert_eq!(tokens, exp_tokens);
 
-        let mut tokens = make_tokens(&vec![
-            ("", "alias"), ("", "foo=\'echo $PWD\'")
-        ]);
-        let exp_tokens = vec![
-            ("", "alias"), ("", "foo=\'echo $PWD\'")
-        ];
+        let mut tokens = make_tokens(&vec![("", "alias"), ("", "foo=\'echo $PWD\'")]);
+        let exp_tokens = vec![("", "alias"), ("", "foo=\'echo $PWD\'")];
         expand_env(&sh, &mut tokens);
         assert_vec_eq(tokens, exp_tokens);
 
-        let mut tokens = make_tokens(&vec![
-            ("", "awk"), ("\"", "{print $NF}")
-        ]);
-        let exp_tokens = vec![
-            ("", "awk"), ("\"", "{print }")
-        ];
+        let mut tokens = make_tokens(&vec![("", "awk"), ("\"", "{print $NF}")]);
+        let exp_tokens = vec![("", "awk"), ("\"", "{print }")];
         expand_env(&sh, &mut tokens);
         assert_vec_eq(tokens, exp_tokens);
 
@@ -1135,7 +1119,10 @@ mod tests {
 
         let mut tokens = vec![
             ("".to_string(), "echo".to_string()),
-            ("\"".to_string(), "==$++$$foo$$=-$++==$$==$--$$end".to_string()),
+            (
+                "\"".to_string(),
+                "==$++$$foo$$=-$++==$$==$--$$end".to_string(),
+            ),
         ];
         let ptn_expected = r"^==\$\+\+[0-9]+foo[0-9]+=-\$\+\+==[0-9]+==\$--[0-9]+end$";
         expand_env(&sh, &mut tokens);
@@ -1167,12 +1154,13 @@ mod tests {
         expand_alias(&sh, &mut tokens);
         assert_eq!(tokens, exp_tokens);
 
-        let mut tokens = make_tokens(&vec![
-             ("", "foo"), ("", "|"), ("", "xargs"), ("", "ls"),
-        ]);
+        let mut tokens = make_tokens(&vec![("", "foo"), ("", "|"), ("", "xargs"), ("", "ls")]);
         let exp_tokens = vec![
-            ("", "foo"), ("", "|"), ("", "xargs"),
-            ("", "ls"), ("", "--color=auto"),
+            ("", "foo"),
+            ("", "|"),
+            ("", "xargs"),
+            ("", "ls"),
+            ("", "--color=auto"),
         ];
         expand_alias(&sh, &mut tokens);
         assert_vec_eq(tokens, exp_tokens);
@@ -1298,75 +1286,66 @@ mod tests {
         assert!(!env_in_token("$(echo $HOME)"));
         assert!(!env_in_token("$(echo \"$HOME\")"));
         assert!(!env_in_token("$(echo \'$HOME\')"));
-        assert!(!env_in_token("VERSION=$(foobar -h | grep 'version: v' | awk '{print $NF}')"));
-        assert!(!env_in_token("VERSION=`foobar -h | grep 'version: v' | awk '{print $NF}'`"));
+        assert!(!env_in_token(
+            "VERSION=$(foobar -h | grep 'version: v' | awk '{print $NF}')"
+        ));
+        assert!(!env_in_token(
+            "VERSION=`foobar -h | grep 'version: v' | awk '{print $NF}'`"
+        ));
         assert!(!env_in_token("foo='echo $PWD'"));
     }
 
     #[test]
     fn test_expand_brace_range() {
         let mut tokens = make_tokens(&vec![("", "echo"), ("", "{1..4}")]);
-        let exp_tokens = vec![
-            ("", "echo"),
-            ("", "1"), ("", "2"), ("", "3"), ("", "4"),
-        ];
+        let exp_tokens = vec![("", "echo"), ("", "1"), ("", "2"), ("", "3"), ("", "4")];
         expand_brace_range(&mut tokens);
         assert_vec_eq(tokens, exp_tokens);
 
         let mut tokens = make_tokens(&vec![("", "echo"), ("", "{1..3..0}")]);
-        let exp_tokens = vec![
-            ("", "echo"),
-            ("", "1"), ("", "2"), ("", "3"),
-        ];
+        let exp_tokens = vec![("", "echo"), ("", "1"), ("", "2"), ("", "3")];
         expand_brace_range(&mut tokens);
         assert_vec_eq(tokens, exp_tokens);
 
         let mut tokens = make_tokens(&vec![("", "echo"), ("", "{-2..1}")]);
-        let exp_tokens = vec![
-            ("", "echo"),
-            ("", "-2"), ("", "-1"), ("", "0"), ("", "1"),
-        ];
+        let exp_tokens = vec![("", "echo"), ("", "-2"), ("", "-1"), ("", "0"), ("", "1")];
         expand_brace_range(&mut tokens);
         assert_vec_eq(tokens, exp_tokens);
 
         let mut tokens = make_tokens(&vec![("", "echo"), ("", "{3..1}")]);
-        let exp_tokens = vec![
-            ("", "echo"),
-            ("", "3"), ("", "2"), ("", "1"),
-        ];
+        let exp_tokens = vec![("", "echo"), ("", "3"), ("", "2"), ("", "1")];
         expand_brace_range(&mut tokens);
         assert_vec_eq(tokens, exp_tokens);
 
         let mut tokens = make_tokens(&vec![("", "echo"), ("", "{10..4..3}")]);
-        let exp_tokens = vec![
-            ("", "echo"),
-            ("", "10"), ("", "7"), ("", "4"),
-        ];
+        let exp_tokens = vec![("", "echo"), ("", "10"), ("", "7"), ("", "4")];
         expand_brace_range(&mut tokens);
         assert_vec_eq(tokens, exp_tokens);
 
         let mut tokens = make_tokens(&vec![("", "echo"), ("", "{10..3..2}")]);
-        let exp_tokens = vec![
-            ("", "echo"),
-            ("", "10"), ("", "8"), ("", "6"), ("", "4"),
-        ];
+        let exp_tokens = vec![("", "echo"), ("", "10"), ("", "8"), ("", "6"), ("", "4")];
         expand_brace_range(&mut tokens);
         assert_vec_eq(tokens, exp_tokens);
 
         let mut tokens = make_tokens(&vec![
-             ("", "echo"),
-             ("", "foo"),
-             ("", "{1..3}"),
-             ("", "bar"),
-             ("", "{1..10..3}"),
-             ("", "end"),
+            ("", "echo"),
+            ("", "foo"),
+            ("", "{1..3}"),
+            ("", "bar"),
+            ("", "{1..10..3}"),
+            ("", "end"),
         ]);
         let exp_tokens = vec![
             ("", "echo"),
             ("", "foo"),
-            ("", "1"), ("", "2"), ("", "3"),
+            ("", "1"),
+            ("", "2"),
+            ("", "3"),
             ("", "bar"),
-            ("", "1"), ("", "4"), ("", "7"), ("", "10"),
+            ("", "1"),
+            ("", "4"),
+            ("", "7"),
+            ("", "10"),
             ("", "end"),
         ];
         expand_brace_range(&mut tokens);

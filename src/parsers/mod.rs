@@ -1,2 +1,2 @@
-pub mod parser_line;
 pub mod locust;
+pub mod parser_line;

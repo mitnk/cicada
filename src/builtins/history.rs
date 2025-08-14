@@ -9,7 +9,7 @@ use crate::ctime;
 use crate::history;
 use crate::parsers;
 use crate::shell::Shell;
-use crate::types::{CommandResult, CommandLine, Command};
+use crate::types::{Command, CommandLine, CommandResult};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "history", about = "History in cicada shell")]
@@ -29,38 +29,41 @@ struct OptMain {
     #[structopt(short, long, help = "Do not show ROWID")]
     no_id: bool,
 
-    #[structopt(short="d", long, help = "Show date")]
+    #[structopt(short = "d", long, help = "Show date")]
     show_date: bool,
 
     #[structopt(short, long, default_value = "20")]
     limit: i32,
 
-    #[structopt(name = "PATTERN", default_value = "", help = "You can use % to match anything")]
+    #[structopt(
+        name = "PATTERN",
+        default_value = "",
+        help = "You can use % to match anything"
+    )]
     pattern: String,
 
     #[structopt(subcommand)]
-    cmd: Option<SubCommand>
+    cmd: Option<SubCommand>,
 }
 
 #[derive(StructOpt, Debug)]
 enum SubCommand {
-    #[structopt(about="Add new item into history")]
+    #[structopt(about = "Add new item into history")]
     Add {
-        #[structopt(short="t", long, help = "Specify a timestamp for the new item")]
+        #[structopt(short = "t", long, help = "Specify a timestamp for the new item")]
         timestamp: Option<f64>,
 
-        #[structopt(name="INPUT", help = "input to be added into history")]
+        #[structopt(name = "INPUT", help = "input to be added into history")]
         input: String,
     },
-    #[structopt(about="Delete item from history")]
+    #[structopt(about = "Delete item from history")]
     Delete {
-        #[structopt(name="ROWID", help = "Row IDs of item to delete")]
+        #[structopt(name = "ROWID", help = "Row IDs of item to delete")]
         rowid: Vec<usize>,
-    }
+    },
 }
 
-pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
-           capture: bool) -> CommandResult {
+pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> CommandResult {
     let mut cr = CommandResult::new();
     let hfile = history::get_history_file();
     let path = Path::new(hfile.as_str());
@@ -84,39 +87,40 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
     let show_usage = args.len() > 1 && (args[1] == "-h" || args[1] == "--help");
     let opt = OptMain::from_iter_safe(args);
     match opt {
-        Ok(opt) => {
-            match opt.cmd {
-                Some(SubCommand::Delete {rowid: rowids}) => {
-                    let mut _count = 0;
-                    for rowid in rowids {
-                        let _deleted = delete_history_item(&conn, rowid);
-                        if _deleted {
-                            _count += 1;
-                        }
+        Ok(opt) => match opt.cmd {
+            Some(SubCommand::Delete { rowid: rowids }) => {
+                let mut _count = 0;
+                for rowid in rowids {
+                    let _deleted = delete_history_item(&conn, rowid);
+                    if _deleted {
+                        _count += 1;
                     }
-                    if _count > 0 {
-                        let info = format!("deleted {} items", _count);
-                        print_stdout_with_capture(&info, &mut cr, cl, cmd, capture);
-                    }
-                    cr
                 }
-                Some(SubCommand::Add {timestamp: ts, input}) => {
-                    let ts = ts.unwrap_or(0 as f64);
-                    add_history(sh, ts, &input);
-                    cr
+                if _count > 0 {
+                    let info = format!("deleted {} items", _count);
+                    print_stdout_with_capture(&info, &mut cr, cl, cmd, capture);
                 }
-                None => {
-                    let (str_out, str_err) = list_current_history(sh, &conn, &opt);
-                    if !str_out.is_empty() {
-                        print_stdout_with_capture(&str_out, &mut cr, cl, cmd, capture);
-                    }
-                    if !str_err.is_empty() {
-                        print_stderr_with_capture(&str_err, &mut cr, cl, cmd, capture);
-                    }
-                    cr
-                }
+                cr
             }
-        }
+            Some(SubCommand::Add {
+                timestamp: ts,
+                input,
+            }) => {
+                let ts = ts.unwrap_or(0 as f64);
+                add_history(sh, ts, &input);
+                cr
+            }
+            None => {
+                let (str_out, str_err) = list_current_history(sh, &conn, &opt);
+                if !str_out.is_empty() {
+                    print_stdout_with_capture(&str_out, &mut cr, cl, cmd, capture);
+                }
+                if !str_err.is_empty() {
+                    print_stderr_with_capture(&str_err, &mut cr, cl, cmd, capture);
+                }
+                cr
+            }
+        },
         Err(e) => {
             let info = format!("{}", e);
             if show_usage {
@@ -136,14 +140,15 @@ fn add_history(sh: &Shell, ts: f64, input: &str) {
     history::add_raw(sh, input, 0, tsb, tse);
 }
 
-fn list_current_history(sh: &Shell, conn: &Conn,
-                        opt: &OptMain) -> (String, String) {
+fn list_current_history(sh: &Shell, conn: &Conn, opt: &OptMain) -> (String, String) {
     let mut result_stderr = String::new();
     let result_stdout = String::new();
 
     let history_table = history::get_history_table();
-    let mut sql = format!("SELECT ROWID, inp, tsb FROM {} WHERE ROWID > 0",
-                          history_table);
+    let mut sql = format!(
+        "SELECT ROWID, inp, tsb FROM {} WHERE ROWID > 0",
+        history_table
+    );
     if !opt.pattern.is_empty() {
         sql = format!("{} AND inp LIKE '%{}%'", sql, opt.pattern)
     }

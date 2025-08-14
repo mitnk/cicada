@@ -149,9 +149,9 @@ pub fn render_prompt(sh: &shell::Shell, ps: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use std::env;
     use super::render_prompt;
     use super::shell::Shell;
+    use std::env;
 
     #[test]
     fn test_render_prompt() {

@@ -7,8 +7,12 @@ use crate::shell;
 use crate::tools;
 use crate::types::{Command, CommandLine, CommandResult};
 
-pub fn run(sh: &mut shell::Shell, cl: &CommandLine, cmd: &Command,
-           capture: bool) -> CommandResult {
+pub fn run(
+    sh: &mut shell::Shell,
+    cl: &CommandLine,
+    cmd: &Command,
+    capture: bool,
+) -> CommandResult {
     let tokens = cmd.tokens.clone();
     let mut cr = CommandResult::new();
     let args = parsers::parser_line::tokens_to_args(&tokens);

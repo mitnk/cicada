@@ -1,22 +1,28 @@
-use pest::Parser;
-use pest::iterators::Pairs;
 use pest::error::Error;
+use pest::iterators::Pairs;
+use pest::Parser;
 
 #[derive(Parser)]
 #[grammar = "parsers/grammar.pest"]
 struct Locust;
 
-pub fn parse_lines(lines: &str) -> Result<Pairs<crate::parsers::locust::Rule>, Error<crate::parsers::locust::Rule>> {
+pub fn parse_lines(
+    lines: &str,
+) -> Result<Pairs<crate::parsers::locust::Rule>, Error<crate::parsers::locust::Rule>> {
     Locust::parse(Rule::EXP, lines)
 }
 
 #[cfg(test)]
 mod tests {
     use super::parse_lines;
-    use super::Rule;
     use super::Pairs;
+    use super::Rule;
 
-    fn _compose_pair_str(output: &mut String, lv: i32, pairs: Pairs<crate::parsers::locust::Rule>) {
+    fn _compose_pair_str(
+        output: &mut String,
+        lv: i32,
+        pairs: Pairs<crate::parsers::locust::Rule>,
+    ) {
         for pair in pairs {
             let value = pair.as_str().trim();
             if value.is_empty() {

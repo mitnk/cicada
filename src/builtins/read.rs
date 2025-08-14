@@ -1,10 +1,10 @@
 use std::io;
 
 use crate::builtins::utils::print_stderr_with_capture;
-use crate::shell::Shell;
 use crate::libs::re::re_contains;
-use crate::types::{CommandResult, CommandLine, Command};
+use crate::shell::Shell;
 use crate::tools;
+use crate::types::{Command, CommandLine, CommandResult};
 
 fn _find_invalid_identifier(name_list: &Vec<String>) -> Option<String> {
     for id_ in name_list {
@@ -15,8 +15,7 @@ fn _find_invalid_identifier(name_list: &Vec<String>) -> Option<String> {
     None
 }
 
-pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command,
-           capture: bool) -> CommandResult {
+pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> CommandResult {
     let mut cr = CommandResult::new();
     let tokens = cmd.tokens.clone();
 

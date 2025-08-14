@@ -29,10 +29,7 @@ fn main() {
         }
     }
 
-    match Command::new("git")
-        .args(["status", "--porcelain"])
-        .output()
-    {
+    match Command::new("git").args(["status", "--porcelain"]).output() {
         Ok(x) => {
             let git_status = String::from_utf8_lossy(&x.stdout);
             println!("cargo:rustc-env=GIT_STATUS={}", git_status.len());
@@ -53,7 +50,8 @@ fn main() {
     }
 
     if let Ok(dt) = OffsetDateTime::now_local() {
-        let dt_str = format!("{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
+        let dt_str = format!(
+            "{:04}-{:02}-{:02} {:02}:{:02}:{:02}.{:03}",
             dt.year(),
             dt.month() as u8,
             dt.day(),
