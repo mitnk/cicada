@@ -35,11 +35,11 @@ pest = "2.7"
 pest_derive = "2.7"
 regex = "1"
 yaml-rust = "0.4.0"
-uuid = { version = "1.4", features = ["serde", "v4"] }
+uuid = { version = "1.18", features = ["serde", "v4"] }
 structopt = { version = "0.3", default-features = false }
 
 [dependencies.nix]
-version = "0.29.0"
+version = "0.30"
 features = ["fs", "process", "signal"]
 
 [dependencies.clap]
@@ -48,7 +48,7 @@ default-features = false
 features = ["std", "derive", "help"]
 
 [dependencies.rusqlite]
-version = "0.32"
+version = "0.37"
 features = ["bundled"]
 
 [dependencies.time]
