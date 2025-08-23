@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 CICADA="./target/debug/cicada"
 
