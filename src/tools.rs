@@ -29,7 +29,7 @@ macro_rules! println_stderr {
 }
 
 pub fn is_signal_handler_enabled() -> bool {
-    env::var("CICADA_ENABLE_SIG_HANDLER").map_or(false, |x| x == "1")
+    env::var("CICADA_ENABLE_SIG_HANDLER").is_ok_and(|x| x == "1")
 }
 
 pub fn get_user_name() -> String {
@@ -42,7 +42,7 @@ pub fn get_user_name() -> String {
         }
     }
     let cmd_result = execute::run("whoami");
-    return cmd_result.stdout.trim().to_string();
+    cmd_result.stdout.trim().to_string()
 }
 
 pub fn get_user_home() -> String {
@@ -239,7 +239,7 @@ pub fn get_fd_from_file(file_name: &str) -> i32 {
 
 pub fn escape_path(path: &str) -> String {
     let re = Regex::new(r##"(?P<c>[!\(\)<>,\?\]\[\{\} \\'"`*\^#|$&;])"##).unwrap();
-    return re.replace_all(path, "\\$c").to_string();
+    re.replace_all(path, "\\$c").to_string()
 }
 
 pub fn get_current_dir() -> String {
@@ -277,12 +277,11 @@ pub fn split_into_fields(
     }
 
     if ifs_chars.is_empty() {
-        return line
-            .split(&[' ', '\t', '\n'][..])
+        line.split(&[' ', '\t', '\n'][..])
             .map(|x| x.to_string())
-            .collect();
+            .collect()
     } else {
-        return line.split(&ifs_chars[..]).map(|x| x.to_string()).collect();
+        line.split(&ifs_chars[..]).map(|x| x.to_string()).collect()
     }
 }
 

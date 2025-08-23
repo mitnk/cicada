@@ -39,11 +39,15 @@ pub fn tokens_to_line(tokens: &Tokens) -> String {
     result
 }
 
-/// Parse command line for multiple commands. Examples:
-/// >>> line_to_cmds("echo foo && echo bar; echo end");
-/// vec!["echo foo", "&&", "echo bar", ";", "echo end"]
-/// >>> line_to_cmds("man awk | grep version");
-/// vec!["man awk | grep version"]
+/// Parse command line for multiple commands.
+///
+/// ```ignore
+/// let result1 = line_to_cmds("echo foo && echo bar; echo end");
+/// // Returns vec!["echo foo", "&&", "echo bar", ";", "echo end"]
+///
+/// let result2 = line_to_cmds("man awk | grep version");
+/// // Returns vec!["man awk | grep version"]
+/// ```
 pub fn line_to_cmds(line: &str) -> Vec<String> {
     // Special characters: http://tldp.org/LDP/abs/html/special-chars.html
     let mut result = Vec::new();
@@ -148,18 +152,21 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
     result
 }
 
-/// parse command line to tokens
-/// >>> parse_line("echo 'hi yoo' | grep \"hi\"");
-/// LineInfo {
-///    tokens: vec![
-///        ("", "echo"),
-///        ("'", "hi yoo"),
-///        ("", "|"),
-///        ("", "grep"),
-///        ("\"", "hi"),
-///    ],
-///    is_complete: true
-/// }
+/// Parse command line to tokens
+///
+/// ```ignore
+/// let result = parse_line("echo 'hi yoo' | grep \"hi\"");
+/// // Returns LineInfo {
+/// //     tokens: vec![
+/// //         ("", "echo"),
+/// //         ("'", "hi yoo"),
+/// //         ("", "|"),
+/// //         ("", "grep"),
+/// //         ("\"", "hi"),
+/// //     ],
+/// //     is_complete: true
+/// // }
+/// ```
 // #[allow(clippy::cyclomatic_complexity)]
 pub fn parse_line(line: &str) -> LineInfo {
     // FIXME: let rewrite this parse part and make it a separated lib

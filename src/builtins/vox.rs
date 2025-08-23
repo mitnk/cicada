@@ -10,7 +10,7 @@ use crate::shell::{self, Shell};
 use crate::types::{self, Command, CommandLine, CommandResult};
 
 fn in_env() -> bool {
-    env::var("VIRTUAL_ENV").map_or(false, |x| !x.is_empty())
+    env::var("VIRTUAL_ENV").is_ok_and(|x| !x.is_empty())
 }
 
 fn get_envs_home() -> String {

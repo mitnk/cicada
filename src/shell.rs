@@ -252,10 +252,7 @@ impl Shell {
     pub fn get_env(&self, name: &str) -> Option<String> {
         match self.envs.get(name) {
             Some(x) => Some(x.to_string()),
-            None => match env::var(name) {
-                Ok(x) => Some(x),
-                Err(_) => None,
-            },
+            None => env::var(name).ok(),
         }
     }
 
@@ -515,11 +512,11 @@ fn brace_getitem(s: &str, depth: i32) -> (Vec<String>, String) {
         // FIXME: here we mean more than one char.
         if c == '\\' && ss.len() > 1 {
             ss.remove(0);
-            let c;
-            match ss.chars().next() {
-                Some(x) => c = x,
+
+            let c = match ss.chars().next() {
+                Some(x) => x,
                 None => return (out, ss),
-            }
+            };
 
             tmp = format!("\\{}", c);
         } else {
@@ -883,6 +880,8 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
 fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
     let mut buff: HashMap<usize, String> = HashMap::new();
+    let re = Regex::new(r"^([^`]*)`([^`]+)`(.*)$").unwrap();
+
     for (sep, token) in tokens.iter() {
         let new_token: String;
         if sep == "`" {
@@ -907,13 +906,6 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
 
             new_token = cr.stdout.trim().to_string();
         } else if sep == "\"" || sep.is_empty() {
-            let re;
-            if let Ok(x) = Regex::new(r"^([^`]*)`([^`]+)`(.*)$") {
-                re = x;
-            } else {
-                println_stderr!("cicada: re new error");
-                return;
-            }
             if !re.is_match(token) {
                 idx += 1;
                 continue;

@@ -73,7 +73,7 @@ fn handle_lv1_string(res: &mut Vec<Completion>, value: &str, word: &str) {
     if tokens.len() == 1 && tokens[0].0 == "`" {
         log!("run subcmd: {:?}", &tokens[0].1);
         let cr = execute::run(&tokens[0].1);
-        let v: Vec<&str> = cr.stdout.split(|c| c == '\n' || c == ' ').collect();
+        let v: Vec<&str> = cr.stdout.split_whitespace().collect();
         for s in v {
             if s.trim().is_empty() {
                 continue;

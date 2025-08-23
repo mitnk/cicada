@@ -31,17 +31,17 @@ fn get_release_value(ptn: &str) -> String {
         ptn
     );
     let cr = execute::run(&line);
-    return cr.stdout.trim().to_string();
+    cr.stdout.trim().to_string()
 }
 
 fn get_uname() -> String {
     let cr = execute::run("uname");
-    return cr.stdout.trim().to_string();
+    cr.stdout.trim().to_string()
 }
 
 fn get_uname_mo() -> String {
     let cr = execute::run("uname -m -o");
-    return cr.stdout.trim().to_string();
+    cr.stdout.trim().to_string()
 }
 
 fn get_macos_name() -> String {
@@ -56,10 +56,10 @@ fn get_macos_name() -> String {
 
 fn get_osx_codename() -> String {
     let cr = execute::run("grep -o 'SOFTWARE LICENSE AGREEMENT FOR .*[a-zA-Z]' '/System/Library/CoreServices/Setup Assistant.app/Contents/Resources/en.lproj/OSXSoftwareLicense.rtf' | sed 's/SOFTWARE LICENSE AGREEMENT FOR *//'");
-    return cr.stdout.trim().to_string();
+    cr.stdout.trim().to_string()
 }
 
 fn get_osx_version() -> String {
     let cr = execute::run("sw_vers -productVersion");
-    return cr.stdout.trim().to_string();
+    cr.stdout.trim().to_string()
 }
