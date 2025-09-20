@@ -8,7 +8,7 @@ struct Locust;
 
 pub fn parse_lines(
     lines: &str,
-) -> Result<Pairs<crate::parsers::locust::Rule>, Error<crate::parsers::locust::Rule>> {
+) -> Result<Pairs<'_, crate::parsers::locust::Rule>, Error<crate::parsers::locust::Rule>> {
     Locust::parse(Rule::EXP, lines)
 }
 
@@ -54,7 +54,7 @@ mod tests {
             }
             Err(e) => {
                 println!("parse error: {:?}", e);
-                assert!(false);
+                unreachable!();
             }
         }
         output
