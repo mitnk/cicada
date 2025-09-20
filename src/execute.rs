@@ -1,13 +1,10 @@
 use std::collections::HashMap;
 use std::io::{self, Read, Write};
 
-use regex::Regex;
-
 use crate::core;
-use crate::libs;
 use crate::parsers;
 use crate::shell::{self, Shell};
-use crate::types::{CommandLine, CommandResult, Tokens};
+use crate::types::{drain_env_tokens, CommandLine, CommandResult, Tokens};
 
 /// Entry point for non-ttys (e.g. Cmd-N on MacVim)
 pub fn run_procs_for_non_tty(sh: &mut Shell) {
@@ -52,30 +49,6 @@ pub fn run_command_line(
         cr_list.push(cr);
     }
     cr_list
-}
-
-fn drain_env_tokens(tokens: &mut Tokens) -> HashMap<String, String> {
-    let mut envs: HashMap<String, String> = HashMap::new();
-    let mut n = 0;
-    let ptn_env_exp = r"^([a-zA-Z_][a-zA-Z0-9_]*)=(.*)$";
-    let re = Regex::new(ptn_env_exp).unwrap();
-    for (sep, text) in tokens.iter() {
-        if !sep.is_empty() || !libs::re::re_contains(text, ptn_env_exp) {
-            break;
-        }
-
-        for cap in re.captures_iter(text) {
-            let name = cap[1].to_string();
-            let value = parsers::parser_line::unquote(&cap[2]);
-            envs.insert(name, value);
-        }
-
-        n += 1;
-    }
-    if n > 0 {
-        tokens.drain(0..n);
-    }
-    envs
 }
 
 fn line_to_tokens(sh: &mut Shell, line: &str) -> (Tokens, HashMap<String, String>) {
@@ -160,7 +133,7 @@ pub fn run(line: &str) -> CommandResult {
 #[cfg(test)]
 mod tests {
     use super::core::run_calculator;
-    use super::libs;
+    use crate::libs;
     use super::run_with_shell;
     use super::shell;
 
