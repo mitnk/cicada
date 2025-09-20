@@ -85,20 +85,18 @@ fn exit_env(sh: &Shell) -> String {
         }
     };
 
-    let mut all_tokens_path: Vec<String> = env::split_paths(&env_path)
-        .map(|p: PathBuf| p.to_string_lossy().into_owned())
-        .collect(); // only keep valid UTF-8 paths
-    let mut path_virtual_env = String::from("${VIRTUAL_ENV}/bin");
+    let mut vec_path: Vec<PathBuf> = env::split_paths(&env_path).collect();
+    let path_virtual_env = String::from("${VIRTUAL_ENV}/bin");
     // shell::extend_env(sh, &mut path_virtual_env);
     let mut tokens: types::Tokens = Vec::new();
     tokens.push((String::new(), path_virtual_env));
     shell::expand_env(sh, &mut tokens);
-    path_virtual_env = tokens[0].1.clone();
-    all_tokens_path
+    let pathbuf_virtual_env = PathBuf::from(tokens[0].1.clone());
+    vec_path
         .iter()
-        .position(|n| n.as_ref() == path_virtual_env)
-        .map(|e| all_tokens_path.remove(e));
-    let env_path_new = all_tokens_path.join(":");
+        .position(|n| n == &pathbuf_virtual_env)
+        .map(|e| vec_path.remove(e));
+    let env_path_new = env::join_paths(vec_path).unwrap_or_default();
     env::set_var("PATH", &env_path_new);
     env::set_var("VIRTUAL_ENV", "");
 

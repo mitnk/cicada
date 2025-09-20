@@ -4,7 +4,7 @@ use std::fs::read_dir;
 use std::io::Write;
 use std::iter::FromIterator;
 use std::os::unix::fs::PermissionsExt;
-use std::path::MAIN_SEPARATOR;
+use std::path::{PathBuf, MAIN_SEPARATOR};
 use std::sync::Arc;
 
 use lineread::complete::{Completer, Completion, Suffix};
@@ -240,12 +240,10 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
         });
     }
 
-    let vec_path: Vec<String> = env::split_paths(&env_path)
-        .map(|p| p.to_string_lossy().into_owned())
-        .collect(); // only keep valid UTF-8 paths
-    let path_list: HashSet<String> = HashSet::from_iter(vec_path.iter().cloned());
+    let vec_path = env::split_paths(&env_path);
+    let path_list: HashSet<PathBuf> = HashSet::from_iter(vec_path);
 
-    for p in &path_list {
+    for p in path_list {
         if let Ok(list) = read_dir(p) {
             for entry in list.flatten() {
                 if let Ok(name) = entry.file_name().into_string() {
