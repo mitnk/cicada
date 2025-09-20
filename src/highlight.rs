@@ -3,7 +3,6 @@ use std::env;
 use std::fs;
 use std::ops::Range;
 use std::os::unix::fs::PermissionsExt;
-use std::path::Path;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -46,12 +45,7 @@ fn scan_available_commands() -> HashSet<String> {
     let mut commands = HashSet::new();
 
     if let Ok(path_var) = env::var("PATH") {
-        for path in path_var.split(':') {
-            if path.is_empty() {
-                continue;
-            }
-
-            let dir_path = Path::new(path);
+        for dir_path in env::split_paths(&path_var) {
             if !dir_path.is_dir() {
                 continue;
             }

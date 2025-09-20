@@ -48,7 +48,9 @@ pub fn find_file_in_path(filename: &str, exec: bool) -> String {
             return String::new();
         }
     };
-    let vec_path: Vec<&str> = env_path.split(':').collect();
+    let vec_path: Vec<String> = env::split_paths(&env_path)
+        .map(|p| p.to_string_lossy().into_owned())
+        .collect(); // only keep valid UTF-8 paths
     for p in &vec_path {
         match read_dir(p) {
             Ok(list) => {

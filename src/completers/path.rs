@@ -240,8 +240,10 @@ fn complete_bin(sh: &shell::Shell, path: &str) -> Vec<Completion> {
         });
     }
 
-    let vec_path: Vec<&str> = env_path.split(':').collect();
-    let path_list: HashSet<&str> = HashSet::from_iter(vec_path.iter().cloned());
+    let vec_path: Vec<String> = env::split_paths(&env_path)
+        .map(|p| p.to_string_lossy().into_owned())
+        .collect(); // only keep valid UTF-8 paths
+    let path_list: HashSet<String> = HashSet::from_iter(vec_path.iter().cloned());
 
     for p in &path_list {
         if let Ok(list) = read_dir(p) {
