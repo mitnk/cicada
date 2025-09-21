@@ -45,9 +45,9 @@ ulimit -c
 ulimit | wc
 
 echo '--- for exit code ---'
-./target/debug/cicada -c cinfo1
+./"${CICADA}" -c cinfo1
 echo $?
 echo 'exit 3' > exit3.sh
-./target/debug/cicada exit3.sh
+./"${CICADA}" exit3.sh
 echo $?
 rm -f exit3.sh
