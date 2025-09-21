@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
 use std::path::Path;
+use std::path::PathBuf;
 
 use crate::builtins::utils::print_stderr_with_capture;
 use crate::builtins::utils::print_stdout_with_capture;
@@ -84,18 +85,18 @@ fn exit_env(sh: &Shell) -> String {
         }
     };
 
-    let mut _tokens: Vec<&str> = env_path.split(':').collect();
-    let mut path_virtual_env = String::from("${VIRTUAL_ENV}/bin");
+    let mut vec_path: Vec<PathBuf> = env::split_paths(&env_path).collect();
+    let path_virtual_env = String::from("${VIRTUAL_ENV}/bin");
     // shell::extend_env(sh, &mut path_virtual_env);
     let mut tokens: types::Tokens = Vec::new();
     tokens.push((String::new(), path_virtual_env));
     shell::expand_env(sh, &mut tokens);
-    path_virtual_env = tokens[0].1.clone();
-    _tokens
+    let pathbuf_virtual_env = PathBuf::from(tokens[0].1.clone());
+    vec_path
         .iter()
-        .position(|&n| n == path_virtual_env)
-        .map(|e| _tokens.remove(e));
-    let env_path_new = _tokens.join(":");
+        .position(|n| n == &pathbuf_virtual_env)
+        .map(|e| vec_path.remove(e));
+    let env_path_new = env::join_paths(vec_path).unwrap_or_default();
     env::set_var("PATH", &env_path_new);
     env::set_var("VIRTUAL_ENV", "");
 
