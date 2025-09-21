@@ -330,7 +330,7 @@ fn split_tokens_by_pipes(tokens: &[Token]) -> Vec<Tokens> {
     cmds
 }
 
-fn drain_env_tokens(tokens: &mut Tokens) -> HashMap<String, String> {
+pub(crate) fn drain_env_tokens(tokens: &mut Tokens) -> HashMap<String, String> {
     let mut envs: HashMap<String, String> = HashMap::new();
     let mut n = 0;
     let re = Regex::new(r"^([a-zA-Z0-9_]+)=(.*)$").unwrap();
