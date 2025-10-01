@@ -48,9 +48,9 @@ pub fn find_file_in_path(filename: &str, exec: bool) -> String {
             return String::new();
         }
     };
-    let vec_path: Vec<&str> = env_path.split(':').collect();
-    for p in &vec_path {
-        match read_dir(p) {
+    let vec_path = env::split_paths(&env_path);
+    for p in vec_path {
+        match read_dir(&p) {
             Ok(list) => {
                 for entry in list.flatten() {
                     if let Ok(name) = entry.file_name().into_string() {
@@ -81,7 +81,7 @@ pub fn find_file_in_path(filename: &str, exec: bool) -> String {
                 if e.kind() == ErrorKind::NotFound {
                     continue;
                 }
-                log!("cicada: fs read_dir error: {}: {}", p, e);
+                log!("cicada: fs read_dir error: {}: {}", p.display(), e);
             }
         }
     }
