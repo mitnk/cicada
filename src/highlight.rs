@@ -16,7 +16,7 @@ use crate::tools;
 pub struct CicadaHighlighter;
 
 // ANSI color codes wrapped with \x01 and \x02 for lineread
-const GREEN: &str = "\x01\x1b[0;32m\x02";
+const GREEN: &str = "\x1b[0;32m";
 
 lazy_static! {
     static ref AVAILABLE_COMMANDS: Mutex<HashSet<String>> = Mutex::new(HashSet::new());
