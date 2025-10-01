@@ -1,8 +1,12 @@
 # cicada Release Notes
 
+## 1.1.3 - 2025.10.01
+
+- Fixed highlight render issue in lightweight terminal apps like "iSH".
+
 ## 1.1.2 - 2025.04.19
 
-- Fix issues in `reverse-i-search`.
+- Fixed issues in `reverse-i-search`.
 
 ## 1.1.1 - 2025.04.10
 
