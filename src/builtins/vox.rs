@@ -64,12 +64,16 @@ fn enter_env(sh: &Shell, path: &str) -> String {
     }
 
     let path_env = format!("{}/{}", home_envs, path);
-    env::set_var("VIRTUAL_ENV", &path_env);
+    unsafe {
+        env::set_var("VIRTUAL_ENV", &path_env);
+    };
     let path_new = String::from("${VIRTUAL_ENV}/bin:$PATH");
     let mut tokens: types::Tokens = Vec::new();
     tokens.push((String::new(), path_new));
     shell::expand_env(sh, &mut tokens);
-    env::set_var("PATH", &tokens[0].1);
+    unsafe {
+        env::set_var("PATH", &tokens[0].1);
+    };
     String::new()
 }
 
@@ -97,8 +101,10 @@ fn exit_env(sh: &Shell) -> String {
         .position(|n| n == &pathbuf_virtual_env)
         .map(|e| vec_path.remove(e));
     let env_path_new = env::join_paths(vec_path).unwrap_or_default();
-    env::set_var("PATH", &env_path_new);
-    env::set_var("VIRTUAL_ENV", "");
+    unsafe {
+        env::set_var("PATH", &env_path_new);
+        env::set_var("VIRTUAL_ENV", "");
+    };
 
     String::new()
 }

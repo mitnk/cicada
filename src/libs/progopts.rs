@@ -25,5 +25,5 @@ pub fn is_command_string(args: &[String]) -> bool {
 }
 
 pub fn is_non_tty() -> bool {
-    unsafe { libc::isatty(0) == 0 }
+    unsafe { nix::libc::isatty(0) == 0 }
 }

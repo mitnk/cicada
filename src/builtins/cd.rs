@@ -65,7 +65,9 @@ pub fn run(
             sh.current_dir = dir_to.clone();
             if str_current_dir != dir_to {
                 sh.previous_dir = str_current_dir.clone();
-                env::set_var("PWD", &sh.current_dir);
+                unsafe {
+                    env::set_var("PWD", &sh.current_dir);
+                };
             };
             cr.status = 0;
             cr

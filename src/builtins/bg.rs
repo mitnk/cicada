@@ -1,6 +1,7 @@
+//! bg - background builtin
+
 use crate::builtins::utils::print_stderr_with_capture;
 use crate::jobc;
-use crate::libc;
 use crate::shell::Shell;
 use crate::types::{Command, CommandLine, CommandResult};
 
@@ -54,7 +55,7 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> Co
         match result {
             Some(job) => {
                 unsafe {
-                    libc::killpg(job.gid, libc::SIGCONT);
+                    nix::libc::killpg(job.gid, nix::libc::SIGCONT);
                     gid = job.gid;
                     if job.status == "Running" {
                         let info = format!("cicada: bg: job {} already in background", job.id);

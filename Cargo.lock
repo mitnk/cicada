@@ -104,7 +104,6 @@ dependencies = [
  "exec",
  "glob",
  "lazy_static",
- "libc",
  "lineread",
  "nix 0.30.1",
  "pest",

@@ -165,7 +165,7 @@ pub fn env_args_to_command_line() -> String {
 }
 
 extern "C" {
-    fn gethostname(name: *mut libc::c_char, size: libc::size_t) -> libc::c_int;
+    fn gethostname(name: *mut nix::libc::c_char, size: nix::libc::size_t) -> nix::libc::c_int;
 }
 
 /// via: https://gist.github.com/conradkleinespel/6c8174aee28fa22bfe26
@@ -175,7 +175,8 @@ pub fn get_hostname() -> String {
 
     let ptr = buf.as_mut_slice().as_mut_ptr();
 
-    let err = unsafe { gethostname(ptr as *mut libc::c_char, len as libc::size_t) } as i32;
+    let err =
+        unsafe { gethostname(ptr as *mut nix::libc::c_char, len as nix::libc::size_t) } as i32;
 
     match err {
         0 => {
@@ -295,7 +296,7 @@ pub fn is_builtin(s: &str) -> bool {
 
 pub fn init_path_env() {
     // order matters. took from `runc spec`
-    let mut paths: Vec<String> = vec![];
+    let mut paths: Vec<PathBuf> = vec![];
     for x in [
         "/usr/local/sbin",
         "/usr/local/bin",
@@ -304,20 +305,23 @@ pub fn init_path_env() {
         "/sbin",
         "/bin",
     ] {
-        if Path::new(x).exists() {
-            paths.push(x.to_string());
+        let path_buf = PathBuf::from(x);
+        if Path::new(&path_buf).exists() {
+            paths.push(path_buf);
         }
     }
 
     if let Ok(env_path) = env::var("PATH") {
-        for x in env_path.split(":") {
-            if !paths.contains(&x.to_string()) {
-                paths.push(x.to_string());
+        for x in env::split_paths(&env_path) {
+            if !paths.contains(&x) {
+                paths.push(x);
             }
         }
     }
-    let paths = paths.join(":");
-    env::set_var("PATH", paths);
+    let paths = env::join_paths(paths).unwrap_or_default();
+    unsafe {
+        env::set_var("PATH", paths);
+    };
 }
 
 pub fn is_shell_altering_command(line: &str) -> bool {

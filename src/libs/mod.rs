@@ -9,16 +9,16 @@ pub mod term_size;
 
 pub fn close(fd: i32) {
     unsafe {
-        libc::close(fd);
+        nix::libc::close(fd);
     }
 }
 
 pub fn dup(fd: i32) -> i32 {
-    unsafe { libc::dup(fd) }
+    unsafe { nix::libc::dup(fd) }
 }
 
 pub fn dup2(src: i32, dst: i32) {
     unsafe {
-        libc::dup2(src, dst);
+        nix::libc::dup2(src, dst);
     }
 }

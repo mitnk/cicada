@@ -3,7 +3,6 @@
 extern crate errno;
 extern crate exec;
 extern crate glob;
-extern crate libc;
 extern crate lineread;
 extern crate nix;
 extern crate regex;
@@ -50,11 +49,11 @@ mod types;
 // #[allow(clippy::cast_lossless)]
 fn main() {
     unsafe {
-        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+        nix::libc::signal(nix::libc::SIGPIPE, nix::libc::SIG_DFL);
 
         // ignore SIGTSTP (ctrl-Z) for the shell itself
-        libc::signal(libc::SIGTSTP, libc::SIG_IGN);
-        libc::signal(libc::SIGQUIT, libc::SIG_IGN);
+        nix::libc::signal(nix::libc::SIGTSTP, nix::libc::SIG_IGN);
+        nix::libc::signal(nix::libc::SIGQUIT, nix::libc::SIG_IGN);
     }
 
     tools::init_path_env();
@@ -210,7 +209,7 @@ fn main() {
                 // it's a last resort.
                 // FIXME: we only need this trick when job-control has issues
                 unsafe {
-                    let gid = libc::getpgid(0);
+                    let gid = nix::libc::getpgid(0);
                     shell::give_terminal_to(gid);
                 }
             }

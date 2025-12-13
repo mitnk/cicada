@@ -174,7 +174,7 @@ pub fn run_pipeline(
     let mut fg_pids: Vec<i32> = Vec::new();
 
     let isatty = if tty {
-        unsafe { libc::isatty(1) == 1 }
+        unsafe { nix::libc::isatty(1) == 1 }
     } else {
         false
     };
@@ -270,7 +270,7 @@ fn run_single_program(
     if cl.is_single_and_builtin() {
         if let Some(cr) = try_run_builtin(sh, cl, idx_cmd, capture) {
             *cmd_result = cr;
-            return unsafe { libc::getpid() };
+            return unsafe { nix::libc::getpid() };
         }
 
         println_stderr!("cicada: error when run singler builtin");
@@ -296,8 +296,8 @@ fn run_single_program(
         Ok(ForkResult::Child) => {
             unsafe {
                 // child processes need to handle ctrl-Z
-                libc::signal(libc::SIGTSTP, libc::SIG_DFL);
-                libc::signal(libc::SIGQUIT, libc::SIG_DFL);
+                nix::libc::signal(nix::libc::SIGTSTP, nix::libc::SIG_DFL);
+                nix::libc::signal(nix::libc::SIGQUIT, nix::libc::SIG_DFL);
             }
 
             // close pipes unrelated to current child (left side)
@@ -329,12 +329,12 @@ fn run_single_program(
 
             if idx_cmd == 0 {
                 unsafe {
-                    let pid = libc::getpid();
-                    libc::setpgid(0, pid);
+                    let pid = nix::libc::getpid();
+                    nix::libc::setpgid(0, pid);
                 }
             } else {
                 unsafe {
-                    libc::setpgid(0, *pgid);
+                    nix::libc::setpgid(0, *pgid);
                 }
             }
 
@@ -519,7 +519,7 @@ fn run_single_program(
                     //    like `vim` will go to `T` status after start.
                     if cfg!(target_os = "macos") {
                         loop {
-                            let _pgid = libc::getpgid(pid);
+                            let _pgid = nix::libc::getpgid(pid);
                             if _pgid == pid {
                                 break;
                             }

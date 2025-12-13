@@ -54,7 +54,7 @@ pub fn mark_job_as_stopped(sh: &mut shell::Shell, gid: i32, report: bool) {
 
 pub fn mark_job_member_stopped(sh: &mut shell::Shell, pid: i32, gid: i32, report: bool) {
     let _gid = if gid == 0 {
-        unsafe { libc::getpgid(pid) }
+        unsafe { nix::libc::getpgid(pid) }
     } else {
         gid
     };
@@ -68,7 +68,7 @@ pub fn mark_job_member_stopped(sh: &mut shell::Shell, pid: i32, gid: i32, report
 
 pub fn mark_job_member_continued(sh: &mut shell::Shell, pid: i32, gid: i32) {
     let _gid = if gid == 0 {
-        unsafe { libc::getpgid(pid) }
+        unsafe { nix::libc::getpgid(pid) }
     } else {
         gid
     };

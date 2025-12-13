@@ -519,7 +519,7 @@ mod tests {
         if !libs::re::re_contains(&line_new, ptn_expected) {
             println!("expect RE: {:?}", ptn_expected);
             println!("real: {:?}", line_new);
-            assert!(false);
+            panic!();
         }
 
         let line = "echo \"==$3--$$==$1--$2==$4--$5==$$--$2==\"";
@@ -528,7 +528,7 @@ mod tests {
         if !libs::re::re_contains(&line_new, ptn_expected) {
             println!("expect RE: {:?}", ptn_expected);
             println!("real: {:?}", line_new);
-            assert!(false);
+            panic!();
         }
     }
 }

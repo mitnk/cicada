@@ -33,7 +33,7 @@ fn _get_std_fds(redirects: &[Redirection]) -> (Option<RawFd>, Option<RawFd>) {
                 if let Some(fd) = _fd_err {
                     _fd_candidate = Some(fd);
                 } else {
-                    _fd_candidate = unsafe { Some(libc::dup(2)) };
+                    _fd_candidate = unsafe { Some(nix::libc::dup(2)) };
                 }
             } else {
                 // 1> foo.log
@@ -47,7 +47,7 @@ fn _get_std_fds(redirects: &[Redirection]) -> (Option<RawFd>, Option<RawFd>) {
             // we need to return the last one, but close the previous two.
             if let Some(fd) = fd_out {
                 unsafe {
-                    libc::close(fd);
+                    nix::libc::close(fd);
                 }
             }
 
@@ -60,7 +60,7 @@ fn _get_std_fds(redirects: &[Redirection]) -> (Option<RawFd>, Option<RawFd>) {
 
             if item.2 == "&1" {
                 if let Some(fd) = fd_out {
-                    _fd_candidate = unsafe { Some(libc::dup(fd)) };
+                    _fd_candidate = unsafe { Some(nix::libc::dup(fd)) };
                 }
             } else {
                 // 2>foo.log
@@ -72,7 +72,7 @@ fn _get_std_fds(redirects: &[Redirection]) -> (Option<RawFd>, Option<RawFd>) {
 
             if let Some(fd) = fd_err {
                 unsafe {
-                    libc::close(fd);
+                    nix::libc::close(fd);
                 }
             }
 
@@ -94,13 +94,13 @@ fn _get_dupped_stdout_fd(cmd: &Command, cl: &CommandLine) -> RawFd {
     let (_fd_out, _fd_err) = _get_std_fds(&cmd.redirects_to);
     if let Some(fd) = _fd_err {
         unsafe {
-            libc::close(fd);
+            nix::libc::close(fd);
         }
     }
     if let Some(fd) = _fd_out {
         fd
     } else {
-        let fd = unsafe { libc::dup(1) };
+        let fd = unsafe { nix::libc::dup(1) };
         if fd == -1 {
             let eno = errno();
             println_stderr!("cicada: dup: {}", eno);
@@ -117,14 +117,14 @@ fn _get_dupped_stderr_fd(cmd: &Command, cl: &CommandLine) -> RawFd {
     let (_fd_out, _fd_err) = _get_std_fds(&cmd.redirects_to);
     if let Some(fd) = _fd_out {
         unsafe {
-            libc::close(fd);
+            nix::libc::close(fd);
         }
     }
 
     if let Some(fd) = _fd_err {
         fd
     } else {
-        let fd = unsafe { libc::dup(2) };
+        let fd = unsafe { nix::libc::dup(2) };
         if fd == -1 {
             let eno = errno();
             println_stderr!("cicada: dup: {}", eno);

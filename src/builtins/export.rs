@@ -39,7 +39,9 @@ pub fn run(_sh: &Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> Comma
             let name = cap[1].to_string();
             let token = parsers::parser_line::unquote(&cap[2]);
             let value = libs::path::expand_home(&token);
-            env::set_var(name, &value);
+            unsafe {
+                env::set_var(name, &value);
+            };
         }
     }
     cr

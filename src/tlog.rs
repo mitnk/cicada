@@ -1,5 +1,5 @@
 pub fn getpid() -> i32 {
-    unsafe { libc::getpid() }
+    unsafe { nix::libc::getpid() }
 }
 
 #[macro_export]

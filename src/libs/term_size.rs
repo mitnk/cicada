@@ -1,5 +1,5 @@
 // via: https://github.com/clap-rs/term_size-rs/blob/644f28c3a8811e56edcf42036b5e754dbb24a0d7/src/platform/unix.rs
-use libc::{c_int, c_ulong, winsize, STDERR_FILENO, STDIN_FILENO, STDOUT_FILENO};
+use nix::libc::{c_int, c_ulong, winsize, STDERR_FILENO, STDIN_FILENO, STDOUT_FILENO};
 use std::mem::zeroed;
 
 // Unfortunately the actual command is not standardised...

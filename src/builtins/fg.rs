@@ -1,4 +1,4 @@
-use libc;
+//! fg - Foreground builtin
 
 use crate::builtins::utils::print_stderr_with_capture;
 use crate::jobc;
@@ -64,7 +64,7 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> Co
                         return CommandResult::error();
                     }
 
-                    libc::killpg(job.gid, libc::SIGCONT);
+                    nix::libc::killpg(job.gid, nix::libc::SIGCONT);
                     pid_list = job.pids.clone();
                     gid = job.gid;
                 }
@@ -82,7 +82,7 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> Co
 
         let cr = jobc::wait_fg_job(sh, gid, &pid_list);
 
-        let gid_shell = libc::getpgid(0);
+        let gid_shell = nix::libc::getpgid(0);
         if !shell::give_terminal_to(gid_shell) {
             log!("failed to give term to back to shell : {}", gid_shell);
         }

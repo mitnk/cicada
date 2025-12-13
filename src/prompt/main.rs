@@ -157,11 +157,15 @@ mod tests {
     fn test_render_prompt() {
         let mut sh = Shell::new();
 
-        env::set_var("MY_ARCH", "x86-64");
-        env::set_var("OS", "linux");
+        unsafe {
+            env::set_var("MY_ARCH", "x86-64");
+            env::set_var("OS", "linux");
+        };
         assert_eq!("x86-64/linux", render_prompt(&sh, "$MY_ARCH/$OS"));
 
-        env::set_var("FOOBAR7", "user135");
+        unsafe {
+            env::set_var("FOOBAR7", "user135");
+        };
         assert_eq!("user135$\n", render_prompt(&sh, "$FOOBAR7$${newline}"));
         assert_eq!("user135$\n", render_prompt(&sh, "$FOOBAR7$$newline"));
 

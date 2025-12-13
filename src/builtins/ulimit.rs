@@ -82,18 +82,18 @@ pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> C
 
 fn set_limit(limit_name: &str, value: u64, for_hard: bool) -> String {
     let limit_id = match limit_name {
-        "open_files" => libc::RLIMIT_NOFILE,
-        "core_file_size" => libc::RLIMIT_CORE,
+        "open_files" => nix::libc::RLIMIT_NOFILE,
+        "core_file_size" => nix::libc::RLIMIT_CORE,
         _ => return String::from("invalid limit name"),
     };
 
-    let mut rlp = libc::rlimit {
+    let mut rlp = nix::libc::rlimit {
         rlim_cur: 0,
         rlim_max: 0,
     };
 
     unsafe {
-        if libc::getrlimit(limit_id, &mut rlp) != 0 {
+        if nix::libc::getrlimit(limit_id, &mut rlp) != 0 {
             return format!(
                 "cicada: ulimit: error getting limit: {}",
                 Error::last_os_error()
@@ -123,7 +123,7 @@ fn set_limit(limit_name: &str, value: u64, for_hard: bool) -> String {
     }
 
     unsafe {
-        if libc::setrlimit(limit_id, &rlp) != 0 {
+        if nix::libc::setrlimit(limit_id, &rlp) != 0 {
             return format!(
                 "cicada: ulimit: error setting limit: {}",
                 Error::last_os_error()
@@ -136,8 +136,8 @@ fn set_limit(limit_name: &str, value: u64, for_hard: bool) -> String {
 
 fn get_limit(limit_name: &str, single_print: bool, for_hard: bool) -> (String, String) {
     let (desc, limit_id) = match limit_name {
-        "open_files" => ("open files", libc::RLIMIT_NOFILE),
-        "core_file_size" => ("core file size", libc::RLIMIT_CORE),
+        "open_files" => ("open files", nix::libc::RLIMIT_NOFILE),
+        "core_file_size" => ("core file size", nix::libc::RLIMIT_CORE),
         _ => {
             return (
                 String::new(),
@@ -146,7 +146,7 @@ fn get_limit(limit_name: &str, single_print: bool, for_hard: bool) -> (String, S
         }
     };
 
-    let mut rlp = libc::rlimit {
+    let mut rlp = nix::libc::rlimit {
         rlim_cur: 0,
         rlim_max: 0,
     };
@@ -155,14 +155,14 @@ fn get_limit(limit_name: &str, single_print: bool, for_hard: bool) -> (String, S
     let mut result_stderr = String::new();
 
     unsafe {
-        if libc::getrlimit(limit_id, &mut rlp) != 0 {
+        if nix::libc::getrlimit(limit_id, &mut rlp) != 0 {
             result_stderr.push_str(&format!("error getting limit: {}", Error::last_os_error()));
             return (result_stdout, result_stderr);
         }
 
         let to_print = if for_hard { rlp.rlim_max } else { rlp.rlim_cur };
 
-        let info = if to_print == libc::RLIM_INFINITY {
+        let info = if to_print == nix::libc::RLIM_INFINITY {
             if single_print {
                 "unlimited\n".to_string()
             } else {

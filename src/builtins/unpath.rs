@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::builtins::utils::print_stderr_with_capture;
 use crate::shell::Shell;
 use crate::types::{Command, CommandLine, CommandResult};
@@ -13,6 +15,6 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> Co
     }
 
     let input = &tokens[1].1;
-    sh.remove_path(input);
+    sh.remove_path(&PathBuf::from(input));
     cr
 }

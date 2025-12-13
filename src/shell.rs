@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::env;
 use std::io::Write;
 use std::mem;
+use std::path::PathBuf;
 
 use regex::Regex;
 use uuid::Uuid;
@@ -242,7 +243,9 @@ impl Shell {
     /// be exported into child processes.
     pub fn set_env(&mut self, name: &str, value: &str) {
         if env::var(name).is_ok() {
-            env::set_var(name, value);
+            unsafe  {
+                env::set_var(name, value);
+            };
         } else {
             self.envs.insert(name.to_string(), value.to_string());
         }
@@ -264,18 +267,22 @@ impl Shell {
         if !ptn_env.is_match(name) {
             return false;
         }
-
-        env::remove_var(name);
+        unsafe {
+            env::remove_var(name);
+        };
         self.envs.remove(name);
         self.remove_func(name);
         true
     }
 
-    pub fn remove_path(&mut self, path: &str) {
+    pub fn remove_path(&mut self, path: &PathBuf) {
         if let Ok(paths) = env::var("PATH") {
-            let mut paths_new: Vec<&str> = paths.split(":").collect();
-            paths_new.retain(|&x| x != path);
-            env::set_var("PATH", paths_new.join(":").as_str());
+            let mut paths_new: Vec<PathBuf> = env::split_paths(&paths).collect();
+            paths_new.retain(|x| x != path);
+            let joined = env::join_paths(paths_new).unwrap_or_default();
+            unsafe {
+                env::set_var("PATH", joined);
+            };
         }
     }
 
@@ -326,20 +333,20 @@ impl Shell {
 }
 
 pub unsafe fn give_terminal_to(gid: i32) -> bool {
-    let mut mask: libc::sigset_t = mem::zeroed();
-    let mut old_mask: libc::sigset_t = mem::zeroed();
+    let mut mask: nix::libc::sigset_t = mem::zeroed();
+    let mut old_mask: nix::libc::sigset_t = mem::zeroed();
 
-    libc::sigemptyset(&mut mask);
-    libc::sigaddset(&mut mask, libc::SIGTSTP);
-    libc::sigaddset(&mut mask, libc::SIGTTIN);
-    libc::sigaddset(&mut mask, libc::SIGTTOU);
-    libc::sigaddset(&mut mask, libc::SIGCHLD);
+    nix::libc::sigemptyset(&mut mask);
+    nix::libc::sigaddset(&mut mask, nix::libc::SIGTSTP);
+    nix::libc::sigaddset(&mut mask, nix::libc::SIGTTIN);
+    nix::libc::sigaddset(&mut mask, nix::libc::SIGTTOU);
+    nix::libc::sigaddset(&mut mask, nix::libc::SIGCHLD);
 
-    let rcode = libc::pthread_sigmask(libc::SIG_BLOCK, &mask, &mut old_mask);
+    let rcode = nix::libc::pthread_sigmask(nix::libc::SIG_BLOCK, &mask, &mut old_mask);
     if rcode != 0 {
         log!("failed to call pthread_sigmask");
     }
-    let rcode = libc::tcsetpgrp(1, gid);
+    let rcode = nix::libc::tcsetpgrp(1, gid);
     let given;
     if rcode == -1 {
         given = false;
@@ -349,7 +356,7 @@ pub unsafe fn give_terminal_to(gid: i32) -> bool {
     } else {
         given = true;
     }
-    let rcode = libc::pthread_sigmask(libc::SIG_SETMASK, &old_mask, &mut mask);
+    let rcode = nix::libc::pthread_sigmask(nix::libc::SIG_SETMASK, &old_mask, &mut mask);
     if rcode != 0 {
         log!("failed to call pthread_sigmask");
     }
@@ -458,7 +465,7 @@ fn expand_one_env(sh: &Shell, token: &str) -> String {
             result.push_str(format!("{}{}", head, sh.previous_status).as_str());
         } else if key == "$" {
             unsafe {
-                let val = libc::getpid();
+                let val = nix::libc::getpid();
                 result.push_str(format!("{}{}", head, val).as_str());
             }
         } else if let Ok(val) = env::var(&key) {
@@ -839,7 +846,7 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
                     let (term_given, cr) = core::run_pipeline(sh, &c, true, true, false);
                     if term_given {
                         unsafe {
-                            let gid = libc::getpgid(0);
+                            let gid = nix::libc::getpgid(0);
                             give_terminal_to(gid);
                         }
                     }
@@ -891,7 +898,7 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
                     let (term_given, _cr) = core::run_pipeline(sh, &c, true, true, false);
                     if term_given {
                         unsafe {
-                            let gid = libc::getpgid(0);
+                            let gid = nix::libc::getpgid(0);
                             give_terminal_to(gid);
                         }
                     }
@@ -932,7 +939,7 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
                             let (term_given, _cr) = core::run_pipeline(sh, &c, true, true, false);
                             if term_given {
                                 unsafe {
-                                    let gid = libc::getpgid(0);
+                                    let gid = nix::libc::getpgid(0);
                                     give_terminal_to(gid);
                                 }
                             }
@@ -1003,8 +1010,8 @@ pub fn trim_multiline_prompts(line: &str) -> String {
 
 fn proc_has_terminal() -> bool {
     unsafe {
-        let tgid = libc::tcgetpgrp(0);
-        let pgid = libc::getpgid(0);
+        let tgid = nix::libc::tcgetpgrp(0);
+        let pgid = nix::libc::getpgid(0);
         tgid == pgid
     }
 }
@@ -1050,10 +1057,12 @@ mod tests {
     #[test]
     fn test_expand_env() {
         let sh = Shell::new();
-        env::set_var("test_foo_expand_env1", "Test foo >> ");
-        env::set_var("test_foo_expand_env2", "test-foo");
-        env::set_var("c", "X");
-
+        unsafe {
+            env::set_var("test_foo_expand_env1", "Test foo >> ");
+            env::set_var("test_foo_expand_env2", "test-foo");
+            env::set_var("c", "X");
+        };
+            
         let mut tokens = vec![
             ("".to_string(), "echo".to_string()),
             ("\"".to_string(), "$c".to_string()),
@@ -1106,7 +1115,7 @@ mod tests {
         if !libs::re::re_contains(&tokens[1].1, ptn_expected) {
             println!("expect RE: {:?}", ptn_expected);
             println!("real: {:?}", &tokens[1].1);
-            assert!(false);
+            panic!();
         }
 
         let mut tokens = vec![
@@ -1121,7 +1130,7 @@ mod tests {
         if !libs::re::re_contains(&tokens[1].1, ptn_expected) {
             println!("expect RE: {:?}", ptn_expected);
             println!("real: {:?}", &tokens[1].1);
-            assert!(false);
+            panic!();
         }
     }
 
