@@ -1,5 +1,10 @@
 # cicada Release Notes
 
+## 1.1.4 - 2025.12.18
+
+- Fixed the handling of input that contain Unicode combinations.
+  * e.g. command: echo "[woman firefighter](https://emojipedia.org/woman-firefighter)".
+
 ## 1.1.3 - 2025.10.01
 
 - Fixed highlight render issue in lightweight terminal apps like "iSH".
