@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::env;
 use std::io::Write;
 use std::mem;
+use std::path::PathBuf;
 
 use regex::Regex;
 use uuid::Uuid;
@@ -264,18 +265,18 @@ impl Shell {
         if !ptn_env.is_match(name) {
             return false;
         }
-
         env::remove_var(name);
         self.envs.remove(name);
         self.remove_func(name);
         true
     }
 
-    pub fn remove_path(&mut self, path: &str) {
+    pub fn remove_path(&mut self, path: &PathBuf) {
         if let Ok(paths) = env::var("PATH") {
-            let mut paths_new: Vec<&str> = paths.split(":").collect();
-            paths_new.retain(|&x| x != path);
-            env::set_var("PATH", paths_new.join(":").as_str());
+            let mut paths_new: Vec<PathBuf> = env::split_paths(&paths).collect();
+            paths_new.retain(|x| x != path);
+            let joined = env::join_paths(paths_new).unwrap_or_default();
+            env::set_var("PATH", joined);
         }
     }
 

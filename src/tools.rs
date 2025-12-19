@@ -295,7 +295,7 @@ pub fn is_builtin(s: &str) -> bool {
 
 pub fn init_path_env() {
     // order matters. took from `runc spec`
-    let mut paths: Vec<String> = vec![];
+    let mut paths: Vec<PathBuf> = vec![];
     for x in [
         "/usr/local/sbin",
         "/usr/local/bin",
@@ -304,19 +304,20 @@ pub fn init_path_env() {
         "/sbin",
         "/bin",
     ] {
-        if Path::new(x).exists() {
-            paths.push(x.to_string());
+        let path_buf = PathBuf::from(x);
+        if Path::new(&path_buf).exists() {
+            paths.push(path_buf);
         }
     }
 
     if let Ok(env_path) = env::var("PATH") {
-        for x in env_path.split(":") {
-            if !paths.contains(&x.to_string()) {
-                paths.push(x.to_string());
+        for x in env::split_paths(&env_path) {
+            if !paths.contains(&x) {
+                paths.push(x);
             }
         }
     }
-    let paths = paths.join(":");
+    let paths = env::join_paths(paths).unwrap_or_default();
     env::set_var("PATH", paths);
 }
 
