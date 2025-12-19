@@ -265,6 +265,7 @@ impl Shell {
         if !ptn_env.is_match(name) {
             return false;
         }
+
         env::remove_var(name);
         self.envs.remove(name);
         self.remove_func(name);
