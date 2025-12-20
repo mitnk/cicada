@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::env;
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -295,7 +296,7 @@ pub fn is_builtin(s: &str) -> bool {
 
 pub fn init_path_env() {
     // order matters. took from `runc spec`
-    let mut paths: Vec<PathBuf> = vec![];
+    let mut all_paths: HashSet<PathBuf> = HashSet::new();
     for x in [
         "/usr/local/sbin",
         "/usr/local/bin",
@@ -305,20 +306,20 @@ pub fn init_path_env() {
         "/bin",
     ] {
         let path_buf = PathBuf::from(x);
-        if Path::new(&path_buf).exists() {
-            paths.push(path_buf);
+        if path_buf.exists() {
+            all_paths.insert(path_buf);
         }
     }
 
     if let Ok(env_path) = env::var("PATH") {
-        for x in env::split_paths(&env_path) {
-            if !paths.contains(&x) {
-                paths.push(x);
+        for one_path in env::split_paths(&env_path) {
+            if !all_paths.contains(&one_path) {
+                all_paths.insert(one_path);
             }
         }
     }
-    let paths = env::join_paths(paths).unwrap_or_default();
-    env::set_var("PATH", paths);
+    let path_var = env::join_paths(all_paths).unwrap_or_default();
+    env::set_var("PATH", path_var);
 }
 
 pub fn is_shell_altering_command(line: &str) -> bool {

@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::env;
 use std::io::Write;
 use std::mem;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use regex::Regex;
 use uuid::Uuid;
@@ -272,10 +272,10 @@ impl Shell {
         true
     }
 
-    pub fn remove_path(&mut self, path: &PathBuf) {
+    pub fn remove_path(&mut self, path_to_remove: &Path) {
         if let Ok(paths) = env::var("PATH") {
             let mut paths_new: Vec<PathBuf> = env::split_paths(&paths).collect();
-            paths_new.retain(|x| x != path);
+            paths_new.retain(|x| x != path_to_remove);
             let joined = env::join_paths(paths_new).unwrap_or_default();
             env::set_var("PATH", joined);
         }
