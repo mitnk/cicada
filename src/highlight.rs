@@ -15,7 +15,7 @@ use crate::tools;
 #[derive(Clone)]
 pub struct CicadaHighlighter;
 
-// ANSI color codes wrapped with \x01 for lineread
+/// ANSI color codes wrapped with `\x1b` (ESC) and `[0;32m` (green text)
 const GREEN: &str = "\x1b[0;32m";
 
 lazy_static! {
