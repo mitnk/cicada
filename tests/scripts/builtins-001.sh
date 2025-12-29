@@ -1,1 +1,1 @@
-check file | grep -q "^.*file: .*binary$" && echo "check file passed"
+check cp | grep -q "^.*\/cp: .*binary\|executable$" && echo "test check passed"

@@ -2,6 +2,22 @@
 
 You can modify them in [RC-file](https://github.com/mitnk/cicada/blob/master/docs/rc-file.md).
 
+## CICADA_CMD_WRAPPERS
+
+A colon-separated list of additional command wrappers. Command wrappers are
+commands that execute another command (like `sudo`, `nohup`, `xargs`). Cicada
+uses this for syntax highlighting and tab completion.
+
+Built-in wrappers: `sudo`, `xargs`, `nohup`, `nice`, `ionice`, `time`,
+`timeout`, `env`, `exec`, `caffeinate`, `command`, `builtin`, `which`.
+
+Example:
+```
+export CICADA_CMD_WRAPPERS=doas:strace:gdb
+```
+
+default: `""` (empty, only built-in wrappers)
+
 ## CICADA_ENABLE_SIG_HANDLER
 
 Cicada will install a self-defined signal handler if its value set to `1`.  But

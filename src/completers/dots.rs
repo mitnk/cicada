@@ -14,6 +14,7 @@ use yaml_rust::yaml::Hash;
 use yaml_rust::{Yaml, YamlLoader};
 
 use crate::execute;
+use crate::libs::prefix;
 use crate::parsers;
 use crate::tools;
 
@@ -46,18 +47,44 @@ impl<Term: Terminal> Completer<Term> for DotsCompleter {
 }
 
 fn get_dot_file(line: &str) -> (String, String) {
-    let args = parsers::parser_line::line_to_plain_tokens(line);
+    let cmd = match prefix::get_effective_command(line) {
+        Some(c) => c,
+        None => return (String::new(), String::new()),
+    };
+
     let dir = tools::get_user_completer_dir();
-    let dot_file = format!("{}/{}.yaml", dir, args[0]);
+    let dot_file = format!("{}/{}.yaml", dir, cmd);
     if !Path::new(&dot_file).exists() {
         return (String::new(), String::new());
     }
-    let sub_cmd = if (args.len() >= 3 && !args[1].starts_with('-'))
-        || (args.len() >= 2 && !args[1].starts_with('-') && line.ends_with(' '))
-    {
-        args[1].as_str()
-    } else {
-        ""
+
+    // Get args after the effective command for subcommand detection
+    let segment = prefix::get_current_segment(line);
+    let args = parsers::parser_line::line_to_plain_tokens(segment);
+
+    // Find the position of the effective command in the args
+    let mut cmd_pos = None;
+    for (i, arg) in args.iter().enumerate() {
+        if arg == &cmd {
+            cmd_pos = Some(i);
+            break;
+        }
+    }
+
+    let sub_cmd = match cmd_pos {
+        Some(pos) => {
+            let remaining_args: Vec<_> = args.iter().skip(pos + 1).collect();
+            if (remaining_args.len() >= 2 && !remaining_args[0].starts_with('-'))
+                || (!remaining_args.is_empty()
+                    && !remaining_args[0].starts_with('-')
+                    && line.ends_with(' '))
+            {
+                remaining_args[0].as_str()
+            } else {
+                ""
+            }
+        }
+        None => "",
     };
 
     (dot_file, sub_cmd.to_string())

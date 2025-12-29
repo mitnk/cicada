@@ -3,6 +3,7 @@ pub mod fork;
 pub mod os_type;
 pub mod path;
 pub mod pipes;
+pub mod prefix;
 pub mod progopts;
 pub mod re;
 pub mod term_size;

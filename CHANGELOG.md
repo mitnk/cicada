@@ -1,5 +1,10 @@
 # cicada Release Notes
 
+## 1.2.0 - 2025.12.29
+
+- Added new builtin: check
+- Improved highlighting and completion after command wrappers like sudo.
+
 ## 1.1.4 - 2025.12.18
 
 - Fixed the handling of input that contain Unicode combinations.

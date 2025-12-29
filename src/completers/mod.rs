@@ -13,6 +13,7 @@ pub mod ssh;
 pub mod utils;
 
 use crate::libs;
+use crate::libs::prefix;
 use crate::parsers;
 use crate::shell;
 use crate::tools;
@@ -22,7 +23,10 @@ pub struct CicadaCompleter {
 }
 
 fn for_make(line: &str) -> bool {
-    libs::re::re_contains(line, r"^ *make ")
+    match prefix::get_effective_command(line) {
+        Some(cmd) => cmd == "make",
+        None => false,
+    }
 }
 
 fn for_env(line: &str) -> bool {
@@ -30,27 +34,77 @@ fn for_env(line: &str) -> bool {
 }
 
 fn for_ssh(line: &str) -> bool {
-    libs::re::re_contains(line, r"^ *(ssh|scp).* +[^ \./]+ *$")
+    match prefix::get_effective_command(line) {
+        Some(cmd) => {
+            if cmd != "ssh" && cmd != "scp" {
+                return false;
+            }
+            // Also need to check we're completing a hostname (not a path)
+            let segment = prefix::get_current_segment(line);
+            libs::re::re_contains(segment, r".* +[^ \./]+ *$")
+        }
+        None => false,
+    }
 }
 
 fn for_cd(line: &str) -> bool {
-    libs::re::re_contains(line, r"^ *cd +")
+    match prefix::get_effective_command(line) {
+        Some(cmd) => {
+            if cmd != "cd" {
+                return false;
+            }
+            // Make sure there's a space after cd (we're completing an argument)
+            let segment = prefix::get_current_segment(line);
+            libs::re::re_contains(segment, r"cd +")
+        }
+        None => false,
+    }
 }
 
 fn for_bin(line: &str) -> bool {
-    let ptn = r"(^ *(sudo|which|nohup)? *[a-zA-Z0-9_\.-]+$)|(^.+\| *(sudo|which|nohup)? *[a-zA-Z0-9_\.-]+$)";
-    libs::re::re_contains(line, ptn)
+    // Check if we're in command position (completing a command name)
+    let segment = prefix::get_current_segment(line).trim_start();
+    if segment.is_empty() {
+        return true; // Empty segment means we're at command position
+    }
+
+    let tokens = parsers::parser_line::line_to_plain_tokens(segment);
+    if tokens.is_empty() {
+        return true;
+    }
+
+    // Check each token - we're in command position if all tokens so far
+    // are command wrappers or env assignments
+    for token in &tokens {
+        if prefix::is_env_assignment(token) {
+            continue;
+        }
+        if prefix::is_wrapper_command(token) {
+            continue;
+        }
+        // Found a non-wrapper, non-env-assignment token
+        // If the line ends with space, we're past command position
+        // If not, we might be completing this token as a command
+        if segment.ends_with(' ') || segment.ends_with('\t') {
+            return false;
+        }
+        // We're completing the last token - check if it looks like a command name
+        return tokens.len() == 1 || (tokens.len() > 1 && token == tokens.last().unwrap());
+    }
+
+    // All tokens were wrappers/env - still in command position
+    true
 }
 
 fn for_dots(line: &str) -> bool {
-    let args = parsers::parser_line::line_to_plain_tokens(line);
-    let len = args.len();
-    if len == 0 {
-        return false;
+    match prefix::get_effective_command(line) {
+        Some(cmd) => {
+            let dir = tools::get_user_completer_dir();
+            let dot_file = format!("{}/{}.yaml", dir, cmd);
+            Path::new(dot_file.as_str()).exists()
+        }
+        None => false,
     }
-    let dir = tools::get_user_completer_dir();
-    let dot_file = format!("{}/{}.yaml", dir, args[0]);
-    Path::new(dot_file.as_str()).exists()
 }
 
 impl<Term: Terminal> Completer<Term> for CicadaCompleter {

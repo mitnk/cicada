@@ -8,6 +8,7 @@ use std::sync::Mutex;
 
 use lineread::highlighting::{Highlighter, Style};
 
+use crate::libs::prefix;
 use crate::parsers::parser_line;
 use crate::shell;
 use crate::tools;
@@ -15,7 +16,6 @@ use crate::tools;
 #[derive(Clone)]
 pub struct CicadaHighlighter;
 
-/// ANSI color codes wrapped with `\x1b` (ESC) and `[0;32m` (green text)
 const GREEN: &str = "\x1b[0;32m";
 
 lazy_static! {
@@ -171,7 +171,8 @@ impl Highlighter for CicadaHighlighter {
         }
 
         let mut current_byte_idx = 0;
-        let mut is_start_of_segment = true;
+        let mut expect_command = true;
+        let mut after_wrapper = false;
 
         for token in &line_info.tokens {
             // Find the range in the original line for this token
@@ -185,19 +186,31 @@ impl Highlighter for CicadaHighlighter {
                     let (_sep, word) = token;
                     let mut current_token_style = Style::Default;
 
-                    if is_start_of_segment && !word.is_empty() {
-                        if is_command(word) {
+                    if expect_command && !word.is_empty() {
+                        if prefix::is_env_assignment(word) {
+                            // Environment variable assignment like FOO=bar
+                            // Keep expecting command, don't change state
+                        } else if is_command(word) {
                             current_token_style = Style::AnsiColor(GREEN.to_string());
+                            if prefix::is_wrapper_command(word) {
+                                after_wrapper = true;
+                            } else {
+                                expect_command = false;
+                                after_wrapper = false;
+                            }
+                        } else if !after_wrapper {
+                            // First token wasn't a command or assignment — stop expecting
+                            expect_command = false;
                         }
-                        // Only the first non-empty token in a segment can be a command
-                        is_start_of_segment = false;
+                        // else: after wrapper, not a command yet → keep looking
                     }
 
                     styles.push((token_range.clone(), current_token_style));
 
                     // Check if this token marks the end of a command segment
                     if ["|", "&&", "||", ";"].contains(&word.as_str()) {
-                        is_start_of_segment = true;
+                        expect_command = true;
+                        after_wrapper = false;
                     }
 
                     current_byte_idx = token_range.end;
