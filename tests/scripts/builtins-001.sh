@@ -1,1 +1,1 @@
-check cp | grep -qE "^.*/cp: .*binary|executable|object$" && echo "test check passed"
+check cp | grep -qE "^.*/cp: .*executable$" && echo "test check passed"

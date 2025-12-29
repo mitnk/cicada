@@ -61,6 +61,11 @@ fn for_cd(line: &str) -> bool {
     }
 }
 
+/// Check if a token looks like a path rather than a command name
+fn looks_like_path(s: &str) -> bool {
+    s.contains('/') || s.starts_with('~') || s.starts_with('.')
+}
+
 fn for_bin(line: &str) -> bool {
     // Check if we're in command position (completing a command name)
     let segment = prefix::get_current_segment(line).trim_start();
@@ -88,7 +93,11 @@ fn for_bin(line: &str) -> bool {
         if segment.ends_with(' ') || segment.ends_with('\t') {
             return false;
         }
-        // We're completing the last token - check if it looks like a command name
+        // If the token looks like a path, use path completion instead
+        if looks_like_path(token) {
+            return false;
+        }
+        // We're completing the last token as a command name
         return tokens.len() == 1 || (tokens.len() > 1 && token == tokens.last().unwrap());
     }
 
@@ -268,5 +277,11 @@ mod tests {
         assert!(for_bin("foo | bar | baz"));
         assert!(!for_bin("foo bar"));
         assert!(!for_bin("foo bar | foo bar"));
+
+        // Paths should not use bin completion
+        assert!(!for_bin("~/scri"));
+        assert!(!for_bin("./foo"));
+        assert!(!for_bin("/usr/bin/foo"));
+        assert!(!for_bin("../bar"));
     }
 }

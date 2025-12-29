@@ -59,8 +59,14 @@ fn main() {
 
     tools::init_path_env();
 
-    let mut sh = shell::Shell::new();
     let args: Vec<String> = env::args().collect();
+
+    if libs::progopts::is_version(&args) {
+        println!("cicada {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
+
+    let mut sh = shell::Shell::new();
 
     if libs::progopts::is_login(&args) {
         rcfile::load_rc_files(&mut sh);

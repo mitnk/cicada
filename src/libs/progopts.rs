@@ -1,3 +1,7 @@
+pub fn is_version(args: &[String]) -> bool {
+    args.len() > 1 && (args[1] == "--version" || args[1] == "-V")
+}
+
 pub fn is_login(args: &[String]) -> bool {
     if !args.is_empty() && args[0].starts_with("-") {
         return true;

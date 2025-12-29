@@ -1,5 +1,10 @@
 # cicada Release Notes
 
+## 1.2.1 - 2025.12.29
+
+- Fixed path completion issue introduced in previous commits.
+- Added `cicada --version` option.
+
 ## 1.2.0 - 2025.12.29
 
 - Added new builtin: check

@@ -12,6 +12,7 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> Co
 
     if cmd.tokens.len() != 2 {
         print_stderr_with_capture("check: usage: check <command>", &mut cr, cl, cmd, capture);
+        cr.status = 1;
         return cr;
     }
 
@@ -21,7 +22,10 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> Co
     if let Some(value) = sh.get_alias_content(name) {
         let mut out = format!("alias {}=\"{}\"", name, value);
         if let Some(base) = value.split_whitespace().next() {
-            if let Some(info) = get_path_info(&find_path(base)) {
+            if tools::is_builtin(base) {
+                out.push('\n');
+                out.push_str("builtin");
+            } else if let Some(info) = get_path_info(&find_path(base)) {
                 out.push('\n');
                 out.push_str(&info);
             }
@@ -39,6 +43,10 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> Co
     // Check PATH
     if let Some(info) = get_path_info(&find_path(name)) {
         print_stdout_with_capture(&info, &mut cr, cl, cmd, capture);
+    } else {
+        let msg = format!("{}: not found", name);
+        print_stderr_with_capture(&msg, &mut cr, cl, cmd, capture);
+        cr.status = 1;
     }
     cr
 }
@@ -87,14 +95,10 @@ fn get_file_type(path: &str) -> &'static str {
     }
     // ELF
     if b.starts_with(b"\x7FELF") {
-        return match (b.get(4), b.get(16)) {
-            (Some(1), Some(2)) => "ELF 32-bit executable",
-            (Some(1), Some(3)) => "ELF 32-bit shared object",
-            (Some(2), Some(2)) => "ELF 64-bit executable",
-            (Some(2), Some(3)) => "ELF 64-bit shared object",
-            (Some(1), _) => "ELF 32-bit",
-            (Some(2), _) => "ELF 64-bit",
-            _ => "ELF",
+        return match b.get(4) {
+            Some(1) => "ELF 32-bit executable",
+            Some(2) => "ELF 64-bit executable",
+            _ => "ELF executable",
         };
     }
     // Mach-O (handle both endianness)
@@ -106,7 +110,7 @@ fn get_file_type(path: &str) -> &'static str {
             [0xfe, 0xed, 0xfa, 0xcf] | [0xcf, 0xfa, 0xed, 0xfe] => {
                 return "Mach-O 64-bit executable"
             }
-            [0xca, 0xfe, 0xba, 0xbe] => return "Mach-O universal binary",
+            [0xca, 0xfe, 0xba, 0xbe] => return "Mach-O universal executable",
             _ => {}
         }
     }
