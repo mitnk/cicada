@@ -4,6 +4,7 @@
     - [alias](#user-content-alias)
     - [bg](#user-content-bg)
     - [cd](#user-content-cd)
+    - [check](#user-content-check)
     - [cinfo](#user-content-cinfo)
     - [exec](#user-content-exec)
     - [exit](#user-content-exit)
@@ -44,6 +45,29 @@ Make stopped job runing in background. See also `fg`, `jobs`.
 ## cd
 
 Change your current work directory.
+
+## check
+
+Check what a command name refers to: alias, builtin, or external command.
+
+```
+check <command>
+```
+
+Examples:
+```
+$ check file
+/usr/bin/file: Mach-O universal binary
+
+$ check ll
+alias ll="ls -lh"
+/bin/ls: Mach-O universal binary
+
+$ check k
+alias k="kubectl"
+/opt/homebrew/bin/kubectl: Mach-O 64-bit executable
+realpath: /opt/homebrew/Cellar/kubernetes-cli/1.32.1/bin/kubectl
+```
 
 ## cinfo
 

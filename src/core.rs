@@ -57,6 +57,9 @@ fn try_run_builtin(
     } else if cname == "cd" {
         let cr = builtins::cd::run(sh, cl, cmd, capture);
         return Some(cr);
+    } else if cname == "check" {
+        let cr = builtins::check::run(sh, cl, cmd, capture);
+        return Some(cr);
     } else if cname == "cinfo" {
         let cr = builtins::cinfo::run(sh, cl, cmd, capture);
         return Some(cr);

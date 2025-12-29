@@ -133,9 +133,9 @@ pub fn run(line: &str) -> CommandResult {
 #[cfg(test)]
 mod tests {
     use super::core::run_calculator;
-    use crate::libs;
     use super::run_with_shell;
     use super::shell;
+    use crate::libs;
 
     #[test]
     fn test_run_calculator() {

@@ -1,6 +1,7 @@
 pub mod alias;
 pub mod bg;
 pub mod cd;
+pub mod check;
 pub mod cinfo;
 pub mod exec;
 pub mod exit;
