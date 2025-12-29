@@ -42,7 +42,7 @@ ulimit -n 1234
 ulimit -c 5678
 ulimit -n
 ulimit -c
-ulimit | wc
+ulimit | wc | xargs
 
 echo '--- for exit code ---'
 ./target/debug/cicada -c cinfo1
