@@ -40,9 +40,11 @@ rm -f .sort-input .sort-output
 echo '---- for ulimit ---'
 ulimit -n 1234
 ulimit -c 5678
+ulimit -u 2048
 ulimit -n
 ulimit -c
-ulimit | wc | xargs
+ulimit -u
+ulimit | grep -A2 open | wc | xargs
 
 echo '--- for exit code ---'
 ./target/debug/cicada -c cinfo1

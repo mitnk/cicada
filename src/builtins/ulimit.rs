@@ -3,8 +3,46 @@ use crate::builtins::utils::print_stdout_with_capture;
 use crate::parsers;
 use crate::shell::Shell;
 use crate::types::{Command, CommandLine, CommandResult};
-use clap::{CommandFactory, Parser};
+use clap::Parser;
 use std::io::Error;
+
+struct LimitInfo {
+    name: &'static str,
+    desc: &'static str,
+    id: libc::c_int,
+    scale: u64, // multiplier for set, divisor for get (e.g., 1024 for kbytes)
+}
+
+const LIMITS: &[LimitInfo] = &[
+    LimitInfo {
+        name: "open_files",
+        desc: "open files",
+        id: libc::RLIMIT_NOFILE,
+        scale: 1,
+    },
+    LimitInfo {
+        name: "core_file_size",
+        desc: "core file size",
+        id: libc::RLIMIT_CORE,
+        scale: 1,
+    },
+    LimitInfo {
+        name: "max_user_processes",
+        desc: "max user processes",
+        id: libc::RLIMIT_NPROC,
+        scale: 1,
+    },
+    LimitInfo {
+        name: "stack_size",
+        desc: "stack size (kbytes)",
+        id: libc::RLIMIT_STACK,
+        scale: 1024,
+    },
+];
+
+fn get_limit_info(name: &str) -> Option<&'static LimitInfo> {
+    LIMITS.iter().find(|l| l.name == name)
+}
 
 #[derive(Parser)]
 #[command(name = "ulimit", about = "show / modify shell resource limits")]
@@ -25,6 +63,18 @@ struct App {
     )]
     c: Option<Option<u64>>,
     #[arg(
+        short,
+        value_name = "NEW VALUE",
+        help = "The maximum number of processes available to a single user."
+    )]
+    u: Option<Option<u64>>,
+    #[arg(
+        short,
+        value_name = "NEW VALUE",
+        help = "The maximum stack size (kbytes)."
+    )]
+    s: Option<Option<u64>>,
+    #[arg(
         short = 'S',
         help = "Set a soft limit for the given resource. (default)"
     )]
@@ -38,36 +88,41 @@ pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> C
     let tokens = &cmd.tokens;
     let args = parsers::parser_line::tokens_to_args(tokens);
 
-    if args.contains(&"--help".to_string()) || args.contains(&"-h".to_string()) {
-        App::command().print_help().unwrap();
-        println!();
-        return cr;
-    }
-
-    let app = App::parse_from(args);
-
-    if app.H && app.S {
-        println!("cicada: ulimit: Cannot both hard and soft.");
-        cr.status = 1;
-        return cr;
-    }
+    let show_help = args.len() > 1 && (args[1] == "-h" || args[1] == "--help");
+    let app = match App::try_parse_from(&args) {
+        Ok(app) => app,
+        Err(e) => {
+            let info = format!("{}", e);
+            if show_help {
+                print_stdout_with_capture(&info, &mut cr, cl, cmd, capture);
+            } else {
+                print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
+                cr.status = 1;
+            }
+            return cr;
+        }
+    };
 
     let mut all_stdout = String::new();
     let mut all_stderr = String::new();
 
-    if app.a {
-        report_all(&app, &mut all_stdout, &mut all_stderr);
-    } else if handle_limit(app.n, "open_files", app.H, &mut all_stdout, &mut all_stderr)
-        || handle_limit(
-            app.c,
-            "core_file_size",
-            app.H,
-            &mut all_stdout,
-            &mut all_stderr,
-        )
-    {
+    if app.H && app.S {
+        all_stderr.push_str("cicada: ulimit: cannot specify both -H and -S\n");
+    } else if app.a {
+        report_all(app.H, &mut all_stdout, &mut all_stderr);
     } else {
-        report_all(&app, &mut all_stdout, &mut all_stderr);
+        let limit_opts = [
+            (app.n, "open_files"),
+            (app.c, "core_file_size"),
+            (app.u, "max_user_processes"),
+            (app.s, "stack_size"),
+        ];
+        let handled = limit_opts
+            .iter()
+            .any(|(opt, name)| handle_limit(*opt, name, app.H, &mut all_stdout, &mut all_stderr));
+        if !handled {
+            report_all(app.H, &mut all_stdout, &mut all_stderr);
+        }
     }
 
     if !all_stdout.is_empty() {
@@ -75,73 +130,71 @@ pub fn run(_sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> C
     }
     if !all_stderr.is_empty() {
         print_stderr_with_capture(&all_stderr, &mut cr, cl, cmd, capture);
+        cr.status = 1;
     }
 
     cr
 }
 
 fn set_limit(limit_name: &str, value: u64, for_hard: bool) -> String {
-    let limit_id = match limit_name {
-        "open_files" => libc::RLIMIT_NOFILE,
-        "core_file_size" => libc::RLIMIT_CORE,
-        _ => return String::from("invalid limit name"),
+    let info = match get_limit_info(limit_name) {
+        Some(info) => info,
+        None => return String::from("cicada: ulimit: invalid limit name\n"),
     };
+
+    let actual_value = value.saturating_mul(info.scale);
 
     let mut rlp = libc::rlimit {
         rlim_cur: 0,
         rlim_max: 0,
     };
 
-    unsafe {
-        if libc::getrlimit(limit_id, &mut rlp) != 0 {
-            return format!(
-                "cicada: ulimit: error getting limit: {}",
-                Error::last_os_error()
-            );
-        }
+    if unsafe { libc::getrlimit(info.id, &mut rlp) } != 0 {
+        return format!(
+            "cicada: ulimit: error getting limit: {}\n",
+            Error::last_os_error()
+        );
     }
 
     // to support armv7-linux-gnueabihf & 32-bit musl systems
-    if for_hard {
-        #[cfg(all(target_pointer_width = "32", target_env = "gnu"))]
-        {
-            rlp.rlim_max = value as u32;
+    #[cfg(all(target_pointer_width = "32", target_env = "gnu"))]
+    {
+        if actual_value > u32::MAX as u64 {
+            return String::from("cicada: ulimit: value too large for 32-bit system\n");
         }
-        #[cfg(not(all(target_pointer_width = "32", target_env = "gnu")))]
-        {
-            rlp.rlim_max = value;
+        if for_hard {
+            rlp.rlim_max = actual_value as u32;
+        } else {
+            rlp.rlim_cur = actual_value as u32;
         }
-    } else {
-        #[cfg(all(target_pointer_width = "32", target_env = "gnu"))]
-        {
-            rlp.rlim_cur = value as u32;
-        }
-        #[cfg(not(all(target_pointer_width = "32", target_env = "gnu")))]
-        {
-            rlp.rlim_cur = value;
+    }
+    #[cfg(not(all(target_pointer_width = "32", target_env = "gnu")))]
+    {
+        if for_hard {
+            rlp.rlim_max = actual_value;
+        } else {
+            rlp.rlim_cur = actual_value;
         }
     }
 
-    unsafe {
-        if libc::setrlimit(limit_id, &rlp) != 0 {
-            return format!(
-                "cicada: ulimit: error setting limit: {}",
-                Error::last_os_error()
-            );
-        }
+    if unsafe { libc::setrlimit(info.id, &rlp) } != 0 {
+        return format!(
+            "cicada: ulimit: {}: cannot modify limit: {}\n",
+            info.desc,
+            Error::last_os_error()
+        );
     }
 
     String::new()
 }
 
 fn get_limit(limit_name: &str, single_print: bool, for_hard: bool) -> (String, String) {
-    let (desc, limit_id) = match limit_name {
-        "open_files" => ("open files", libc::RLIMIT_NOFILE),
-        "core_file_size" => ("core file size", libc::RLIMIT_CORE),
-        _ => {
+    let info = match get_limit_info(limit_name) {
+        Some(info) => info,
+        None => {
             return (
                 String::new(),
-                String::from("ulimit: error: invalid limit name"),
+                String::from("cicada: ulimit: invalid limit name\n"),
             )
         }
     };
@@ -151,38 +204,39 @@ fn get_limit(limit_name: &str, single_print: bool, for_hard: bool) -> (String, S
         rlim_max: 0,
     };
 
-    let mut result_stdout = String::new();
-    let mut result_stderr = String::new();
-
-    unsafe {
-        if libc::getrlimit(limit_id, &mut rlp) != 0 {
-            result_stderr.push_str(&format!("error getting limit: {}", Error::last_os_error()));
-            return (result_stdout, result_stderr);
-        }
-
-        let to_print = if for_hard { rlp.rlim_max } else { rlp.rlim_cur };
-
-        let info = if to_print == libc::RLIM_INFINITY {
-            if single_print {
-                "unlimited\n".to_string()
-            } else {
-                format!("{}\t\tunlimited\n", desc)
-            }
-        } else if single_print {
-            format!("{}\n", to_print)
-        } else {
-            format!("{}\t\t{}\n", desc, to_print)
-        };
-
-        result_stdout.push_str(&info);
+    if unsafe { libc::getrlimit(info.id, &mut rlp) } != 0 {
+        return (
+            String::new(),
+            format!(
+                "cicada: ulimit: error getting limit: {}\n",
+                Error::last_os_error()
+            ),
+        );
     }
 
-    (result_stdout, result_stderr)
+    let to_print = if for_hard { rlp.rlim_max } else { rlp.rlim_cur };
+
+    let output = if to_print == libc::RLIM_INFINITY {
+        if single_print {
+            "unlimited\n".to_string()
+        } else {
+            format!("{}\t\tunlimited\n", info.desc)
+        }
+    } else {
+        let display_value = to_print as u64 / info.scale;
+        if single_print {
+            format!("{}\n", display_value)
+        } else {
+            format!("{}\t\t{}\n", info.desc, display_value)
+        }
+    };
+
+    (output, String::new())
 }
 
-fn report_all(app: &App, all_stdout: &mut String, all_stderr: &mut String) {
-    for limit_name in &["open_files", "core_file_size"] {
-        let (out, err) = get_limit(limit_name, false, app.H);
+fn report_all(for_hard: bool, all_stdout: &mut String, all_stderr: &mut String) {
+    for info in LIMITS {
+        let (out, err) = get_limit(info.name, false, for_hard);
         all_stdout.push_str(&out);
         all_stderr.push_str(&err);
     }

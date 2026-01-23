@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 1.2.2 - 2026.01.23
+
+- Updated builtin `ulimit`.
+
 ## 1.2.1 - 2025.12.29
 
 - Fixed path completion issue introduced in previous commits.
