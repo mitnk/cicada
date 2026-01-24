@@ -40,7 +40,7 @@ structopt = { version = "0.3", default-features = false }
 
 [dependencies.nix]
 version = "0.31"
-features = ["fs", "process", "signal"]
+features = ["process", "signal"]
 
 [dependencies.clap]
 version = "4.5"
