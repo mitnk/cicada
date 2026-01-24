@@ -3,6 +3,8 @@ name: build Linux binaries
 on:
   push:
     branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 jobs:
   build:

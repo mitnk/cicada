@@ -13,6 +13,7 @@ struct LimitInfo {
     scale: u64, // multiplier for set, divisor for get (e.g., 1024 for kbytes)
 }
 
+#[allow(clippy::unnecessary_cast)]
 const LIMITS: &[LimitInfo] = &[
     LimitInfo {
         name: "open_files",
@@ -44,21 +45,29 @@ fn get_limit_info(name: &str) -> Option<&'static LimitInfo> {
     LIMITS.iter().find(|l| l.name == name)
 }
 
-fn do_getrlimit(id: i32) -> Result<(u64, u64), Errno> {
+#[allow(clippy::unnecessary_cast)]
+fn do_getrlimit(id: i32) -> Result<(u64, u64), String> {
     let mut rlim = libc::rlimit {
         rlim_cur: 0,
         rlim_max: 0,
     };
-    Errno::result(unsafe { libc::getrlimit(id as _, &mut rlim) })?;
-    Ok((rlim.rlim_cur, rlim.rlim_max))
+    Errno::result(unsafe { libc::getrlimit(id as _, &mut rlim) }).map_err(|e| e.to_string())?;
+    Ok((rlim.rlim_cur as u64, rlim.rlim_max as u64))
 }
 
-fn do_setrlimit(id: i32, soft: u64, hard: u64) -> Result<(), Errno> {
+#[allow(clippy::unnecessary_cast, clippy::useless_conversion)]
+fn do_setrlimit(id: i32, soft: u64, hard: u64) -> Result<(), String> {
+    let soft = soft
+        .try_into()
+        .map_err(|_| "value out of range".to_string())?;
+    let hard = hard
+        .try_into()
+        .map_err(|_| "value out of range".to_string())?;
     let rlim = libc::rlimit {
         rlim_cur: soft,
         rlim_max: hard,
     };
-    Errno::result(unsafe { libc::setrlimit(id as _, &rlim) })?;
+    Errno::result(unsafe { libc::setrlimit(id as _, &rlim) }).map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -208,7 +217,8 @@ fn get_limit(limit_name: &str, single_print: bool, for_hard: bool) -> (String, S
 
     let to_print = if for_hard { hard } else { soft };
 
-    let output = if to_print == libc::RLIM_INFINITY {
+    #[allow(clippy::unnecessary_cast)]
+    let output = if to_print == libc::RLIM_INFINITY as u64 {
         if single_print {
             "unlimited\n".to_string()
         } else {
