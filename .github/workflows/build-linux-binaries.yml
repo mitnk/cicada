@@ -45,8 +45,8 @@ jobs:
     - name: Build armv7-unknown-linux-gnueabihf
       run: cross build --target armv7-unknown-linux-gnueabihf --release
 
-    - name: Build s390x-unknown-linux-musl
-      run: cross build --target s390x-unknown-linux-musl --release
+    - name: Build s390x-unknown-linux-gnu
+      run: cross build --target s390x-unknown-linux-gnu --release
 
     - name: Rename binaries
       run: |
