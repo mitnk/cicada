@@ -39,7 +39,7 @@ uuid = { version = "1.19", features = ["serde", "v4"] }
 structopt = { version = "0.3", default-features = false }
 
 [dependencies.nix]
-version = "0.30"
+version = "0.31"
 features = ["fs", "process", "signal"]
 
 [dependencies.clap]

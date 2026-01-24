@@ -4,12 +4,12 @@ use crate::parsers;
 use crate::shell::Shell;
 use crate::types::{Command, CommandLine, CommandResult};
 use clap::Parser;
-use std::io::Error;
+use nix::errno::Errno;
 
 struct LimitInfo {
     name: &'static str,
     desc: &'static str,
-    id: libc::c_int,
+    id: i32,
     scale: u64, // multiplier for set, divisor for get (e.g., 1024 for kbytes)
 }
 
@@ -17,31 +17,49 @@ const LIMITS: &[LimitInfo] = &[
     LimitInfo {
         name: "open_files",
         desc: "open files",
-        id: libc::RLIMIT_NOFILE,
+        id: libc::RLIMIT_NOFILE as i32,
         scale: 1,
     },
     LimitInfo {
         name: "core_file_size",
         desc: "core file size",
-        id: libc::RLIMIT_CORE,
+        id: libc::RLIMIT_CORE as i32,
         scale: 1,
     },
     LimitInfo {
         name: "max_user_processes",
         desc: "max user processes",
-        id: libc::RLIMIT_NPROC,
+        id: libc::RLIMIT_NPROC as i32,
         scale: 1,
     },
     LimitInfo {
         name: "stack_size",
         desc: "stack size (kbytes)",
-        id: libc::RLIMIT_STACK,
+        id: libc::RLIMIT_STACK as i32,
         scale: 1024,
     },
 ];
 
 fn get_limit_info(name: &str) -> Option<&'static LimitInfo> {
     LIMITS.iter().find(|l| l.name == name)
+}
+
+fn do_getrlimit(id: i32) -> Result<(u64, u64), Errno> {
+    let mut rlim = libc::rlimit {
+        rlim_cur: 0,
+        rlim_max: 0,
+    };
+    Errno::result(unsafe { libc::getrlimit(id as _, &mut rlim) })?;
+    Ok((rlim.rlim_cur, rlim.rlim_max))
+}
+
+fn do_setrlimit(id: i32, soft: u64, hard: u64) -> Result<(), Errno> {
+    let rlim = libc::rlimit {
+        rlim_cur: soft,
+        rlim_max: hard,
+    };
+    Errno::result(unsafe { libc::setrlimit(id as _, &rlim) })?;
+    Ok(())
 }
 
 #[derive(Parser)]
@@ -144,44 +162,23 @@ fn set_limit(limit_name: &str, value: u64, for_hard: bool) -> String {
 
     let actual_value = value.saturating_mul(info.scale);
 
-    let mut rlp = libc::rlimit {
-        rlim_cur: 0,
-        rlim_max: 0,
+    let (soft, hard) = match do_getrlimit(info.id) {
+        Ok(limits) => limits,
+        Err(e) => {
+            return format!("cicada: ulimit: error getting limit: {}\n", e);
+        }
     };
 
-    if unsafe { libc::getrlimit(info.id, &mut rlp) } != 0 {
-        return format!(
-            "cicada: ulimit: error getting limit: {}\n",
-            Error::last_os_error()
-        );
-    }
+    let (new_soft, new_hard) = if for_hard {
+        (soft, actual_value)
+    } else {
+        (actual_value, hard)
+    };
 
-    // to support armv7-linux-gnueabihf & 32-bit musl systems
-    #[cfg(all(target_pointer_width = "32", target_env = "gnu"))]
-    {
-        if actual_value > u32::MAX as u64 {
-            return String::from("cicada: ulimit: value too large for 32-bit system\n");
-        }
-        if for_hard {
-            rlp.rlim_max = actual_value as u32;
-        } else {
-            rlp.rlim_cur = actual_value as u32;
-        }
-    }
-    #[cfg(not(all(target_pointer_width = "32", target_env = "gnu")))]
-    {
-        if for_hard {
-            rlp.rlim_max = actual_value;
-        } else {
-            rlp.rlim_cur = actual_value;
-        }
-    }
-
-    if unsafe { libc::setrlimit(info.id, &rlp) } != 0 {
+    if let Err(e) = do_setrlimit(info.id, new_soft, new_hard) {
         return format!(
             "cicada: ulimit: {}: cannot modify limit: {}\n",
-            info.desc,
-            Error::last_os_error()
+            info.desc, e
         );
     }
 
@@ -199,22 +196,17 @@ fn get_limit(limit_name: &str, single_print: bool, for_hard: bool) -> (String, S
         }
     };
 
-    let mut rlp = libc::rlimit {
-        rlim_cur: 0,
-        rlim_max: 0,
+    let (soft, hard) = match do_getrlimit(info.id) {
+        Ok(limits) => limits,
+        Err(e) => {
+            return (
+                String::new(),
+                format!("cicada: ulimit: error getting limit: {}\n", e),
+            );
+        }
     };
 
-    if unsafe { libc::getrlimit(info.id, &mut rlp) } != 0 {
-        return (
-            String::new(),
-            format!(
-                "cicada: ulimit: error getting limit: {}\n",
-                Error::last_os_error()
-            ),
-        );
-    }
-
-    let to_print = if for_hard { rlp.rlim_max } else { rlp.rlim_cur };
+    let to_print = if for_hard { hard } else { soft };
 
     let output = if to_print == libc::RLIM_INFINITY {
         if single_print {
@@ -223,7 +215,7 @@ fn get_limit(limit_name: &str, single_print: bool, for_hard: bool) -> (String, S
             format!("{}\t\tunlimited\n", info.desc)
         }
     } else {
-        let display_value = to_print as u64 / info.scale;
+        let display_value = to_print / info.scale;
         if single_print {
             format!("{}\n", display_value)
         } else {

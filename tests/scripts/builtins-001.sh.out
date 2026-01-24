@@ -1,1 +1,2 @@
-test check passed
+check: test check passed
+ulimit: unsupported option does not crash
