@@ -40,7 +40,7 @@ If no value is given, the name and value of the alias is printed.
 
 ## bg
 
-Make stopped job runing in background. See also `fg`, `jobs`.
+Make stopped job running in background. See also `fg`, `jobs`.
 
 ## cd
 
@@ -80,7 +80,7 @@ The arguments become the arguments to command.
 
 ## exit
 
-Exit the current progress (the shell). Can exit with an extra code like:
+Exit the current process (the shell). Can exit with an extra code like:
 `exit 2`.
 
 ## export
@@ -197,7 +197,7 @@ $ echo $c $b $a
 
 ## set
 
-(in BETA) Set shell options. Currently ony support `set -e`, same effects
+(in BETA) Set shell options. Currently only supports `set -e`, same effects
 as Bash.
 
 ## source
@@ -226,9 +226,11 @@ Show shell limits:
 $ ulimit -a
 open files		256
 core file size		0
+max user processes	2666
+stack size (kbytes)	8176
 ```
 
-Change limit of open files to 10240
+Change limit of open files to 1024:
 ```
 $ ulimit -n 1024
 
@@ -236,9 +238,9 @@ $ ulimit -n  # check the new value
 1024
 ```
 
-Set hard limits instead of the default soft limits
+Set hard limits instead of the default soft limits:
 ```
-$ ulimit -c -H  # check the new value of the hard limit
+$ ulimit -c -H  # check the hard limit
 unlimited
 
 $ ulimit -c 65535
@@ -247,7 +249,11 @@ $ ulimit -c -H  # check the new value of the hard limit
 65535
 ```
 
-Currently, only `-n` (open files) and `-c` (core file size) is supported.
+Supported options:
+- `-n` open files
+- `-c` core file size
+- `-u` max user processes
+- `-s` stack size (kbytes)
 
 ## unalias
 

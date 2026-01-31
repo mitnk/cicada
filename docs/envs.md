@@ -33,14 +33,14 @@ are reapped correctly.
 
 ## CICADA_LOG_FILE
 
-Cicada write some logs into this file. It's raraly useful. If it not set,
+Cicada writes some logs into this file. It's rarely useful. If it is not set,
 there won't be any logs be written.
 
 default: `""` (empty)
 
 ## CICADA_GITBR_MAX_LEN
 
-Cicada make git branch name shorter based on this value when showing it in
+Cicada makes git branch name shorter based on this value when showing it in
 prompt.
 
 default: 32

@@ -3,8 +3,8 @@
 ## Path Completion
 
 When you hit `TAB` key after typing part of file/path name, cicada
-will complete the full path if there is only one file matches the prefix.
-If there are multiple paths match the prefix, cicada will complete you
+will complete the full path if there is only one file matching the prefix.
+If there are multiple paths matching the prefix, cicada will complete you
 to the maximal common part of them. In this case, you can hit `TAB` key
 two times, all the candidates would show up. Then you can type more characters
 and hit `TAB` again.
@@ -63,12 +63,12 @@ popular commands. Currently only following commands are supported.
 - make
 - ssh
 
-Completion of `make` will read `Makefile` in currect directory, and for
+Completion of `make` will read `Makefile` in current directory, and for
 `ssh`, [file](https://www.cyberciti.biz/faq/create-ssh-config-file-on-linux-unix/)
 `~/.ssh/config` will be read.
 
-**Note**: cicada will try not add more completions like this, since you can
-always define you own completions for any commands. Please read "Customize
+**Note**: cicada will try not to add more completions like this, since you can
+always define your own completions for any commands. Please read "Customize
 Completions" section below.
 
 ## Completions on Environment Variables
@@ -86,7 +86,7 @@ en_US.UTF-8
 
 ## Customize Completions
 
-Cicada supports simplifed customized completion using YAML file.
+Cicada supports simplified customized completion using YAML file.
 Put your completion files under `$XDG_CONFIG_HOME/cicada/completers`
 (by default it's `~/.config/cicada/completers/`).
 The completion files look like this:

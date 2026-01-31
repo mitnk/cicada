@@ -24,7 +24,7 @@ File content of `~/hello.sh`:
 ```sh
 #!/usr/local/bin/cicada
 echo hello scripting
-# spliting command into multiple lines
+# splitting command into multiple lines
 echo hi \
       there
 echo "the args are: $@"
@@ -55,7 +55,7 @@ Either way, the output looks like this:
 ```
 hello scripting
 hi there
-runing /home/mitnk/hello.sh with args: foo bar baz
+running /home/mitnk/hello.sh with args: foo bar baz
 baz foo bar
 Sat Apr 27 17:14:36 CST 2019
 bye
@@ -102,7 +102,7 @@ to use in `if` and `while` statements.
 ```sh
 foo=35
 if [ $foo -gt 10 ]
-    echo "foo is great than 10"
+    echo "foo is greater than 10"
 else
     echo "foo is less than 10"
 fi

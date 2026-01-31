@@ -2,38 +2,6 @@
 
 There are a few ways to install cicada into your system.
 
-## Install on Some Known Linux Distributions
-
-### Alpine Linux
-
-[https://pkgs.alpinelinux.org/package/edge/community/x86_64/cicada](https://pkgs.alpinelinux.org/package/edge/community/x86_64/cicada)
-
-```
-$ sudo apk add cicada -X https://dl-cdn.alpinelinux.org/alpine/edge/community/
-```
-
-### Arch Linux
-
-[cicada shell on AUR](https://aur.archlinux.org/packages/cicada-shell)
-
-> Note: `makepkg` will install [rust](https://www.rust-lang.org/) system and
-> other packages.
-
-```
-$ git clone https://aur.archlinux.org/cicada-shell.git
-$ cd cicada-shell/
-$ makepkg -si
-```
-
-### Termux
-
-Termux is an Android [terminal emulater](https://wiki.termux.com/wiki/Main_Page).
-
-To install cicada in Termux, just input:
-```
-$ pkg install cicada
-```
-
 ## Generic Install Options
 
 ### Option A: cargo
@@ -54,7 +22,7 @@ $ cp ~/.cargo/bin/cicada /usr/local/bin/cicada
 First download the latest right binary for your system from
 [Release Page](https://github.com/mitnk/cicada/releases).
 
-Move it to right place and add runable permisson:
+Move it to the right place and add executable permission:
 
 ```
 # on Mac
@@ -72,7 +40,7 @@ If you encounter error when running the binary downloaded:
 ... libc.so.6: version `GLIBC_2.31' not found (required by ./cicada)
 ```
 
-That indicate the GLIBC version on your system is too old.  Please try install
+That indicates the GLIBC version on your system is too old. Please try to install
 cicada with other options.
 
 
@@ -137,4 +105,36 @@ For better terminal use experience, I have following in my `~/.inputrc` file:
 "\e[1;9C": forward-word
 "\e[A": history-search-backward
 "\e[B": history-search-forward
+```
+
+## Install on Some Known Linux Distributions
+
+### Alpine Linux
+
+[https://pkgs.alpinelinux.org/package/edge/community/x86_64/cicada](https://pkgs.alpinelinux.org/package/edge/community/x86_64/cicada)
+
+```
+$ sudo apk add cicada -X https://dl-cdn.alpinelinux.org/alpine/edge/community/
+```
+
+### Arch Linux
+
+[cicada shell on AUR](https://aur.archlinux.org/packages/cicada-shell)
+
+> Note: `makepkg` will install [rust](https://www.rust-lang.org/) system and
+> other packages.
+
+```
+$ git clone https://aur.archlinux.org/cicada-shell.git
+$ cd cicada-shell/
+$ makepkg -si
+```
+
+### Termux
+
+Termux is an Android [terminal emulator](https://wiki.termux.com/wiki/Main_Page).
+
+To install cicada in Termux, just input:
+```
+$ pkg install cicada
 ```

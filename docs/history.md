@@ -14,7 +14,7 @@ Recommend that in your `~/.inputrc`, you have:
 ```
 
 > With above inputrc setup, you can type a part (prefix) of history, and
-> then hit `<Arrow-Up>` to retrive items start with this prefix:
+> then hit `<Arrow-Up>` to retrieve items starting with this prefix:
 > ```
 > $ echo 1.23
 > $ echo foo bar

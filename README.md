@@ -16,13 +16,6 @@ Cicada is a simple Unix shell written in Rust.
 - [Customize Prompt](https://github.com/mitnk/cicada/tree/master/docs/prompt.md)
 - [Scripting](https://github.com/mitnk/cicada/tree/master/docs/scripting.md)
 
-## Try out cicada with Docker
-
-```
-$ docker run --rm -it mitnk/cicada
-(in-cicada) $ cinfo
-```
-
 ## Features
 
 ### Run programs and pipelines
@@ -80,7 +73,3 @@ $ (1 + 2) * (3 - 4) / 8.0
 $ 2 ^ 31
 2147483648
 ```
-
-## Cicada is also a library (BETA)
-
-Read APIs here: [https://docs.rs/cicada/](https://docs.rs/cicada/).

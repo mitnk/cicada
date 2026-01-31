@@ -14,15 +14,15 @@ Bash is where most people come from and what they are familiar with.
 Cicada is trying to support most common cases that Bash supports, except
 the Bash scripting language.
 
-In following aspects, cicada wants to do a better (sanity) job:
+In the following aspects, cicada wants to do a better (saner) job:
 
 - [Completion](https://github.com/mitnk/cicada/tree/master/docs/completion.md)
 - [History](https://github.com/mitnk/cicada/tree/master/docs/history.md)
 - [Customize Prompt](https://github.com/mitnk/cicada/tree/master/docs/prompt.md)
 
-Compare to shells like zsh/fish, cicada tends to be a simpler shell.
-Audience of cicada shell should be people that are seeking simplicity and
-speed, while not full-feature.
+Compared to shells like zsh/fish, cicada tends to be a simpler shell.
+Audience of cicada shell should be people who are seeking simplicity and
+speed, while not full features.
 
 ### Is cicada POSIX-compatible?
 
