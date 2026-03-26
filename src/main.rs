@@ -119,6 +119,7 @@ fn main() {
     rl.set_completer(Arc::new(completers::CicadaCompleter {
         sh: Arc::new(sh.clone()),
     }));
+    rl.set_highlight_completions(true);
 
     let sig_handler_enabled = tools::is_signal_handler_enabled();
     if sig_handler_enabled {
