@@ -1,5 +1,15 @@
 # cicada Release Notes
 
+## 1.2.5 - 2026.08.08
+
+- Fixed a 100% CPU hang issue.
+- Fixed `$(...)` output being treated as a regex template.
+- Made newline a command separator for `cicada -c`, like `;`.
+- Operator chars (`< > | &`) coming from expansions are data now.
+- Unimplemented `${...}` forms (e.g. `${V:-default}`) no longer hang.
+- Fixed `#` opening a comment mid-word, e.g. in `echo a#b`.
+- Fixed assignments with multi-line values, e.g. `A="one\ntwo"`.
+
 ## 1.2.2 - 2026.01.23
 
 - Updated builtin `ulimit`.

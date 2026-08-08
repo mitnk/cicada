@@ -517,18 +517,14 @@ mod tests {
         let ptn_expected = r"^echo baz foo bar *$";
         let line_new = expand_args(line, &args);
         if !libs::re::re_contains(&line_new, ptn_expected) {
-            println!("expect RE: {:?}", ptn_expected);
-            println!("real: {:?}", line_new);
-            assert!(false);
+            panic!("expect RE: {:?}, real: {:?}", ptn_expected, line_new);
         }
 
         let line = "echo \"==$3--$$==$1--$2==$4--$5==$$--$2==\"";
         let line_new = expand_args(line, &args);
         let ptn_expected = r"^echo .==baz--\$\$==foo--bar==--==\$\$--bar==.$";
         if !libs::re::re_contains(&line_new, ptn_expected) {
-            println!("expect RE: {:?}", ptn_expected);
-            println!("real: {:?}", line_new);
-            assert!(false);
+            panic!("expect RE: {:?}, real: {:?}", ptn_expected, line_new);
         }
     }
 }

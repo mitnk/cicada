@@ -54,6 +54,10 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
     let mut sep = String::new();
     let mut token = String::new();
     let mut has_backslash = false;
+    // How many `$(` we are inside. A command inside a substitution is run by
+    // the substitution itself, so the separators in it are not ours to split
+    // on: `echo $(printf a; printf b)` is one command, not two.
+    let mut depth_cmdsub = 0;
     let len = line.chars().count();
     for (i, c) in line.chars().enumerate() {
         if has_backslash {
@@ -68,8 +72,24 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
             continue;
         }
 
+        // Once inside a substitution every `(` counts, whatever opened it:
+        // a grouping paren in `$(true; (true); echo b)` must not let its `)`
+        // close the substitution early.
+        if sep.is_empty() && c == '(' && (token.ends_with('$') || depth_cmdsub > 0) {
+            depth_cmdsub += 1;
+            token.push(c);
+            continue;
+        }
+        if sep.is_empty() && c == ')' && depth_cmdsub > 0 {
+            depth_cmdsub -= 1;
+            token.push(c);
+            continue;
+        }
+
+        // A `#` opens a comment only where a word could start. In the middle
+        // of one it is an ordinary character, as in `echo a#b` or `${V#pat}`.
         if c == '#' {
-            if sep.is_empty() {
+            if sep.is_empty() && (token.is_empty() || token.ends_with([' ', '\t'])) {
                 break;
             } else {
                 token.push(c);
@@ -89,6 +109,10 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
                 token.push(c);
                 continue;
             }
+        }
+        if (c == '&' || c == '|') && depth_cmdsub > 0 {
+            token.push(c);
+            continue;
         }
         if c == '&' || c == '|' {
             // needs watch ahead here
@@ -130,13 +154,21 @@ pub fn line_to_cmds(line: &str) -> Vec<String> {
                 continue;
             }
         }
-        if c == ';' {
-            if sep.is_empty() {
+        // A newline ends a command just like `;` does, so that program text
+        // given on one string -- `cicada -c 'echo a\necho b'` or a here-doc
+        // fed to a non-tty shell -- runs as the two commands it spells.
+        if c == ';' || c == '\n' {
+            if sep.is_empty() && depth_cmdsub == 0 {
                 let _token = token.trim().to_string();
-                if !_token.is_empty() {
+                let is_empty = _token.is_empty();
+                if !is_empty {
                     result.push(_token);
                 }
-                result.push(String::from(";"));
+                // A blank line is not an empty command, while a `;` written on
+                // its own is kept as the separator it is.
+                if c == ';' || !is_empty {
+                    result.push(String::from(";"));
+                }
                 token = String::new();
                 continue;
             } else {
@@ -186,6 +218,10 @@ pub fn parse_line(line: &str) -> LineInfo {
     let mut token = String::new();
     let mut has_backslash = false;
     let mut met_parenthesis = false;
+    // How many `(` are open in the substitution we are in, and the quote
+    // character open inside it (0 for none).
+    let mut depth_parens = 0;
+    let mut quote_in_parens = '\u{0}';
     let mut new_round = true;
     let mut skip_next = false;
     let mut has_dollar = false;
@@ -242,6 +278,25 @@ pub fn parse_line(line: &str) -> LineInfo {
             has_dollar = true;
         }
 
+        // Inside a `$(...)` the quotes belong to the inner command, so track
+        // which one is open. A `)` in `$(echo "a)b")` is then just a
+        // character, and the substitution ends at the `)` that matches its
+        // own `(`, however many are nested.
+        if met_parenthesis && sep.is_empty() {
+            if quote_in_parens != '\u{0}' {
+                if c == quote_in_parens {
+                    quote_in_parens = '\u{0}';
+                }
+                token.push(c);
+                continue;
+            }
+            if c == '\'' || c == '"' || c == '`' {
+                quote_in_parens = c;
+                token.push(c);
+                continue;
+            }
+        }
+
         // for cases like: echo $(foo bar)
         if c == '(' && sep.is_empty() {
             if !has_dollar && token.is_empty() {
@@ -250,6 +305,7 @@ pub fn parse_line(line: &str) -> LineInfo {
                 continue;
             }
             met_parenthesis = true;
+            depth_parens += 1;
         }
         if c == ')' {
             if parens_left_ignored && !has_dollar {
@@ -261,7 +317,11 @@ pub fn parse_line(line: &str) -> LineInfo {
                 }
             }
             if sep.is_empty() {
-                met_parenthesis = false;
+                depth_parens -= 1;
+                if depth_parens <= 0 {
+                    depth_parens = 0;
+                    met_parenthesis = false;
+                }
             }
         }
 
@@ -286,7 +346,8 @@ pub fn parse_line(line: &str) -> LineInfo {
             sep = String::new();
 
             if c == '#' {
-                // handle inline comments
+                // handle inline comments -- but only at the start of a word,
+                // so that `echo a#b` and `${V#pat}` keep their `#`
                 break;
             }
 
@@ -424,7 +485,9 @@ pub fn parse_line(line: &str) -> LineInfo {
             }
 
             if sep.is_empty() {
-                let is_an_env = libs::re::re_contains(&token, r"^[a-zA-Z0-9_]+=.*$");
+                // `(?s)` so that `A="one\ntwo"` is still seen as an
+                // assignment once its value has run past a newline.
+                let is_an_env = libs::re::re_contains(&token, r"(?s)^[a-zA-Z0-9_]+=.*$");
                 if !is_an_env && (c == '\'' || c == '"') {
                     sep = c.to_string();
                     continue;
@@ -621,6 +684,24 @@ mod tests {
             ("ls", vec![("", "ls")]),
             ("(ls)", vec![("", "ls")]),
             ("(ls -lh)", vec![("", "ls"), ("", "-lh")]),
+            // quotes inside `$(...)` belong to the inner command, so a `)`
+            // in them does not end the substitution
+            (
+                "echo $(echo \"a)b\")",
+                vec![("", "echo"), ("", "$(echo \"a)b\")")],
+            ),
+            (
+                "echo $(echo 'a)b')",
+                vec![("", "echo"), ("", "$(echo 'a)b')")],
+            ),
+            (
+                "echo $(echo $(echo N))",
+                vec![("", "echo"), ("", "$(echo $(echo N))")],
+            ),
+            (
+                "echo $(echo A)-$(echo B)",
+                vec![("", "echo"), ("", "$(echo A)-$(echo B)")],
+            ),
             ("  ls   ", vec![("", "ls")]),
             ("ls ' a '", vec![("", "ls"), ("'", " a ")]),
             ("ls -lh", vec![("", "ls"), ("", "-lh")]),
@@ -952,6 +1033,40 @@ mod tests {
             ("&&", vec!["&&"]),
             ("ls foo\\#bar", vec!["ls foo\\#bar"]),
             ("ls \\|\\|foo", vec!["ls \\|\\|foo"]),
+            // a comment may follow a tab as well as a space
+            ("echo hi\t# comment", vec!["echo hi"]),
+            // a newline ends a command, like `;`
+            ("echo foo\necho bar", vec!["echo foo", ";", "echo bar"]),
+            ("echo foo\n\necho bar", vec!["echo foo", ";", "echo bar"]),
+            ("echo 'foo\nbar'", vec!["echo 'foo\nbar'"]),
+            ("echo \"foo\nbar\"", vec!["echo \"foo\nbar\""]),
+            // separators inside `$(...)` belong to the substitution
+            (
+                "echo $(printf a; printf b)",
+                vec!["echo $(printf a; printf b)"],
+            ),
+            (
+                "echo $(printf a && printf b)",
+                vec!["echo $(printf a && printf b)"],
+            ),
+            (
+                "echo $(printf a\nprintf b)",
+                vec!["echo $(printf a\nprintf b)"],
+            ),
+            ("echo $(echo x | wc -l)", vec!["echo $(echo x | wc -l)"]),
+            (
+                "echo $(echo $(printf a; printf b))",
+                vec!["echo $(echo $(printf a; printf b))"],
+            ),
+            // a grouping paren inside `$(...)` does not close the substitution
+            (
+                "echo $(true; (true); echo b)",
+                vec!["echo $(true; (true); echo b)"],
+            ),
+            (
+                "echo $(printf a; printf b); echo end",
+                vec!["echo $(printf a; printf b)", ";", "echo end"],
+            ),
         ];
 
         for (left, right) in v {

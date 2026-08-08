@@ -23,3 +23,5 @@ for src in ${DIR_TEST}/scripts/*.sh; do
 done
 
 rm -f $TMP_FILE
+
+bash "${DIR_TEST}/test_expansion_safety.sh"

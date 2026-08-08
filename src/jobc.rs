@@ -201,7 +201,7 @@ pub fn try_wait_bg_jobs(sh: &mut shell::Shell, report: bool, sig_handler_enabled
     }
 
     let jobs = sh.jobs.clone();
-    for (_i, job) in jobs.iter() {
+    for job in jobs.values() {
         for pid in job.pids.iter() {
             if let Some(_status) = signals::pop_reap_map(*pid) {
                 mark_job_as_done(sh, job.gid, *pid, "Done");

@@ -170,41 +170,40 @@ mod tests {
                 1 => {
                     expected_stdout = line.clone();
                 }
-                2 => match run_with_shell(&mut sh, &input) {
-                    cr => {
-                        let ptn = if expected_stdout.is_empty() {
-                            r"^$"
-                        } else {
-                            expected_stdout.as_str()
-                        };
-                        let matched = libs::re::re_contains(&cr.stdout.trim(), &ptn);
-                        if !matched {
-                            println!("\nSTDOUT Check Failed:");
-                            println!("input: {}", &input);
-                            println!("stdout: {:?}", &cr.stdout.trim());
-                            println!("expected: {:?}", &expected_stdout);
-                            println!("line number: {}\n", num);
-                        }
-                        assert!(matched);
-
-                        let ptn = if line.is_empty() {
-                            r"^$"
-                        } else {
-                            line.as_str()
-                        };
-                        let matched = libs::re::re_contains(&cr.stderr.trim(), &ptn);
-                        if !matched {
-                            println!("\nSTDERR Check Failed:");
-                            println!("input: {}", &input);
-                            println!("stderr: {:?}", &cr.stderr);
-                            println!("expected: {}", &ptn);
-                            println!("line number: {}\n", num + 1);
-                        }
-                        assert!(matched);
+                2 => {
+                    let cr = run_with_shell(&mut sh, &input);
+                    let ptn = if expected_stdout.is_empty() {
+                        r"^$"
+                    } else {
+                        expected_stdout.as_str()
+                    };
+                    let matched = libs::re::re_contains(cr.stdout.trim(), ptn);
+                    if !matched {
+                        println!("\nSTDOUT Check Failed:");
+                        println!("input: {}", input);
+                        println!("stdout: {:?}", cr.stdout.trim());
+                        println!("expected: {:?}", expected_stdout);
+                        println!("line number: {}\n", num);
                     }
-                },
+                    assert!(matched);
+
+                    let ptn = if line.is_empty() {
+                        r"^$"
+                    } else {
+                        line.as_str()
+                    };
+                    let matched = libs::re::re_contains(cr.stderr.trim(), ptn);
+                    if !matched {
+                        println!("\nSTDERR Check Failed:");
+                        println!("input: {}", input);
+                        println!("stderr: {:?}", cr.stderr);
+                        println!("expected: {}", ptn);
+                        println!("line number: {}\n", num + 1);
+                    }
+                    assert!(matched);
+                }
                 _ => {
-                    assert!(false);
+                    unreachable!();
                 }
             }
         }

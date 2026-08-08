@@ -44,7 +44,7 @@ pub fn run(
     }
 
     if !Path::new(&dir_to).exists() {
-        let info = format!("cicada: cd: {}: No such file or directory", &args[1]);
+        let info = format!("cicada: cd: {}: No such file or directory", args[1]);
         print_stderr_with_capture(&info, &mut cr, cl, cmd, capture);
         return cr;
     }

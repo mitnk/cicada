@@ -28,7 +28,7 @@ pub fn run(sh: &Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> Comman
         }
     }
 
-    for (_i, job) in sh.jobs.iter() {
+    for job in sh.jobs.values() {
         if !job.cmd.starts_with("nohup ") {
             let mut info = String::new();
             info.push_str("There are background jobs.");

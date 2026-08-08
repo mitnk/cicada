@@ -165,16 +165,29 @@ pub struct CommandLine {
     pub background: bool,
 }
 
+/// Is this token the operator `op` as written in the source?
+///
+/// A token only acts as an operator when it carries no quote marker: `cat '<'
+/// f` passes `<` to `cat`, and a `<` that arrived from an expansion is data
+/// too, because expansion marks such words (see `shell::SEP_GENERATED`).
+fn is_op(token: &Token, op: &str) -> bool {
+    token.0.is_empty() && token.1 == op
+}
+
+fn is_redirect_from_op(token: &Token) -> bool {
+    is_op(token, "<") || is_op(token, "<<<")
+}
+
 impl Command {
     pub fn from_tokens(tokens: Tokens) -> Result<Command, String> {
         let mut tokens_new = tokens.clone();
         let mut redirects_from_type = String::new();
         let mut redirects_from_value = String::new();
-        let mut has_redirect_from = tokens_new.iter().any(|x| x.1 == "<" || x.1 == "<<<");
+        let mut has_redirect_from = tokens_new.iter().any(is_redirect_from_op);
 
         let mut len = tokens_new.len();
         while has_redirect_from {
-            if let Some(idx) = tokens_new.iter().position(|x| x.1 == "<") {
+            if let Some(idx) = tokens_new.iter().position(|x| is_op(x, "<")) {
                 redirects_from_type = "<".to_string();
                 tokens_new.remove(idx);
                 len -= 1;
@@ -183,7 +196,7 @@ impl Command {
                     len -= 1;
                 }
             }
-            if let Some(idx) = tokens_new.iter().position(|x| x.1 == "<<<") {
+            if let Some(idx) = tokens_new.iter().position(|x| is_op(x, "<<<")) {
                 redirects_from_type = "<<<".to_string();
                 tokens_new.remove(idx);
                 len -= 1;
@@ -193,7 +206,7 @@ impl Command {
                 }
             }
 
-            has_redirect_from = tokens_new.iter().any(|x| x.1 == "<" || x.1 == "<<<");
+            has_redirect_from = tokens_new.iter().any(is_redirect_from_op);
         }
 
         let tokens_final;
@@ -333,9 +346,16 @@ fn split_tokens_by_pipes(tokens: &[Token]) -> Vec<Tokens> {
 pub(crate) fn drain_env_tokens(tokens: &mut Tokens) -> HashMap<String, String> {
     let mut envs: HashMap<String, String> = HashMap::new();
     let mut n = 0;
-    let re = Regex::new(r"^([a-zA-Z0-9_]+)=(.*)$").unwrap();
+    // `(?s)` so that a value spanning a newline -- `A="one\ntwo"` -- is still
+    // recognized as an assignment instead of being run as a command.
+    let ptn_env = r"(?s)^([a-zA-Z0-9_]+)=(.*)$";
+    let re = Regex::new(ptn_env).unwrap();
     for (sep, text) in tokens.iter() {
-        if !sep.is_empty() || !libs::re::re_contains(text, r"^([a-zA-Z0-9_]+)=(.*)$") {
+        // A word expansion marked as data (`shell::SEP_GENERATED`) is still an
+        // assignment if that is how it was written: `B='x>y'; A=$B cmd` sets
+        // `A` for `cmd`, it does not redirect.
+        let sep_blocks = !sep.is_empty() && sep != shell::SEP_GENERATED;
+        if sep_blocks || !libs::re::re_contains(text, ptn_env) {
             break;
         }
 
@@ -362,7 +382,7 @@ impl CommandLine {
 
         let mut background = false;
         let len = tokens.len();
-        if len > 1 && tokens[len - 1].1 == "&" {
+        if len > 1 && is_op(&tokens[len - 1], "&") {
             background = true;
             tokens.pop();
         }

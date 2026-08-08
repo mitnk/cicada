@@ -430,47 +430,118 @@ pub fn expand_glob(tokens: &mut types::Tokens) {
     }
 }
 
-fn expand_one_env(sh: &Shell, token: &str) -> String {
-    // do not combine these two into one: `\{?..\}?`,
-    // otherwize `}` in `{print $NF}` would gone.
-    let re1 = Regex::new(r"^(.*?)\$([A-Za-z0-9_]+|\$|\?)(.*)$").unwrap();
-    let re2 = Regex::new(r"(.*?)\$\{([A-Za-z0-9_]+|\$|\?)\}(.*)$").unwrap();
-    if !re1.is_match(token) && !re2.is_match(token) {
-        return token.to_string();
+/// Read the name of a `${NAME}` that starts at `chars[i]` (a `$`).
+///
+/// Returns `None` for every other braced form, e.g. `${NAME:-default}`, so
+/// that syntax we do not implement is left alone instead of half-expanded.
+fn read_braced_name(chars: &[char], i: usize) -> Option<(String, usize)> {
+    if chars.get(i + 1) != Some(&'{') {
+        return None;
     }
 
-    let mut result = String::new();
-    let match_re1 = re1.is_match(token);
-    let match_re2 = re2.is_match(token);
-    if !match_re1 && !match_re2 {
-        return token.to_string();
-    }
-
-    let cap_results = if match_re1 {
-        re1.captures_iter(token)
-    } else {
-        re2.captures_iter(token)
-    };
-
-    for cap in cap_results {
-        let head = cap[1].to_string();
-        let tail = cap[3].to_string();
-        let key = cap[2].to_string();
-        if key == "?" {
-            result.push_str(format!("{}{}", head, sh.previous_status).as_str());
-        } else if key == "$" {
-            unsafe {
-                let val = libc::getpid();
-                result.push_str(format!("{}{}", head, val).as_str());
-            }
-        } else if let Ok(val) = env::var(&key) {
-            result.push_str(format!("{}{}", head, val).as_str());
-        } else if let Some(val) = sh.get_env(&key) {
-            result.push_str(format!("{}{}", head, val).as_str());
-        } else {
-            result.push_str(&head);
+    let start = i + 2;
+    // `${$}` and `${?}`
+    if let Some(c) = chars.get(start) {
+        if (*c == '$' || *c == '?') && chars.get(start + 1) == Some(&'}') {
+            return Some((c.to_string(), start + 2));
         }
-        result.push_str(&tail);
+    }
+
+    let mut j = start;
+    while let Some(c) = chars.get(j) {
+        if c.is_ascii_alphanumeric() || *c == '_' {
+            j += 1;
+        } else {
+            break;
+        }
+    }
+
+    if j == start || chars.get(j) != Some(&'}') {
+        return None;
+    }
+    Some((chars[start..j].iter().collect(), j + 1))
+}
+
+/// Read the name of a `$NAME`, `$$` or `$?` that starts at `chars[i]` (a `$`).
+fn read_bare_name(chars: &[char], i: usize) -> Option<(String, usize)> {
+    let c = chars.get(i + 1)?;
+    if *c == '$' || *c == '?' {
+        return Some((c.to_string(), i + 2));
+    }
+
+    let start = i + 1;
+    let mut j = start;
+    while let Some(c) = chars.get(j) {
+        if c.is_ascii_alphanumeric() || *c == '_' {
+            j += 1;
+        } else {
+            break;
+        }
+    }
+
+    if j == start {
+        return None;
+    }
+    Some((chars[start..j].iter().collect(), j))
+}
+
+/// The value an expandable name stands for. `$` is the pid, `?` the status of
+/// the previous command, and a name that is not set expands to nothing.
+fn env_value_of(sh: &Shell, key: &str) -> String {
+    if key == "?" {
+        return sh.previous_status.to_string();
+    }
+
+    if key == "$" {
+        unsafe {
+            return libc::getpid().to_string();
+        }
+    }
+
+    if let Ok(val) = env::var(key) {
+        return val;
+    }
+
+    if let Some(val) = sh.get_env(key) {
+        return val;
+    }
+
+    String::new()
+}
+
+/// Expand `$NAME`, `${NAME}`, `$$` and `$?` in `token`.
+///
+/// The scan walks the source text once, from left to right, and appends each
+/// value to the result without looking at it again. A value that contains a
+/// `$` or a newline therefore stays data, and forms we cannot expand -- such
+/// as `${NAME:-default}` or the `}` of `awk '{print $NF}'` -- are copied
+/// through untouched instead of being retried until the shell spins.
+fn expand_one_env(sh: &Shell, token: &str) -> String {
+    let chars: Vec<char> = token.chars().collect();
+    let mut result = String::new();
+    let mut i = 0;
+
+    while i < chars.len() {
+        if chars[i] != '$' {
+            result.push(chars[i]);
+            i += 1;
+            continue;
+        }
+
+        if let Some((name, next)) = read_braced_name(&chars, i) {
+            result.push_str(&env_value_of(sh, &name));
+            i = next;
+            continue;
+        }
+
+        if let Some((name, next)) = read_bare_name(&chars, i) {
+            result.push_str(&env_value_of(sh, &name));
+            i = next;
+            continue;
+        }
+
+        result.push('$');
+        i += 1;
     }
 
     result
@@ -777,6 +848,42 @@ fn env_in_token(token: &str) -> bool {
     !libs::re::re_contains(token, &ptn_env)
 }
 
+/// Characters that mean something to the shell when they stand in a word of
+/// their own, or inside one: redirections, pipes and background.
+const OPERATOR_CHARS: [char; 4] = ['<', '>', '|', '&'];
+
+/// Quote marker put on a word once expansion has put an operator character
+/// into it. Later stages only treat a word as an operator when its marker is
+/// empty, so this keeps generated bytes as data.
+///
+/// It is deliberately not `"`: a word the user wrote in double quotes and a
+/// word expansion generated need to stay distinguishable, because they are
+/// treated differently by `drain_env_tokens` and by backtick substitution.
+pub const SEP_GENERATED: &str = "\u{0}";
+
+/// Decide the quote marker for a word whose text expansion has just changed.
+///
+/// A word keeps its marker unless expansion *introduced* an operator
+/// character: `echo hi >$F` must still redirect, because its `>` is in the
+/// source, while `V='a>b'; echo $V` must print `a>b`, because that `>` only
+/// appeared once `$V` was replaced by its value.
+///
+/// "Introduced" is judged for the token as a whole, not per character: a
+/// source token that already contains *any* operator character is never
+/// marked, even if expansion adds a different one. That is safe today because
+/// operator recognition compares whole tokens (`types::is_op`), but it is a
+/// containment, not a parse -- the real fix is to recognize operators before
+/// expansion runs.
+fn sep_after_expansion(sep: &str, before: &str, after: &str) -> String {
+    // A backtick word is replaced wholesale by the output of its command, so
+    // the marker has to change: `` sep == "`" `` means "still to be run".
+    let sep_kept = if sep == "`" { "" } else { sep };
+    if !sep_kept.is_empty() || before.contains(OPERATOR_CHARS) || !after.contains(OPERATOR_CHARS) {
+        return sep_kept.to_string();
+    }
+    SEP_GENERATED.to_string()
+}
+
 pub fn expand_env(sh: &Shell, tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
     let mut buff = Vec::new();
@@ -792,27 +899,95 @@ pub fn expand_env(sh: &Shell, tokens: &mut types::Tokens) {
             continue;
         }
 
-        let mut _token = token.clone();
-        while env_in_token(&_token) {
-            _token = expand_one_env(sh, &_token);
-        }
-        buff.push((idx, _token));
+        // Expand the source token exactly once. Re-scanning the result would
+        // expand a `$...` that came *out* of a value (`A='$HOME'; echo $A`),
+        // and could never terminate when the text left is something we do not
+        // implement, e.g. `${V:-default}`.
+        let text = expand_one_env(sh, token);
+        let sep_new = sep_after_expansion(sep, token, &text);
+        buff.push((idx, sep_new, text));
         idx += 1;
     }
 
-    for (i, text) in buff.iter().rev() {
+    for (i, sep, text) in buff.iter().rev() {
+        tokens[*i].0 = sep.to_string();
         tokens[*i].1 = text.to_string();
     }
 }
 
 fn should_do_dollar_command_extension(line: &str) -> bool {
-    libs::re::re_contains(line, r"\$\([^\)]+\)")
-        && !libs::re::re_contains(line, r"='.*\$\([^\)]+\).*'$")
+    // `(?s)` so that a substitution whose body spans a newline is recognized.
+    libs::re::re_contains(line, r"(?s)\$\(.+\)")
+        && !libs::re::re_contains(line, r"(?s)='.*\$\(.+\).*'$")
+}
+
+/// Find the first `$(...)` in `line` and return the command inside it, plus
+/// the byte range the whole `$(...)` occupies.
+///
+/// Parentheses are counted so that the match ends at the `)` that closes the
+/// substitution we started, and not at the first `)` (which would truncate
+/// `$(echo $(echo N))`) nor at the last one (which would swallow the `-` and
+/// the second command of `$(echo A)-$(echo B)`).
+///
+/// A parenthesis inside quotes is a character, not a delimiter, so
+/// `$(echo "a)b")` runs the whole `echo "a)b"`.
+fn find_first_dollar_cmdsub(line: &str) -> Option<(String, usize, usize)> {
+    let bytes = line.as_bytes();
+    let mut start = None;
+    for i in 0..bytes.len() {
+        if bytes[i] == b'$' && bytes.get(i + 1) == Some(&b'(') {
+            start = Some(i);
+            break;
+        }
+    }
+    let start = start?;
+
+    let mut depth = 0;
+    // The quote we are inside, if any: `'`, `"` or a backtick.
+    let mut quote = 0u8;
+    let mut i = start + 1;
+    while i < bytes.len() {
+        let c = bytes[i];
+        if c == b'\\' && quote != b'\'' {
+            // An escaped character cannot open, close or delimit anything.
+            i += 2;
+            continue;
+        }
+        if quote != 0 {
+            if c == quote {
+                quote = 0;
+            }
+        } else if c == b'\'' || c == b'"' || c == b'`' {
+            quote = c;
+        } else if c == b'(' {
+            depth += 1;
+        } else if c == b')' {
+            depth -= 1;
+            if depth == 0 {
+                return Some((line[start + 2..i].to_string(), start, i + 1));
+            }
+        }
+        i += 1;
+    }
+    None
+}
+
+/// Run the text inside a substitution and return what it wrote to stdout.
+///
+/// The body is a command list, not a single pipeline, so `$(printf a; printf
+/// b)` runs both commands and yields `ab`. `line_to_cmds` keeps `;`, `&&` and
+/// newlines inside a `$(...)` out of the *outer* split for the same reason.
+fn run_substitution(sh: &mut Shell, cmd: &str) -> String {
+    let mut output = String::new();
+    for cr in crate::execute::run_command_line(sh, cmd, true, true) {
+        output.push_str(&cr.stdout);
+    }
+    output
 }
 
 fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
-    let mut buff: HashMap<usize, String> = HashMap::new();
+    let mut buff: HashMap<usize, (String, String)> = HashMap::new();
 
     for (sep, token) in tokens.iter() {
         if sep == "'" || sep == "\\" || !should_do_dollar_command_extension(token) {
@@ -820,68 +995,38 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
             continue;
         }
 
-        let mut line = token.to_string();
-        loop {
-            if !should_do_dollar_command_extension(&line) {
-                break;
-            }
+        // Rebuild the token left to right. `done` holds the text we are
+        // finished with, so each substitution is run exactly once and its
+        // output is never looked at again.
+        let mut done = String::new();
+        let mut rest = token.to_string();
+        while let Some((cmd, start, end)) = find_first_dollar_cmdsub(&rest) {
+            log!("run subcmd dollar: {:?}", &cmd);
+            let output = run_substitution(sh, &cmd);
 
-            let ptn_cmd = r"\$\((.+)\)";
-            let cmd = match libs::re::find_first_group(ptn_cmd, &line) {
-                Some(x) => x,
-                None => {
-                    println_stderr!("cicada: calculator: no first group");
-                    return;
-                }
-            };
-
-            let cmd_result = match CommandLine::from_line(&cmd, sh) {
-                Ok(c) => {
-                    log!("run subcmd dollar: {:?}", &cmd);
-                    let (term_given, cr) = core::run_pipeline(sh, &c, true, true, false);
-                    if term_given {
-                        unsafe {
-                            let gid = libc::getpgid(0);
-                            give_terminal_to(gid);
-                        }
-                    }
-
-                    cr
-                }
-                Err(e) => {
-                    println_stderr!("cicada: {}", e);
-                    continue;
-                }
-            };
-
-            let output_txt = cmd_result.stdout.trim();
-
-            let ptn = r"(?P<head>[^\$]*)\$\(.+\)(?P<tail>.*)";
-            let re;
-            if let Ok(x) = Regex::new(ptn) {
-                re = x;
-            } else {
-                return;
-            }
-
-            let to = format!("${{head}}{}${{tail}}", output_txt);
-            let line_ = line.clone();
-            let result = re.replace(&line_, to.as_str());
-            line = result.to_string();
+            // Splice the output in directly. Passing it through a regex
+            // replacement template would let a `$0` or `$name` in the output
+            // rewrite the command line, and a `$0` would put the `$(...)`
+            // back and run the command again forever.
+            done.push_str(&rest[..start]);
+            done.push_str(output.trim());
+            rest = rest[end..].to_string();
         }
+        done.push_str(&rest);
 
-        buff.insert(idx, line.clone());
+        buff.insert(idx, (sep_after_expansion(sep, token, &done), done));
         idx += 1;
     }
 
-    for (i, text) in buff.iter() {
+    for (i, (sep, text)) in buff.iter() {
+        tokens[*i].0 = sep.to_string();
         tokens[*i].1 = text.to_string();
     }
 }
 
 fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
-    let mut buff: HashMap<usize, String> = HashMap::new();
+    let mut buff: HashMap<usize, (String, String)> = HashMap::new();
     let re = Regex::new(r"^([^`]*)`([^`]+)`(.*)$").unwrap();
 
     for (sep, token) in tokens.iter() {
@@ -961,11 +1106,18 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
             continue;
         }
 
-        buff.insert(idx, new_token.clone());
+        buff.insert(
+            idx,
+            (
+                sep_after_expansion(sep, token, &new_token),
+                new_token.clone(),
+            ),
+        );
         idx += 1;
     }
 
-    for (i, text) in buff.iter() {
+    for (i, (sep, text)) in buff.iter() {
+        tokens[*i].0 = sep.to_string();
         tokens[*i].1 = text.to_string();
     }
 }
@@ -1018,10 +1170,14 @@ mod tests {
     use super::expand_brace;
     use super::expand_brace_range;
     use super::expand_env;
+    use super::expand_one_env;
+    use super::find_first_dollar_cmdsub;
     use super::libs;
     use super::needs_globbing;
+    use super::sep_after_expansion;
     use super::should_do_dollar_command_extension;
     use super::Shell;
+    use super::SEP_GENERATED;
     use std::env;
 
     #[test]
@@ -1106,9 +1262,7 @@ mod tests {
         let ptn_expected = r"^foo[0-9]+=-\$\+\+==[0-9]+==$";
         expand_env(&sh, &mut tokens);
         if !libs::re::re_contains(&tokens[1].1, ptn_expected) {
-            println!("expect RE: {:?}", ptn_expected);
-            println!("real: {:?}", &tokens[1].1);
-            assert!(false);
+            panic!("expect RE: {:?}, real: {:?}", ptn_expected, tokens[1].1);
         }
 
         let mut tokens = vec![
@@ -1121,9 +1275,7 @@ mod tests {
         let ptn_expected = r"^==\$\+\+[0-9]+foo[0-9]+=-\$\+\+==[0-9]+==\$--[0-9]+end$";
         expand_env(&sh, &mut tokens);
         if !libs::re::re_contains(&tokens[1].1, ptn_expected) {
-            println!("expect RE: {:?}", ptn_expected);
-            println!("real: {:?}", &tokens[1].1);
-            assert!(false);
+            panic!("expect RE: {:?}, real: {:?}", ptn_expected, tokens[1].1);
         }
     }
 
@@ -1344,5 +1496,108 @@ mod tests {
         ];
         expand_brace_range(&mut tokens);
         assert_vec_eq(tokens, exp_tokens);
+    }
+
+    /// A value is expanded once. Text that came *out* of a value is data, so a
+    /// `$` in it stays a `$`, and forms we do not implement are copied through
+    /// instead of being retried forever (the old loop spun on these).
+    #[test]
+    fn test_expand_one_env_does_not_rescan() {
+        let sh = Shell::new();
+        env::set_var("test_eoe_plain", "abc");
+        env::set_var("test_eoe_dollar", "$test_eoe_plain");
+        env::set_var("test_eoe_newline", "PREFIX\n");
+
+        assert_eq!(expand_one_env(&sh, "$test_eoe_plain"), "abc");
+        assert_eq!(expand_one_env(&sh, "${test_eoe_plain}"), "abc");
+        assert_eq!(
+            expand_one_env(&sh, "pre${test_eoe_plain}post"),
+            "preabcpost"
+        );
+
+        // D10: the value of `test_eoe_dollar` is not expanded again.
+        assert_eq!(expand_one_env(&sh, "$test_eoe_dollar"), "$test_eoe_plain");
+        assert_eq!(expand_one_env(&sh, "${test_eoe_dollar}"), "$test_eoe_plain");
+
+        // D1/D2: a newline in a value neither hangs nor eats the prefix.
+        assert_eq!(
+            expand_one_env(&sh, "$test_eoe_newline$test_eoe_plain"),
+            "PREFIX\nabc"
+        );
+        assert_eq!(
+            expand_one_env(&sh, "${test_eoe_newline}${test_eoe_plain}"),
+            "PREFIX\nabc"
+        );
+
+        // D9: unimplemented `${...}` forms are left as they were written.
+        for form in &[
+            "${test_eoe_plain:-d}",
+            "${test_eoe_plain-d}",
+            "${test_eoe_plain:=d}",
+            "${test_eoe_plain:+d}",
+            "${test_eoe_plain%.txt}",
+            "${test_eoe_plain#pat}",
+            "${test_eoe_plain:1:2}",
+            "${#test_eoe_plain}",
+        ] {
+            assert_eq!(&expand_one_env(&sh, form), form);
+        }
+
+        // A name that is not set expands to nothing, and a lone `$` stays.
+        assert_eq!(expand_one_env(&sh, "[$test_eoe_unset_xyz]"), "[]");
+        assert_eq!(expand_one_env(&sh, "a $ b"), "a $ b");
+        assert_eq!(expand_one_env(&sh, "{print $NF}"), "{print }");
+    }
+
+    /// `$(...)` is delimited by counting parentheses, so siblings do not merge
+    /// (D6) and a nested substitution is not cut at the first `)`.
+    #[test]
+    fn test_find_first_dollar_cmdsub() {
+        let (cmd, start, end) = find_first_dollar_cmdsub("$(echo A)-$(echo B)").unwrap();
+        assert_eq!(cmd, "echo A");
+        assert_eq!((start, end), (0, 9));
+
+        let (cmd, start, end) = find_first_dollar_cmdsub("x$(echo $(echo N))y").unwrap();
+        assert_eq!(cmd, "echo $(echo N)");
+        assert_eq!((start, end), (1, 18));
+
+        let (cmd, ..) = find_first_dollar_cmdsub("pre$(printf a; printf b)post").unwrap();
+        assert_eq!(cmd, "printf a; printf b");
+
+        // A paren inside quotes is a character, not the closing delimiter.
+        let (cmd, ..) = find_first_dollar_cmdsub("$(echo \"a)b\")").unwrap();
+        assert_eq!(cmd, "echo \"a)b\"");
+        let (cmd, ..) = find_first_dollar_cmdsub("$(echo 'a)b')").unwrap();
+        assert_eq!(cmd, "echo 'a)b'");
+        let (cmd, ..) = find_first_dollar_cmdsub("$(echo \\))").unwrap();
+        assert_eq!(cmd, "echo \\)");
+
+        assert!(find_first_dollar_cmdsub("echo $HOME").is_none());
+        // Unbalanced: no match rather than a truncated command.
+        assert!(find_first_dollar_cmdsub("echo $(echo A").is_none());
+    }
+
+    /// D8: an operator character that expansion *introduced* must not make the
+    /// word syntax, while one written in the source still must.
+    #[test]
+    fn test_sep_after_expansion() {
+        // Generated operator characters: word becomes a quoted literal.
+        assert_eq!(sep_after_expansion("", "$V", "a>b"), SEP_GENERATED);
+        assert_eq!(sep_after_expansion("", "$V", "|"), SEP_GENERATED);
+        assert_eq!(sep_after_expansion("", "$V", "<"), SEP_GENERATED);
+        assert_eq!(sep_after_expansion("", "$V", "<<<"), SEP_GENERATED);
+        assert_eq!(sep_after_expansion("", "$V", "&"), SEP_GENERATED);
+        // A backtick word is replaced by its output, so it is checked too.
+        assert_eq!(sep_after_expansion("`", "cat f", "a>b"), SEP_GENERATED);
+
+        // Source operators are untouched: `echo hi >$F` still redirects.
+        assert_eq!(sep_after_expansion("", ">$F", ">out.txt"), "");
+        assert_eq!(sep_after_expansion("", "2>&1", "2>&1"), "");
+        // No operator character at all: nothing to protect.
+        assert_eq!(sep_after_expansion("", "$V", "plain"), "");
+        // An already-quoted word keeps its own marker.
+        assert_eq!(sep_after_expansion("'", "$V", "a>b"), "'");
+        // A backtick word with no operator in its output is plain again.
+        assert_eq!(sep_after_expansion("`", "uname", "Darwin"), "");
     }
 }
