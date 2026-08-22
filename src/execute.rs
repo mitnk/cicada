@@ -61,9 +61,7 @@ pub fn run_command_line(
     // a heredoc typed here is used by this line and no other: bodies a script
     // file parked (its loops and functions re-read those) are not ours to drop
     parsers::heredoc::forget(sh, &heredocs);
-    for marker in parsers::heredoc::markers_in_line(&line) {
-        parsers::heredoc::forget_if_transient(sh, &marker);
-    }
+    parsers::heredoc::forget_transients_in_line(sh, &line);
 
     cr_list
 }

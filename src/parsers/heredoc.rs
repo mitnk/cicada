@@ -38,6 +38,9 @@ pub fn preprocess(line: &str, sh: &mut Shell) -> Result<(String, Vec<String>), S
     let mut out = String::new();
     let mut markers = Vec::new();
     let mut active: Option<OpenHeredoc> = None;
+    // a head that has been read but whose command line is still being
+    // continued by a trailing `\`
+    let mut pending: Option<OpenHeredoc> = None;
 
     for raw in line.split_inclusive('\n') {
         let (content, has_newline) = match raw.strip_suffix('\n') {
@@ -75,14 +78,24 @@ pub fn preprocess(line: &str, sh: &mut Shell) -> Result<(String, Vec<String>), S
                 out.push('\n');
             }
 
-            if !starts.is_empty() {
-                if starts.len() > 1 {
-                    return Err("multiple heredocs on one line are not supported".to_string());
-                }
-                active = Some(starts.pop().unwrap());
+            if starts.len() + usize::from(pending.is_some()) > 1 {
+                return Err("multiple heredocs on one line are not supported".to_string());
+            }
+            if let Some(open) = starts.pop() {
+                pending = Some(open);
+            }
+
+            // A `\` at the end joins the next line onto this one, so the
+            // command is not over and its body does not start there:
+            // `cat << EOF \` + `| wc -l` reads the body after the `wc`.
+            if !ends_with_continuation(content) {
+                active = pending.take();
             }
         }
     }
+
+    // a head whose line was still being continued when the text ran out
+    let active = active.or(pending);
 
     if let Some(open) = active {
         // Nothing followed the head, so there was never a body to collect --
@@ -163,23 +176,28 @@ fn scan_line(
     while i < chars.len() {
         let c = chars[i];
 
+        // An escape carries its character over whole, so what follows the
+        // pair is read in the state the pair started in: the `<<` in
+        // `echo "a \\" << EOF b"` is still inside the string, and opens
+        // nothing. Single quotes are the exception -- they have no escapes,
+        // and a backslash between them is just text.
+        if c == '\\' && quote != Some('\'') {
+            out.push(c);
+            if let Some(next) = chars.get(i + 1) {
+                out.push(*next);
+                i += 2;
+            } else {
+                i += 1;
+            }
+            continue;
+        }
+
         if let Some(q) = quote {
             out.push(c);
             if c == q {
                 quote = None;
             }
             i += 1;
-            continue;
-        }
-
-        if c == '\\' {
-            out.push(c);
-            if i + 1 < chars.len() {
-                out.push(chars[i + 1]);
-                i += 2;
-            } else {
-                i += 1;
-            }
             continue;
         }
 
@@ -377,6 +395,12 @@ fn is_closing_line(line: &str, open: &OpenHeredoc) -> bool {
     candidate == open.delimiter
 }
 
+/// Does `line` end in a `\` that joins the next line onto it? An even run of
+/// backslashes is a run of escaped backslashes, and escapes nothing after it.
+fn ends_with_continuation(line: &str) -> bool {
+    line.chars().rev().take_while(|c| *c == '\\').count() % 2 == 1
+}
+
 fn strip_line_tabs(line: &str, strip_tabs: bool) -> &str {
     if strip_tabs {
         line.trim_start_matches('\t')
@@ -390,7 +414,7 @@ fn strip_prompt(line: &str) -> &str {
 }
 
 /// Every heredoc marker mentioned in `line`.
-pub fn markers_in_line(line: &str) -> Vec<String> {
+fn markers_in_line(line: &str) -> Vec<String> {
     let prefix = crate::types::HEREDOC_MARKER_PREFIX;
     let mut markers = Vec::new();
     let mut rest = line;
@@ -468,17 +492,21 @@ pub fn forget(sh: &mut Shell, markers: &[String]) {
     }
 }
 
-/// Drop a per-run copy whose command never ran, e.g. the right-hand side of a
-/// `&&` that short-circuited.
-pub fn forget_if_transient(sh: &mut Shell, marker: &str) {
-    if let Some(hd) = sh.heredocs.get(marker) {
-        if hd.transient {
-            sh.heredocs.remove(marker);
+/// Drop the per-run copies `line` refers to whose command never ran, e.g. the
+/// right-hand side of a `&&` that short-circuited. A copy its command did run
+/// is already gone -- `take_body` drops it as it hands the body over.
+pub fn forget_transients_in_line(sh: &mut Shell, line: &str) {
+    for marker in markers_in_line(line) {
+        if sh.heredocs.get(&marker).is_some_and(|hd| hd.transient) {
+            sh.heredocs.remove(&marker);
         }
     }
 }
 
-pub fn expand_heredoc_body(sh: &mut Shell, body: &str, quoted: bool) -> String {
+/// A body with the expansions a heredoc does run: `$NAME`, `$(...)` and
+/// backticks, and the backslash escapes that turn those off. A quoted
+/// delimiter turns the lot off and the body goes through as it was typed.
+fn expand_heredoc_body(sh: &mut Shell, body: &str, quoted: bool) -> String {
     if quoted {
         return body.to_string();
     }
@@ -764,6 +792,37 @@ mod tests {
             assert_eq!(&line, input, "input: {}", input);
             assert_eq!(body, "", "input: {}", input);
         }
+    }
+
+    #[test]
+    fn test_escaped_quote_does_not_end_the_string() {
+        // `\"` is a quote character, not the end of the word: the `<<` behind
+        // it is still inside the string, and opens nothing
+        for input in &["echo \"a \\\" << EOF b\"", "echo `a \\` << EOF b`"] {
+            let (line, body) = run(input).unwrap();
+            assert_eq!(&line, input, "input: {}", input);
+            assert_eq!(body, "", "input: {}", input);
+        }
+
+        // ... and a backslash in single quotes escapes nothing, so this
+        // string *does* end at the second apostrophe, and the `<<` behind it
+        // opens a heredoc whose body the next lines are
+        let (line, body) = run("echo 'a \\' << EOF\nbody\nEOF\n").unwrap();
+        assert_eq!(line, "echo 'a \\' <<< 'M'\n");
+        assert_eq!(body, "body\n");
+    }
+
+    #[test]
+    fn test_head_continued_onto_the_next_line() {
+        // the command line is not over at the `\`, so the body starts after
+        // the line that finishes it
+        let (line, body) = run("cat << EOF \\\n| wc -l\nbody\nEOF\n").unwrap();
+        assert_eq!(line, "cat <<< 'M' \\\n| wc -l\n");
+        assert_eq!(body, "body\n");
+
+        // an even run of backslashes escapes itself and continues nothing
+        let (_, body) = run("cat << EOF\nkeep\\\\\nEOF\n").unwrap();
+        assert_eq!(body, "keep\\\\\n");
     }
 
     #[test]

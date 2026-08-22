@@ -68,6 +68,22 @@ pub fn run_script(sh: &mut shell::Shell, args: &Vec<String>) -> i32 {
         }
     }
 
+    // Before the line joining below, not after: a heredoc body is data, and a
+    // `\` ending one of its lines is a character of the body -- joining there
+    // would eat it, and eat the newline with it, even in a `<< 'EOF'` body the
+    // shell promised to pass through untouched. Lifting the bodies out first
+    // leaves the joining only the command lines it is meant for.
+    //
+    // The bodies parked here stay for the run: a heredoc in a function or a
+    // loop body is read again on every call.
+    text = match parsers::heredoc::preprocess(&text, sh) {
+        Ok((text, _markers)) => text,
+        Err(e) => {
+            println_stderr!("cicada: {}", e);
+            return 1;
+        }
+    };
+
     if text.contains("\\\n") {
         let re = RegexBuilder::new(r#"([ \t]*\\\n[ \t]+)|([ \t]+\\\n[ \t]*)"#)
             .multi_line(true)
@@ -81,16 +97,6 @@ pub fn run_script(sh: &mut shell::Shell, args: &Vec<String>) -> i32 {
             .unwrap();
         text = re.replace_all(&text, "").to_string();
     }
-
-    // the bodies parked here stay for the run: a heredoc in a function or a
-    // loop body is read again on every call
-    text = match parsers::heredoc::preprocess(&text, sh) {
-        Ok((text, _markers)) => text,
-        Err(e) => {
-            println_stderr!("cicada: {}", e);
-            return 1;
-        }
-    };
 
     let re_func_head =
         Regex::new(r"^function ([a-zA-Z_-][a-zA-Z0-9_-]*) *(?:\(\))? *\{$").unwrap();
@@ -178,17 +184,52 @@ fn expand_args(line: &str, args: &[String]) -> String {
 fn expand_args_with_heredocs(sh: &mut shell::Shell, line: &str, args: &[String]) -> String {
     let line_new = expand_args(line, args);
     parsers::heredoc::apply_to_bodies(sh, &line_new, |body| {
-        if !is_args_in_token(body) {
+        let marked = mark_escaped_args(body);
+        if !is_args_in_token(&marked) {
             return body.to_string();
         }
 
         // a body is many lines, and the pattern below is single-line
-        let lines: Vec<String> = body
+        let lines: Vec<String> = marked
             .split('\n')
             .map(|x| expand_args_for_single_token(x, args))
             .collect();
-        lines.join("\n")
+        // the marks were only for the step above; the backslashes they stood
+        // beside are still there, for `expand_heredoc_body` to take off
+        lines.join("\n").replace(shell::DATA_MARK, "")
     })
+}
+
+/// `body` with the `$` of an escaped `\$1` marked, so that the argument step
+/// leaves it alone -- `\$1` is a dollar and a one, in a heredoc as anywhere
+/// else.
+///
+/// A word coming off the line parser arrives already marked; a heredoc body
+/// never went through it, so the escapes it holds are still plain
+/// backslashes. The backslash itself stays put: taking it off is
+/// `expand_heredoc_body`'s job, later, and only when the delimiter was
+/// unquoted.
+fn mark_escaped_args(body: &str) -> String {
+    if !body.contains('\\') {
+        return body.to_string();
+    }
+    let mut out = String::with_capacity(body.len());
+    let mut chars = body.chars();
+    while let Some(c) = chars.next() {
+        out.push(c);
+        if c != '\\' {
+            continue;
+        }
+        // whatever follows is escaped, so it is text -- and an escaped
+        // backslash escapes nothing after itself
+        if let Some(next) = chars.next() {
+            if next == '$' {
+                out.push(shell::DATA_MARK);
+            }
+            out.push(next);
+        }
+    }
+    out
 }
 
 fn expand_line_to_toknes(line: &str, args: &[String], sh: &mut shell::Shell) -> types::Tokens {

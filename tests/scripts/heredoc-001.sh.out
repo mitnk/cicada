@@ -32,3 +32,15 @@ here string
 literal $HOME and $(echo sub)
 == a word that only looks like a marker is just a word
 __cicada_heredoc_0
+== an escaped quote does not end the string, so no heredoc opens here
+a " << EOF b
+== a backslash at the end of a body line is body text
+keep\
+this
+two\backslashes
+== a head continued onto the next line still reads its body after it
+PIPED
+== an escaped positional argument is text, an escaped backslash is not
+esc=[$1] real=[a] escesc=[\b] at=[$@] realat=[a b c d e f g h i j] braced=[j]
+== expansions a body does not do
+brace=[{1..5}] tilde=[~] glob=[*.nosuchext] split=[a   b]

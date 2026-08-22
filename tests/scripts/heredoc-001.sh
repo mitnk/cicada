@@ -84,3 +84,34 @@ EOF
 echo "== a word that only looks like a marker is just a word"
 FAKE=__cicada_heredoc_0
 cat <<< $FAKE
+
+echo "== an escaped quote does not end the string, so no heredoc opens here"
+echo "a \" << EOF b"
+
+echo "== a backslash at the end of a body line is body text"
+cat << 'EOF'
+keep\
+this
+EOF
+cat << EOF
+two\\backslashes
+EOF
+
+echo "== a head continued onto the next line still reads its body after it"
+cat << EOF \
+| tr a-z A-Z
+piped
+EOF
+
+echo "== an escaped positional argument is text, an escaped backslash is not"
+function args() {
+    cat << EOF
+esc=[\$1] real=[$1] escesc=[\\$2] at=[\$@] realat=[$@] braced=[${10}]
+EOF
+}
+args a b c d e f g h i j
+
+echo "== expansions a body does not do"
+cat << EOF
+brace=[{1..5}] tilde=[~] glob=[*.nosuchext] split=[a   b]
+EOF
