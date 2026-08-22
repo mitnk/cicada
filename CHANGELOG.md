@@ -1,5 +1,9 @@
 # cicada Release Notes
 
+## 1.3.1 - 2026.08.22
+
+- Fixed heredoc quoting & args logic.
+
 ## 1.3.0 - 2026.08.22
 
 - Added heredocs support: `cat << EOF` etc.
