@@ -82,6 +82,16 @@ pub fn run_script(sh: &mut shell::Shell, args: &Vec<String>) -> i32 {
         text = re.replace_all(&text, "").to_string();
     }
 
+    // the bodies parked here stay for the run: a heredoc in a function or a
+    // loop body is read again on every call
+    text = match parsers::heredoc::preprocess(&text, sh) {
+        Ok((text, _markers)) => text,
+        Err(e) => {
+            println_stderr!("cicada: {}", e);
+            return 1;
+        }
+    };
+
     let re_func_head =
         Regex::new(r"^function ([a-zA-Z_-][a-zA-Z0-9_-]*) *(?:\(\))? *\{$").unwrap();
     let re_func_tail = Regex::new(r"^\}$").unwrap();
@@ -151,8 +161,34 @@ pub fn run_lines(
 fn expand_args(line: &str, args: &[String]) -> String {
     let linfo = parsers::parser_line::parse_line(line);
     let mut tokens = linfo.tokens;
-    expand_args_in_tokens(&mut tokens, args);
+    if !expand_args_in_tokens(&mut tokens, args) {
+        // Nothing to put in, so hand the line back as it was written.
+        // Rebuilding it from the tokens would not give the same line: a token
+        // holds a word's *text*, with the quoting and the escapes taken out
+        // and recorded elsewhere, so `echo a\"b` would come back as
+        // `echo a"b` -- a quote that then has nothing closing it.
+        return line.to_string();
+    }
     parsers::parser_line::tokens_to_line(&tokens)
+}
+
+/// `expand_args()` for a line that may carry heredocs, whose bodies were
+/// lifted out of it before it got here and so would otherwise keep their
+/// `$1`s.
+fn expand_args_with_heredocs(sh: &mut shell::Shell, line: &str, args: &[String]) -> String {
+    let line_new = expand_args(line, args);
+    parsers::heredoc::apply_to_bodies(sh, &line_new, |body| {
+        if !is_args_in_token(body) {
+            return body.to_string();
+        }
+
+        // a body is many lines, and the pattern below is single-line
+        let lines: Vec<String> = body
+            .split('\n')
+            .map(|x| expand_args_for_single_token(x, args))
+            .collect();
+        lines.join("\n")
+    })
 }
 
 fn expand_line_to_toknes(line: &str, args: &[String], sh: &mut shell::Shell) -> types::Tokens {
@@ -163,12 +199,38 @@ fn expand_line_to_toknes(line: &str, args: &[String], sh: &mut shell::Shell) -> 
     tokens
 }
 
+/// The word with its marked characters dropped: what is left is the part a
+/// `$1` could be hiding in. A marked `$` is text -- the line wrote `\$1` --
+/// and must not be read as an argument.
+fn syntax_view(token: &str) -> String {
+    if !token.contains(shell::DATA_MARK) {
+        return token.to_string();
+    }
+    let mut out = String::with_capacity(token.len());
+    let mut chars = token.chars();
+    while let Some(c) = chars.next() {
+        if c == shell::DATA_MARK {
+            chars.next();
+            continue;
+        }
+        out.push(c);
+    }
+    out
+}
+
 fn is_args_in_token(token: &str) -> bool {
-    libs::re::re_contains(token, r"\$\{?[0-9@]+\}?")
+    libs::re::re_contains(&syntax_view(token), r"\$\{?[0-9@]+\}?")
 }
 
 fn expand_args_for_single_token(token: &str, args: &[String]) -> String {
-    let re = Regex::new(r"^(.*?)\$\{?([0-9]+|@)\}?(.*)$").unwrap();
+    // built once: this runs per line of a heredoc body, which can be long
+    lazy_static! {
+        // Group 2 is the whole `$1` / `${1}` / `$@`, kept so that one which
+        // turns out to be text can be put back exactly as it was written.
+        static ref RE_ARG: Regex =
+            Regex::new(r"^(.*?)(\$\{?([0-9]+|@)\}?)(.*)$").unwrap();
+    }
+    let re = &*RE_ARG;
     if !re.is_match(token) {
         return token.to_string();
     }
@@ -187,8 +249,17 @@ fn expand_args_for_single_token(token: &str, args: &[String]) -> String {
         }
         for cap in re.captures_iter(&_token) {
             _head = cap[1].to_string();
-            _tail = cap[3].to_string();
-            let _key = cap[2].to_string();
+            _tail = cap[4].to_string();
+            let _key = cap[3].to_string();
+
+            // `\$1` is text: the parser marked the `$`, so put the whole
+            // thing back and carry on looking at what follows it.
+            if _head.ends_with(shell::DATA_MARK) {
+                result.push_str(&_head);
+                result.push_str(&cap[2]);
+                break;
+            }
+
             if _key == "@" {
                 result.push_str(format!("{}{}", _head, args[1..].join(" ")).as_str());
             } else if let Ok(arg_idx) = _key.parse::<usize>() {
@@ -210,7 +281,10 @@ fn expand_args_for_single_token(token: &str, args: &[String]) -> String {
     result
 }
 
-fn expand_args_in_tokens(tokens: &mut types::Tokens, args: &[String]) {
+/// Put `$1`, `$@` and friends into the words that hold them. Says whether any
+/// word actually changed, so that a caller rebuilding a line can tell the
+/// difference between "expanded" and "nothing to do".
+fn expand_args_in_tokens(tokens: &mut types::Tokens, args: &[String]) -> bool {
     let mut idx: usize = 0;
     let mut buff = Vec::new();
 
@@ -225,9 +299,11 @@ fn expand_args_in_tokens(tokens: &mut types::Tokens, args: &[String]) {
         idx += 1;
     }
 
+    let changed = !buff.is_empty();
     for (i, text) in buff.iter().rev() {
         tokens[*i].1 = text.to_string();
     }
+    changed
 }
 
 fn run_exp_test_br(
@@ -249,7 +325,7 @@ fn run_exp_test_br(
             let pairs_test: Vec<Pair<parsers::locust::Rule>> = pair.into_inner().collect();
             let pair_test = &pairs_test[0];
             let line = pair_test.as_str().trim();
-            let line_new = expand_args(line, &args[1..]);
+            let line_new = expand_args_with_heredocs(sh, line, &args[1..]);
             let mut _cr_list = execute::run_command_line(sh, &line_new, true, capture);
             if let Some(last) = _cr_list.last() {
                 if last.status == 0 {
@@ -446,7 +522,7 @@ fn run_exp(
                 }
             }
 
-            let line_new = expand_args(line, &args[1..]);
+            let line_new = expand_args_with_heredocs(sh, line, &args[1..]);
             let mut _cr_list = execute::run_command_line(sh, &line_new, true, capture);
             cr_list.append(&mut _cr_list);
             if let Some(last) = cr_list.last() {

@@ -1,5 +1,10 @@
 # cicada Release Notes
 
+## 1.3.0 - 2026.08.22
+
+- Added heredocs support: `cat << EOF` etc.
+- Some token parsing improvements.
+
 ## 1.2.5 - 2026.08.08
 
 - Fixed a 100% CPU hang issue.

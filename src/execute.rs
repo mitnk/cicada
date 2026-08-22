@@ -28,10 +28,19 @@ pub fn run_command_line(
     tty: bool,
     capture: bool,
 ) -> Vec<CommandResult> {
+    let (line, heredocs) = match parsers::heredoc::preprocess(line, sh) {
+        Ok(x) => x,
+        Err(e) => {
+            println_stderr!("cicada: {}", e);
+            sh.previous_status = 1;
+            return vec![CommandResult::from_status(0, 1)];
+        }
+    };
+
     let mut cr_list = Vec::new();
     let mut status = 0;
     let mut sep = String::new();
-    for token in parsers::parser_line::line_to_cmds(line) {
+    for token in parsers::parser_line::line_to_cmds(&line) {
         if token == ";" || token == "&&" || token == "||" {
             sep = token.clone();
             continue;
@@ -48,6 +57,14 @@ pub fn run_command_line(
         sh.previous_status = status;
         cr_list.push(cr);
     }
+
+    // a heredoc typed here is used by this line and no other: bodies a script
+    // file parked (its loops and functions re-read those) are not ours to drop
+    parsers::heredoc::forget(sh, &heredocs);
+    for marker in parsers::heredoc::markers_in_line(&line) {
+        parsers::heredoc::forget_if_transient(sh, &marker);
+    }
+
     cr_list
 }
 
@@ -100,13 +117,23 @@ fn run_proc(sh: &mut Shell, line: &str, tty: bool, capture: bool) -> CommandResu
 }
 
 fn run_with_shell(sh: &mut Shell, line: &str) -> CommandResult {
-    let (tokens, envs) = line_to_tokens(sh, line);
+    let (line, heredocs) = match parsers::heredoc::preprocess(line, sh) {
+        Ok(x) => x,
+        Err(e) => {
+            println_stderr!("cicada: {}", e);
+            sh.previous_status = 1;
+            return CommandResult::from_status(0, 1);
+        }
+    };
+
+    let (tokens, envs) = line_to_tokens(sh, &line);
     if tokens.is_empty() {
         set_shell_vars(sh, &envs);
+        parsers::heredoc::forget(sh, &heredocs);
         return CommandResult::new();
     }
 
-    match CommandLine::from_line(line, sh) {
+    let cr = match CommandLine::from_line(&line, sh) {
         Ok(c) => {
             let (term_given, cr) = core::run_pipeline(sh, &c, false, true, false);
             if term_given {
@@ -122,7 +149,10 @@ fn run_with_shell(sh: &mut Shell, line: &str) -> CommandResult {
             println_stderr!("cicada: {}", e);
             CommandResult::from_status(0, 1)
         }
-    }
+    };
+
+    parsers::heredoc::forget(sh, &heredocs);
+    cr
 }
 
 pub fn run(line: &str) -> CommandResult {

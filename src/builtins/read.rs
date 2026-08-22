@@ -33,7 +33,9 @@ pub fn run(sh: &mut Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> Co
 
     let mut buffer = String::new();
 
-    if cmd.has_here_string() {
+    if let Some(heredoc) = &cmd.heredoc {
+        buffer.push_str(heredoc);
+    } else if cmd.has_here_string() {
         if let Some(redirect_from) = &cmd.redirect_from {
             buffer.push_str(&redirect_from.1);
             buffer.push('\n');

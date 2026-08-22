@@ -1,14 +1,44 @@
 use regex::Regex;
 
 use crate::libs;
+use crate::shell::DATA_MARK;
 use crate::tools;
 use crate::types::{LineInfo, Redirection, Tokens};
+
+/// Take out the data marks the parser put on characters it wants later steps
+/// to read as text (see `shell::DATA_MARK`).
+///
+/// Expansion takes its own marks out when it is done with them. This is for
+/// the callers that never run expansion -- completion, and anything else
+/// reading a word to show it or match it against a file name -- which want
+/// the word as the line spelled it.
+pub fn strip_marks(text: &str) -> String {
+    if text.contains(DATA_MARK) {
+        return text.replace(DATA_MARK, "");
+    }
+    text.to_string()
+}
+
+/// Mark `c` as text and put it in `token` (see `shell::DATA_MARK`).
+///
+/// A mark always applies to the character right after it, so two in a row
+/// would mean the first is marking the second and the character after them
+/// is bare. Never emitting a second one keeps marking idempotent, which is
+/// what lets already-marked text be parsed again -- `scripting::expand_args`
+/// rebuilds a line from tokens that may carry marks, and that line comes back
+/// through here.
+fn push_marked(token: &mut String, c: char) {
+    if !token.ends_with(DATA_MARK) {
+        token.push(DATA_MARK);
+    }
+    token.push(c);
+}
 
 pub fn line_to_plain_tokens(line: &str) -> Vec<String> {
     let mut result = Vec::new();
     let linfo = parse_line(line);
     for (_, r) in linfo.tokens {
-        result.push(r.clone());
+        result.push(strip_marks(&r));
     }
     result
 }
@@ -247,30 +277,74 @@ pub fn parse_line(line: &str) -> LineInfo {
             continue;
         }
 
-        if has_backslash && sep.is_empty() && (c == '>' || c == '<') {
+        // `ll foo\>bar` -> `ll 'foo>bar' end`: an escaped redirection in an
+        // unquoted word becomes a quoted one, so it is text and not an
+        // operator. Only an unquoted word, though -- inside a quoted stretch
+        // of a value there is no operator to defuse, and marking the word as
+        // quoted would stop `V="a\>b"` from being an assignment at all.
+        if has_backslash && sep.is_empty() && sep_second.is_empty() && (c == '>' || c == '<') {
             sep_made = String::from("'");
             token.push(c);
             has_backslash = false;
             continue;
         }
 
-        if has_backslash && sep == "\"" && c != '\"' {
-            // constant with bash: "\"" --> "; "\a" --> \a
-            token.push('\\');
-            token.push(c);
-            has_backslash = false;
-            continue;
-        }
-
         if has_backslash {
-            if new_round && sep.is_empty() && (c == '|' || c == '$') && token.is_empty() {
+            has_backslash = false;
+
+            // Inside double quotes a backslash escapes only the characters
+            // it has meaning for; anywhere else it is a character of its own:
+            // "\a" --> \a, but "\"" --> ". A backtick is left out of that
+            // set on purpose -- inside a substitution `\`` opens a nested
+            // one, so there it is syntax rather than a character.
+            if (sep == "\"" || sep_second == "\"") && !matches!(c, '"' | '$' | '\\') {
+                token.push('\\');
+                token.push(c);
+                continue;
+            }
+
+            // `\|` at the start of a word would otherwise be read as a pipe,
+            // because operators are recognized by comparing whole tokens.
+            if new_round && sep.is_empty() && c == '|' && token.is_empty() {
                 sep = String::from("\\");
                 token = format!("{}", c);
+                new_round = false;
+                continue;
+            }
+
+            // An escaped `$` or quote is text. Saying so with a data mark,
+            // rather than by keeping the backslash, is what makes it text for
+            // *every* later step: expansion, substitution and quote removal
+            // all step over a marked character, and `do_expansion` takes the
+            // marks back out once none of them can mistake one for syntax.
+            // Keeping the backslash instead is what made `\$b` lose its `$`
+            // and `\$1` keep its backslash: each step had to recognize the
+            // escape for itself, and they did not agree on what a name is.
+            if c == '$' || ((c == '\'' || c == '"') && sep.is_empty()) {
+                push_marked(&mut token, c);
             } else {
                 token.push(c);
             }
             new_round = false;
-            has_backslash = false;
+            continue;
+        }
+
+        // Inside a single-quoted stretch of an assignment value -- the part of
+        // `V=a'b c'` between the quotes -- every character is literal, so mark
+        // the two that a later step could otherwise read as syntax. Without
+        // this, `V='$HOME'x` would expand: the quotes tell `find_sub_start`
+        // what is quoted, but nothing was telling `expand_env`.
+        if sep.is_empty() && sep_second == "'" {
+            if c == '\'' {
+                sep_second = String::new();
+                token.push(c);
+                continue;
+            }
+            if c == '$' || c == '`' {
+                push_marked(&mut token, c);
+            } else {
+                token.push(c);
+            }
             continue;
         }
 
@@ -326,7 +400,19 @@ pub fn parse_line(line: &str) -> LineInfo {
         }
 
         if c == '\\' {
-            if sep == "'" || !sep_second.is_empty() {
+            // A backslash is literal inside single quotes, and inside a
+            // backtick stretch it belongs to the command about to be run.
+            // Everywhere else it escapes what comes next -- including inside
+            // the double-quoted stretch of an assignment value, which is why
+            // this asks `sep_second` and not just `sep`.
+            //
+            // A word that *began* with a single quote counts as inside it for
+            // the whole word, even after the quote has closed: `echo 'x'\\`
+            // keeps both backslashes, where bash keeps one. Telling the two
+            // apart needs `semi_ok` to mean "outside the quotes now", and it
+            // does not -- it is set again by the quote that *reopens* a
+            // stretch, so `'a''b'` would lose the escapes it should keep.
+            if sep == "'" || sep_second == "`" {
                 token.push(c)
             } else {
                 has_backslash = true;
@@ -480,7 +566,16 @@ pub fn parse_line(line: &str) -> LineInfo {
                 continue;
             }
             if sep.is_empty() && !sep_second.is_empty() && sep_second != c.to_string() {
-                token.push(c);
+                // A quote that the double-quoted stretch we are in does not
+                // close is a character of the value: the `'` in `V="it's"`.
+                // Mark it, so that substitution does not read it as quoting
+                // either. Inside a backtick stretch the quote belongs to the
+                // command about to be run, and is left alone.
+                if sep_second == "\"" && c == '\'' {
+                    push_marked(&mut token, c);
+                } else {
+                    token.push(c);
+                }
                 continue;
             }
 
@@ -493,6 +588,13 @@ pub fn parse_line(line: &str) -> LineInfo {
                     continue;
                 }
 
+                // In an assignment value the quote opens a stretch instead of
+                // the whole word, so it cannot be recorded in `sep`: it is
+                // tracked in `sep_second` -- which keeps a space inside the
+                // stretch from splitting the word -- and the character stays
+                // in the text, where substitution reads it to tell quoted
+                // from unquoted. `shell::remove_quotes` takes it out at the
+                // end of expansion, which is what makes `V=a"x"c` set `axc`.
                 token.push(c);
                 if sep_second.is_empty() {
                     sep_second = c.to_string();
@@ -640,18 +742,6 @@ pub fn tokens_to_redirections(tokens: &Tokens) -> Result<(Tokens, Vec<Redirectio
     }
 
     Ok((tokens_new, redirects))
-}
-
-pub fn unquote(text: &str) -> String {
-    let mut new_str = String::from(text);
-    for &c in ['"', '\''].iter() {
-        if text.starts_with(c) && text.ends_with(c) {
-            new_str.remove(0);
-            new_str.pop();
-            break;
-        }
-    }
-    new_str
 }
 
 #[cfg(test)]
@@ -925,7 +1015,12 @@ mod tests {
                 "echo \\foo \\bar",
                 vec![("", "echo"), ("", "foo"), ("", "bar")],
             ),
-            ("echo \\$\\(date\\)", vec![("", "echo"), ("\\", "$(date)")]),
+            (
+                // The escaped `$` is marked as data, so the `$(` is text
+                // and the mark comes off in `do_expansion`.
+                "echo \\$\\(date\\)",
+                vec![("", "echo"), ("", "\u{0}$(date)")],
+            ),
             ("ll foo\\#bar", vec![("", "ll"), ("", "foo#bar")]),
             (
                 "(1 + 2) ^ 31",
@@ -936,6 +1031,30 @@ mod tests {
                 "alias c='printf \"\\ec\"'",
                 vec![("", "alias"), ("", "c='printf \"\\ec\"'")],
             ),
+            // An escaped `$` is marked as data instead of keeping its
+            // backslash, so that every later step reads it as text.
+            ("echo a\\$b", vec![("", "echo"), ("", "a\u{0}$b")]),
+            ("echo \\$b", vec![("", "echo"), ("", "\u{0}$b")]),
+            ("echo \"a\\$b\"", vec![("", "echo"), ("\"", "a\u{0}$b")]),
+            ("echo a\\$1", vec![("", "echo"), ("", "a\u{0}$1")]),
+            ("echo a\\$\\$", vec![("", "echo"), ("", "a\u{0}$\u{0}$")]),
+            // Single quotes are literal, so the backslash stays a character.
+            ("echo 'a\\$b'", vec![("", "echo"), ("'", "a\\$b")]),
+            // So is an escaped quote: it is not the quoting of the word.
+            ("echo a\\\"b", vec![("", "echo"), ("", "a\u{0}\"b")]),
+            // An assignment value keeps its quotes here -- substitution reads
+            // them to tell quoted from unquoted, and `shell::remove_quotes`
+            // takes them out at the end of expansion.
+            ("V=a\"x\"c", vec![("", "V=a\"x\"c")]),
+            ("V=a'x'c", vec![("", "V=a'x'c")]),
+            // ... and what they quote is marked, so that `V='$HOME'x` does
+            // not expand the way `V=$HOME` does.
+            ("V='$HOME'x", vec![("", "V='\u{0}$HOME'x")]),
+            ("V='`d`'", vec![("", "V='\u{0}`d\u{0}`'")]),
+            ("V=\"$HOME\"x", vec![("", "V=\"$HOME\"x")]),
+            // A backslash inside the double-quoted stretch of a value escapes
+            // what follows it, as it does in a fully double-quoted word.
+            ("V=\"a\\$b\"", vec![("", "V=\"a\u{0}$b\"")]),
         ];
         for (left, right) in v {
             println!("\ninput: {:?}", left);
@@ -1089,5 +1208,46 @@ mod tests {
         ];
         let line_exp = "echo \"中文\"";
         assert_eq!(tokens_to_line(&tokens), line_exp);
+    }
+    #[test]
+    fn test_is_complete() {
+        // A line the shell can run as it stands. `\\$b` used to be reported
+        // as unfinished -- the escape left the word marked with a `\\` that
+        // nothing closed -- so an interactive shell asked for a second line
+        // instead of running it.
+        for line in vec![
+            "echo hi",
+            "V=1",
+            "echo a\\$b",
+            "echo \\$b",
+            "echo \\$",
+            "echo \\$b\\$c",
+            "echo a\\\"b",
+            "V=a\\\"b",
+            "V=a\"x\"c",
+            "V=a'x'c",
+            "echo \"a\"",
+        ] {
+            assert!(
+                parse_line(line).is_complete,
+                "should be complete: {:?}",
+                line
+            );
+        }
+
+        // A line still waiting for something: an unclosed quote, or a
+        // backslash with nothing after it.
+        //
+        // A quote left open *inside* an assignment value -- `V='a` -- is not
+        // among them, and is not new here: completeness is judged from `sep`,
+        // which only records the quoting of a word that begins with a quote,
+        // while a value's stretches are tracked in `sep_second`.
+        for line in ["echo 'a", "echo \"a", "echo `a", "echo a\\"] {
+            assert!(
+                !parse_line(line).is_complete,
+                "should be incomplete: {:?}",
+                line
+            );
+        }
     }
 }

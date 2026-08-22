@@ -88,7 +88,9 @@ pub fn complete_path(word: &str, for_dir: bool) -> Vec<Completion> {
         (String::new(), String::new())
     } else {
         let (ref _path_sep, ref _path) = tokens[tokens.len() - 1];
-        (_path.clone(), _path_sep.clone())
+        // The word is about to be matched against file names, so it wants the
+        // characters the line spelled, not the parser's marks on them.
+        (parsers::parser_line::strip_marks(_path), _path_sep.clone())
     };
 
     let (_, _dir_orig, _f) = split_pathname(&path, "");

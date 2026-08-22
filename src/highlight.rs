@@ -98,16 +98,15 @@ fn find_token_range_heuristic(
 
     // Find the start of the token, skipping leading whitespace from the search start position
     let mut search_area = &line[start_byte..];
-    let token_start_byte =
-        {
-            let non_ws_offset = search_area.find(|c: char| !c.is_whitespace())?;
-            // Calculate the actual byte index of the first non-whitespace character
-            start_byte
-                + search_area
-                    .char_indices()
-                    .nth(non_ws_offset)
-                    .map_or(0, |(idx, _)| idx)
-        };
+    let token_start_byte = {
+        let non_ws_offset = search_area.find(|c: char| !c.is_whitespace())?;
+        // Calculate the actual byte index of the first non-whitespace character
+        start_byte
+            + search_area
+                .char_indices()
+                .nth(non_ws_offset)
+                .map_or(0, |(idx, _)| idx)
+    };
 
     search_area = &line[token_start_byte..];
 

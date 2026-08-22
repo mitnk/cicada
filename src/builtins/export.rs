@@ -2,7 +2,6 @@ use regex::Regex;
 use std::env;
 
 use crate::libs;
-use crate::parsers;
 use crate::tools;
 
 use crate::builtins::utils::print_stderr_with_capture;
@@ -37,8 +36,7 @@ pub fn run(_sh: &Shell, cl: &CommandLine, cmd: &Command, capture: bool) -> Comma
 
         for cap in re_name_ptn.captures_iter(text) {
             let name = cap[1].to_string();
-            let token = parsers::parser_line::unquote(&cap[2]);
-            let value = libs::path::expand_home(&token);
+            let value = libs::path::expand_home(&cap[2]);
             env::set_var(name, &value);
         }
     }

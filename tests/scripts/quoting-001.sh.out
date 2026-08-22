@@ -1,0 +1,26 @@
+== escapes ==
+a$b
+a$b
+a$1
+a"b
+[a"b]
+a\b
+a\b
+== quote removal in a value ==
+[axc]
+[axc]
+[a bc]
+[axc]
+== single quotes hold ==
+[$HOMEx]
+[x`echo ran`]
+[$(echo ran)]
+== operators stay text ==
+[a\>b]
+[a|b]
+[ >]
+== positional args ==
+1=
+lit=$1 real=
+$1
+[$HOME]

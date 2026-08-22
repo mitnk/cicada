@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::env;
+use std::fs;
 use std::fs::File;
 use std::fs::OpenOptions;
-use std::io::Write;
+use std::io::{Seek, SeekFrom, Write};
+use std::os::unix::fs::OpenOptionsExt;
 use std::os::unix::io::IntoRawFd;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use regex::Regex;
 
@@ -28,6 +31,8 @@ macro_rules! println_stderr {
         }
     );
 }
+
+static HEREDOC_FILE_ID: AtomicUsize = AtomicUsize::new(0);
 
 pub fn is_signal_handler_enabled() -> bool {
     env::var("CICADA_ENABLE_SIG_HANDLER").is_ok_and(|x| x == "1")
@@ -225,6 +230,36 @@ pub fn create_raw_fd_from_file(file_name: &str, append: bool) -> Result<i32, Str
     }
 }
 
+/// An fd holding `body`, rewound and ready to be a command's stdin.
+///
+/// The file is unlinked as soon as it is open: the fd keeps it alive for as
+/// long as the command needs it, and nothing is left in the temp dir if the
+/// shell dies mid-command. It is created 0600 and with `O_EXCL`, because a
+/// body on its way to a config file is as secret as the file it will become,
+/// and the temp dir is shared.
+pub fn create_fd_from_heredoc(body: &str) -> Result<i32, String> {
+    let mut path = env::temp_dir();
+    let pid = unsafe { libc::getpid() };
+    let seq = HEREDOC_FILE_ID.fetch_add(1, Ordering::Relaxed);
+    path.push(format!("cicada-heredoc-{}-{}", pid, seq));
+
+    let mut file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(&path)
+        .map_err(|e| format!("{}", e))?;
+    let _ = fs::remove_file(&path);
+
+    file.write_all(body.as_bytes())
+        .map_err(|e| format!("{}", e))?;
+    file.seek(SeekFrom::Start(0))
+        .map_err(|e| format!("{}", e))?;
+
+    Ok(file.into_raw_fd())
+}
+
 pub fn get_fd_from_file(file_name: &str) -> i32 {
     let path = Path::new(file_name);
     let display = path.display();
@@ -336,9 +371,29 @@ pub fn is_shell_altering_command(line: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use super::create_fd_from_heredoc;
     use super::escape_path;
     use super::extend_bangbang;
     use crate::shell;
+    use std::io::Read;
+    use std::os::unix::io::FromRawFd;
+
+    #[test]
+    fn test_heredoc_fd_is_private_unlinked_and_rewound() {
+        let fd = create_fd_from_heredoc("secret body\n").unwrap();
+
+        let mut st: libc::stat = unsafe { std::mem::zeroed() };
+        assert_eq!(unsafe { libc::fstat(fd, &mut st) }, 0);
+        // a body on its way to a config file is nobody else's business
+        assert_eq!(st.st_mode as u32 & 0o777, 0o600);
+        // and it is already off the filesystem
+        assert_eq!(st.st_nlink, 0);
+
+        let mut f = unsafe { super::File::from_raw_fd(fd) };
+        let mut body = String::new();
+        f.read_to_string(&mut body).unwrap();
+        assert_eq!(body, "secret body\n");
+    }
 
     #[test]
     fn test_extend_bangbang() {

@@ -32,7 +32,9 @@ printf 'a>PWNED\n'              > "${DIR_WORK}/payload.txt"
 printf 'PAYLOAD$head-INJECTED\n' > "${DIR_WORK}/template.txt"
 printf '[$0]\n'                 > "${DIR_WORK}/dollar-zero.txt"
 printf 'INPUTDATA\n'            > "${DIR_WORK}/input.txt"
-SEEDED="dollar-zero.txt input.txt payload.txt template.txt"
+printf 'one $(touch DOLLAR-RAN) two\n' > "${DIR_WORK}/cmdsub.txt"
+printf 'one `touch TICK-RAN` two\n'    > "${DIR_WORK}/backtick.txt"
+SEEDED="backtick.txt cmdsub.txt dollar-zero.txt input.txt payload.txt template.txt"
 
 passed=0
 failed=0
@@ -147,6 +149,105 @@ echo '--- expansion output is data, not more expansion ---'
 check 'value with $ stays literal'  "A='\$HOME'; echo \$A"   '$HOME'
 check 'braced value with $ literal' "A='\$HOME'; echo \${A}" '$HOME'
 check 'unset name expands to empty'  'echo [$no_such_var_xyz]' '[]'
+
+echo '--- an escaped dollar stays a dollar ---'
+# `\$` is text, whatever follows it. The `$` is marked as data in the parser
+# rather than left behind a backslash, so no later step has to guess: a name
+# that expansion knows (`\$b`), one it does not (`\$1`), and one that is not a
+# name at all (`\$$`) all come out the same way.
+check 'escaped dollar in a word'         'echo a\$b'      'a$b'
+check 'escaped dollar in double quotes'  'echo "a\$b"'    'a$b'
+check 'escaped dollar at end'            'echo a\$'       'a$'
+check 'escaped dollar at word start'     'echo \$b'       '$b'
+check 'escaped dollar in single quotes'  $'echo \'a\\$b\'' 'a\$b'
+check 'escaped dollar before a digit'    'echo a\$1'      'a$1'
+check 'escaped dollar before a zero'     'echo a\$0'      'a$0'
+check 'escaped braced digit'             'echo a\${1}'    'a${1}'
+check 'escaped braced name'              'echo \${HOME}'  '${HOME}'
+check 'escaped dollar then dollar'       'echo a\$\$'     'a$$'
+check 'escaped dollar then question'     'echo a\$\?'     'a$?'
+check 'escaped and live dollar in a word' 'A=B; echo a\$1$A' 'a$1B'
+check 'escaped dollar before a path'     'echo \$HOME/x'  '$HOME/x'
+check 'escaped dollar sub is not run'    'echo "\$(touch DOLLAR-RAN)"' '$(touch DOLLAR-RAN)'
+check 'escaped dollar through a sub'     'echo $(echo a\$b)' 'a$b'
+check 'escaped ampersand still works'    'echo x\&y'      'x&y'
+check 'escaped double quote still works' 'echo a\"b'      'a"b'
+
+echo '--- expansion output is not run as a command ---'
+# A value is data. Substitution syntax that only appears once a value has been
+# put in place must not run: these cases carry the payload in from a file, the
+# way a script reading untrusted input would.
+check 'value with $(...) not run'   'V=$(cat cmdsub.txt); echo "[$V]"'   '[one $(touch DOLLAR-RAN) two]'
+check 'value with backticks not run' 'V=$(cat backtick.txt); echo "[$V]"' '[one `touch TICK-RAN` two]'
+check 'value $(...) as an argument'  'V=$(cat cmdsub.txt); printf "%s\n" "$V"' 'one $(touch DOLLAR-RAN) two'
+check 'value with $(...) unquoted'   'V=$(cat cmdsub.txt); echo $V'      'one $(touch DOLLAR-RAN) two'
+
+echo '--- double quotes do not hide a substitution ---'
+# Only single quotes make a substitution literal. These ran as expected once,
+# then stopped when a regex was added to keep `V='$(cmd)'` from running.
+check 'quoted sub in an assignment'  'V="$(echo hi)"; echo $V'          'hi'
+check 'quoted sub with text around'  'V="x$(echo hi)y"; echo $V'        'xhiy'
+check 'backticks in double quotes'   'V="`echo hi`"; echo $V'           'hi'
+check 'apostrophes around a sub'     "echo \"a='\$(echo hi)'\""       "a='hi'"
+check 'apostrophe in a quoted word'  "echo \"it's \$(echo now)\""      "it's now"
+
+echo '--- single quotes hold in an assignment ---'
+# The quoting is inside the word here, which is where a scanner that only
+# looks at the word's outer quote marker stops seeing it.
+check 'backticks in a quoted value'  "V='\`touch TICK-RAN\`'; echo \"[\$V]\"" '[`touch TICK-RAN`]'
+check 'dollar sub in quoted value'   "V='\$(touch DOLLAR-RAN)'; echo \"[\$V]\"" '[$(touch DOLLAR-RAN)]'
+check 'backticks quoted, unused'     "V='\`touch TICK-RAN\`'; echo done" 'done'
+
+echo '--- quotes in an assignment value are removed ---'
+# Quote removal is the last step of expansion, not the parser's job: the
+# quotes have to still be in the word while substitution decides what is
+# quoted, and they have to be gone by the time the value is stored.
+check 'double quotes inside assignment value'  'V=a"x"c; echo $V'  'axc'
+check 'single quotes inside assignment value'  "V=a'x'c; echo \$V"  'axc'
+check 'double quoted assignment value'         'V="x"; echo $V'     'x'
+check 'single quoted assignment value'         "V='x'; echo \$V"     'x'
+check 'double quotes in ordinary word'         'echo a"x"c'         'axc'
+check 'several quoted stretches'      'V=a"x"c"y"d; echo $V'        'axcyd'
+check 'a space inside the quotes'     'V=a"b c"; echo "[$V]"'       '[ab c]'
+check 'quotes around an expansion'    'A=1; V=a"$A"b; echo "[$V]"'  '[a1b]'
+check 'quote removal on export'       'export V=a"x"c; echo "[$V]"' '[axc]'
+check 'empty quoted stretch'          'V=a""b; echo "[$V]"'         '[ab]'
+
+echo '--- a quote that is not syntax is kept ---'
+# Only the quotes the *line* was written with are removed. One that a value
+# carried in, or one that was escaped, is a character of the value: removing
+# it would corrupt data on its way through an assignment.
+check 'escaped double quote in a value' 'V=a\"b; echo "[$V]"'  '[a"b]'
+check 'escaped single quote in a value' $'V=a\\\'b; echo "[$V]"' "[a'b]"
+check 'unpaired escaped quote'          'V=x\"; echo "[$V]"'   '[x"]'
+check 'apostrophe inside double quotes' $'V="it\'s"; echo "[$V]"' "[it's]"
+check 'a double quote in a value'       "B=\$(echo 'x\"y'); A=\$B; echo \"[\$A]\"" '[x"y]'
+check 'an apostrophe in a value'        "B=\$(echo \"x'y\"); A=\$B; echo \"[\$A]\"" "[x'y]"
+check 'a quote in a value, exported'    "B=\$(echo 'x\"y'); A=\$B env | grep '^A='" 'A=x"y'
+check 'a backslash in a value'          "B='a\\b'; A=\$B; echo \"[\$A]\""  '[a\b]'
+check 'quotes in substitution output'   "echo \$(echo '\"x\"')"   '"x"'
+
+echo '--- an escaped operator stays text ---'
+# An operator character is only an operator when the line wrote it as one.
+# These three each hid one from a different place, and each broke a different
+# way when the hiding place stopped being checked.
+check 'escaped redirect in a value'  'V="a\>b"; echo "[$V]"'    '[a\>b]'
+check 'escaped redirect, unquoted'   'echo a\>b'               'a>b'
+check 'quoted redirect in a value'   "export E1=' >'; echo \"[\$E1]\"" '[ >]'
+check 'quoted pipe in a value'       'V="a|b"; echo "[$V]"'     '[a|b]'
+check 'quoted amp in a value'        "V='a&b'; echo \"[\$V]\""  '[a&b]'
+check 'adjacent quoted stretches'    $'echo \'a\'\'b\''      'ab'
+check 'escapes in a second stretch'  $'echo \'a\'\'\\\\b\''    'a\\b'
+
+echo '--- a prompt keeps its own syntax, not its quotes ---'
+# `export PROMPT=...` skips expansion: the `$` sequences belong to the prompt
+# and are read when it is drawn. Quote removal still has to run, or the prompt
+# is drawn with the quotes it was written with.
+check 'prompt keeps its names'   'export PROMPT="${GREEN}x${RESET} "; echo "[$PROMPT]"' '[${GREEN}x${RESET} ]'
+check 'prompt loses its quotes'  'export PROMPT="a b"; echo "[$PROMPT]"'   '[a b]'
+check 'prompt quoted mid-value'  'export PROMPT=a"x"c; echo "[$PROMPT]"'   '[axc]'
+check 'prompt in single quotes'  "export PROMPT='\${G}x '; echo \"[\$PROMPT]\"" '[${G}x ]'
+check 'prompt with escaped $'    'export PROMPT="\$ "; echo "[$PROMPT]"'   '[$ ]'
 
 echo '--- command substitution output is literal ---'
 # `$head`, `$tail` and `$0` were interpreted as regex replacement references.

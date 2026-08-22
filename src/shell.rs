@@ -29,6 +29,7 @@ pub struct Shell {
     pub exit_on_error: bool,
     pub has_terminal: bool,
     pub session_id: String,
+    pub heredocs: HashMap<String, types::Heredoc>,
 }
 
 impl Shell {
@@ -54,6 +55,7 @@ impl Shell {
             exit_on_error: false,
             has_terminal,
             session_id: session_id.to_string(),
+            heredocs: HashMap::new(),
         }
     }
 
@@ -434,7 +436,7 @@ pub fn expand_glob(tokens: &mut types::Tokens) {
 ///
 /// Returns `None` for every other braced form, e.g. `${NAME:-default}`, so
 /// that syntax we do not implement is left alone instead of half-expanded.
-fn read_braced_name(chars: &[char], i: usize) -> Option<(String, usize)> {
+pub(crate) fn read_braced_name(chars: &[char], i: usize) -> Option<(String, usize)> {
     if chars.get(i + 1) != Some(&'{') {
         return None;
     }
@@ -463,7 +465,7 @@ fn read_braced_name(chars: &[char], i: usize) -> Option<(String, usize)> {
 }
 
 /// Read the name of a `$NAME`, `$$` or `$?` that starts at `chars[i]` (a `$`).
-fn read_bare_name(chars: &[char], i: usize) -> Option<(String, usize)> {
+pub(crate) fn read_bare_name(chars: &[char], i: usize) -> Option<(String, usize)> {
     let c = chars.get(i + 1)?;
     if *c == '$' || *c == '?' {
         return Some((c.to_string(), i + 2));
@@ -487,7 +489,7 @@ fn read_bare_name(chars: &[char], i: usize) -> Option<(String, usize)> {
 
 /// The value an expandable name stands for. `$` is the pid, `?` the status of
 /// the previous command, and a name that is not set expands to nothing.
-fn env_value_of(sh: &Shell, key: &str) -> String {
+pub(crate) fn env_value_of(sh: &Shell, key: &str) -> String {
     if key == "?" {
         return sh.previous_status.to_string();
     }
@@ -522,6 +524,20 @@ fn expand_one_env(sh: &Shell, token: &str) -> String {
     let mut i = 0;
 
     while i < chars.len() {
+        // A marked character is text -- an escaped `$` the parser marked, or
+        // one a value brought in -- so copy it out with its mark still on: the
+        // steps after this one need the mark too, and `do_expansion` takes
+        // them all off at the end.
+        if chars[i] == DATA_MARK {
+            result.push(chars[i]);
+            i += 1;
+            if i < chars.len() {
+                result.push(chars[i]);
+                i += 1;
+            }
+            continue;
+        }
+
         if chars[i] != '$' {
             result.push(chars[i]);
             i += 1;
@@ -529,13 +545,13 @@ fn expand_one_env(sh: &Shell, token: &str) -> String {
         }
 
         if let Some((name, next)) = read_braced_name(&chars, i) {
-            result.push_str(&env_value_of(sh, &name));
+            result.push_str(&mark_as_data(&env_value_of(sh, &name)));
             i = next;
             continue;
         }
 
         if let Some((name, next)) = read_bare_name(&chars, i) {
-            result.push_str(&env_value_of(sh, &name));
+            result.push_str(&mark_as_data(&env_value_of(sh, &name)));
             i = next;
             continue;
         }
@@ -861,6 +877,111 @@ const OPERATOR_CHARS: [char; 4] = ['<', '>', '|', '&'];
 /// treated differently by `drain_env_tokens` and by backtick substitution.
 pub const SEP_GENERATED: &str = "\u{0}";
 
+/// Put in front of a character to say that it is text, and not the syntax it
+/// looks like: a `$` or backtick that would otherwise start a substitution, a
+/// quote that would otherwise quote.
+///
+/// Two things get marked. A value a word brought in is data: `V='$(cmd)';
+/// echo "$V"` prints the text, and a value read from a file cannot run a
+/// command by containing one. And a character the line escaped is data by the
+/// author's say-so: `\$b` is a dollar and a `b`, `V=a\"b` holds a quote.
+///
+/// Every step that could read one of these as syntax -- expansion,
+/// substitution, quote removal -- steps over a marked character instead, and
+/// `do_expansion` takes the marks back out once the last of them has run.
+/// `\u{0}` cannot come from a command line, which is what makes it usable as
+/// a mark -- the same reason `SEP_GENERATED` uses it, one field over, for the
+/// same kind of job.
+pub(crate) const DATA_MARK: char = '\u{0}';
+
+/// A value on its way into a word, with every character that could be read as
+/// syntax -- substitution or quoting -- marked as the text it is.
+fn mark_as_data(value: &str) -> String {
+    let mut out = String::with_capacity(value.len());
+    for c in value.chars() {
+        if c == DATA_MARK {
+            continue;
+        }
+        if c == '$' || c == '`' || c == '\'' || c == '"' {
+            out.push(DATA_MARK);
+        }
+        out.push(c);
+    }
+    out
+}
+
+/// Quote removal: the last thing expansion does to a word.
+///
+/// Most words never need it -- the parser records a word that *begins* with a
+/// quote in the token's `sep` and keeps the quotes out of the text. What it
+/// cannot record that way is a quote that opens partway into an assignment
+/// value (`V=a"x"c`), because one word can hold several such stretches and
+/// there is only one `sep`. Those quotes stay in the text, where substitution
+/// needs them anyway to tell quoted from unquoted, and come out here.
+///
+/// A marked quote stays: it is a character of the value, not syntax -- one
+/// that was escaped (`V=a\"b`), one inside a stretch opened by the other
+/// quote (the apostrophe in `V="it's"`), or one a value brought in
+/// (`B='x"y'; A=$B`).
+fn remove_quotes(tokens: &mut types::Tokens) {
+    for (sep, token) in tokens.iter_mut() {
+        // Only a word the parser left unquoted can still hold syntax quotes,
+        // and of those only an assignment: anything else with a quote in its
+        // text got it from a value, or from inside a `$(...)` that did not run.
+        if !sep.is_empty() || !libs::re::re_contains(token, r"(?s)^[a-zA-Z0-9_]+=") {
+            continue;
+        }
+        if !token.contains('\'') && !token.contains('"') {
+            continue;
+        }
+
+        let mut out = String::with_capacity(token.len());
+        let mut chars = token.chars();
+        let mut in_single = false;
+        let mut in_double = false;
+        let mut freed_operator = false;
+        while let Some(c) = chars.next() {
+            if c == DATA_MARK {
+                out.push(c);
+                if let Some(marked) = chars.next() {
+                    out.push(marked);
+                }
+                continue;
+            }
+            if c == '\'' && !in_double {
+                in_single = !in_single;
+                continue;
+            }
+            if c == '"' && !in_single {
+                in_double = !in_double;
+                continue;
+            }
+            if (in_single || in_double) && OPERATOR_CHARS.contains(&c) {
+                freed_operator = true;
+            }
+            out.push(c);
+        }
+        *token = out;
+
+        // The quotes were the only thing saying that a `>` in the value is
+        // text: `export E1=' >'` sets a variable, it does not redirect. Now
+        // that they are gone, say it the way the rest of expansion does.
+        if freed_operator {
+            *sep = SEP_GENERATED.to_string();
+        }
+    }
+}
+
+/// Take the marks back out, once no step is left that could read a marked
+/// character as syntax.
+fn strip_data_marks(tokens: &mut types::Tokens) {
+    for (_, token) in tokens.iter_mut() {
+        if token.contains(DATA_MARK) {
+            *token = token.replace(DATA_MARK, "");
+        }
+    }
+}
+
 /// Decide the quote marker for a word whose text expansion has just changed.
 ///
 /// A word keeps its marker unless expansion *introduced* an operator
@@ -884,7 +1005,16 @@ fn sep_after_expansion(sep: &str, before: &str, after: &str) -> String {
     SEP_GENERATED.to_string()
 }
 
+/// Expand `$NAME` in a word list, leaving no marks behind.
+///
+/// This is the entry point for callers outside `do_expansion`, which has more
+/// steps to run before the marks can come off (see `DATA_MARK`).
 pub fn expand_env(sh: &Shell, tokens: &mut types::Tokens) {
+    expand_env_marked(sh, tokens);
+    strip_data_marks(tokens);
+}
+
+fn expand_env_marked(sh: &Shell, tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
     let mut buff = Vec::new();
 
@@ -915,10 +1045,100 @@ pub fn expand_env(sh: &Shell, tokens: &mut types::Tokens) {
     }
 }
 
+/// A cheap look for `$(...)` before the word is scanned properly.
+///
+/// Whether a `$(` found here is really a substitution is `find_sub_start`'s
+/// question -- it knows which of them are quoted, and which came out of a
+/// value -- so this only has to be quick and never miss one.
 fn should_do_dollar_command_extension(line: &str) -> bool {
     // `(?s)` so that a substitution whose body spans a newline is recognized.
     libs::re::re_contains(line, r"(?s)\$\(.+\)")
-        && !libs::re::re_contains(line, r"(?s)='.*\$\(.+\).*'$")
+}
+
+/// Where a substitution opened by `opener` (`$` for `$(...)`, a backtick for
+/// `` `...` ``) starts in `bytes`, if one does.
+///
+/// Two kinds of character are stepped over rather than read as syntax:
+///
+/// * one carrying `DATA_MARK`, because it came out of a value and is text;
+/// * one inside single quotes, when `honor_quotes` says the quoting is part of
+///   the word. That is where ``V='`cmd`'`` hides its backticks: the parser
+///   leaves the quotes in the text of a word that does not begin with one.
+///
+/// Double quotes are not a hiding place -- `V="$(date)"` runs `date`, as it
+/// does in any shell -- but they do turn an apostrophe inside them into an
+/// ordinary character. A word the parser already recorded as quoted keeps its
+/// marker, and `honor_quotes` is false for it: `echo "it's $(date)"` arrives
+/// here as the text between the double quotes.
+fn find_sub_start(bytes: &[u8], opener: u8, honor_quotes: bool) -> Option<usize> {
+    let mut in_single = false;
+    let mut in_double = false;
+    let mut i = 0;
+    while i < bytes.len() {
+        let c = bytes[i];
+
+        if c == DATA_MARK as u8 {
+            i += 2;
+            continue;
+        }
+        if c == b'\\' && !in_single {
+            i += 2;
+            continue;
+        }
+
+        if in_single {
+            if c == b'\'' {
+                in_single = false;
+            }
+            i += 1;
+            continue;
+        }
+
+        if honor_quotes {
+            if c == b'\'' && !in_double {
+                in_single = true;
+                i += 1;
+                continue;
+            }
+            if c == b'"' {
+                in_double = !in_double;
+                i += 1;
+                continue;
+            }
+        }
+
+        let opens = if opener == b'$' {
+            c == b'$' && bytes.get(i + 1) == Some(&b'(')
+        } else {
+            c == opener
+        };
+        if opens {
+            return Some(i);
+        }
+
+        i += 1;
+    }
+    None
+}
+
+/// Find the first `` `...` `` in `line`: the command inside it and the byte
+/// range the whole thing occupies.
+fn find_first_backtick_cmdsub(line: &str, honor_quotes: bool) -> Option<(String, usize, usize)> {
+    let bytes = line.as_bytes();
+    let start = find_sub_start(bytes, b'`', honor_quotes)?;
+
+    let mut i = start + 1;
+    while i < bytes.len() {
+        if bytes[i] == b'\\' {
+            i += 2;
+            continue;
+        }
+        if bytes[i] == b'`' {
+            return Some((line[start + 1..i].to_string(), start, i + 1));
+        }
+        i += 1;
+    }
+    None
 }
 
 /// Find the first `$(...)` in `line` and return the command inside it, plus
@@ -931,16 +1151,9 @@ fn should_do_dollar_command_extension(line: &str) -> bool {
 ///
 /// A parenthesis inside quotes is a character, not a delimiter, so
 /// `$(echo "a)b")` runs the whole `echo "a)b"`.
-fn find_first_dollar_cmdsub(line: &str) -> Option<(String, usize, usize)> {
+fn find_first_dollar_cmdsub(line: &str, honor_quotes: bool) -> Option<(String, usize, usize)> {
     let bytes = line.as_bytes();
-    let mut start = None;
-    for i in 0..bytes.len() {
-        if bytes[i] == b'$' && bytes.get(i + 1) == Some(&b'(') {
-            start = Some(i);
-            break;
-        }
-    }
-    let start = start?;
+    let start = find_sub_start(bytes, b'$', honor_quotes)?;
 
     let mut depth = 0;
     // The quote we are inside, if any: `'`, `"` or a backtick.
@@ -1000,7 +1213,7 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
         // output is never looked at again.
         let mut done = String::new();
         let mut rest = token.to_string();
-        while let Some((cmd, start, end)) = find_first_dollar_cmdsub(&rest) {
+        while let Some((cmd, start, end)) = find_first_dollar_cmdsub(&rest, sep.is_empty()) {
             log!("run subcmd dollar: {:?}", &cmd);
             let output = run_substitution(sh, &cmd);
 
@@ -1009,7 +1222,7 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
             // rewrite the command line, and a `$0` would put the `$(...)`
             // back and run the command again forever.
             done.push_str(&rest[..start]);
-            done.push_str(output.trim());
+            done.push_str(&mark_as_data(output.trim()));
             rest = rest[end..].to_string();
         }
         done.push_str(&rest);
@@ -1027,7 +1240,6 @@ fn do_command_substitution_for_dollar(sh: &mut Shell, tokens: &mut types::Tokens
 fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
     let mut idx: usize = 0;
     let mut buff: HashMap<usize, (String, String)> = HashMap::new();
-    let re = Regex::new(r"^([^`]*)`([^`]+)`(.*)$").unwrap();
 
     for (sep, token) in tokens.iter() {
         let new_token: String;
@@ -1051,56 +1263,46 @@ fn do_command_substitution_for_dot(sh: &mut Shell, tokens: &mut types::Tokens) {
                 }
             };
 
-            new_token = cr.stdout.trim().to_string();
+            new_token = mark_as_data(cr.stdout.trim());
         } else if sep == "\"" || sep.is_empty() {
-            if !re.is_match(token) {
+            // Rebuild the token left to right, as the `$(...)` pass does: each
+            // substitution runs once, and its output is marked as data so that
+            // nothing coming out of one is read as syntax afterwards.
+            let mut done = String::new();
+            let mut rest = token.to_string();
+            let mut found = false;
+            while let Some((cmd, start, end)) = find_first_backtick_cmdsub(&rest, sep.is_empty()) {
+                found = true;
+                log!("run subcmd dot2: {:?}", &cmd);
+
+                let output = match CommandLine::from_line(&cmd, sh) {
+                    Ok(c) => {
+                        let (term_given, cr) = core::run_pipeline(sh, &c, true, true, false);
+                        if term_given {
+                            unsafe {
+                                let gid = libc::getpgid(0);
+                                give_terminal_to(gid);
+                            }
+                        }
+                        cr.stdout.trim().to_string()
+                    }
+                    Err(e) => {
+                        println_stderr!("cicada: {}", e);
+                        String::new()
+                    }
+                };
+
+                done.push_str(&rest[..start]);
+                done.push_str(&mark_as_data(&output));
+                rest = rest[end..].to_string();
+            }
+
+            if !found {
                 idx += 1;
                 continue;
             }
-            let mut _token = token.clone();
-            let mut _item = String::new();
-            let mut _head = String::new();
-            let mut _output = String::new();
-            let mut _tail = String::new();
-            loop {
-                if !re.is_match(&_token) {
-                    if !_token.is_empty() {
-                        _item = format!("{}{}", _item, _token);
-                    }
-                    break;
-                }
-                for cap in re.captures_iter(&_token) {
-                    _head = cap[1].to_string();
-                    _tail = cap[3].to_string();
-                    log!("run subcmd dot2: {:?}", &cap[2]);
-
-                    let cr = match CommandLine::from_line(&cap[2], sh) {
-                        Ok(c) => {
-                            let (term_given, _cr) = core::run_pipeline(sh, &c, true, true, false);
-                            if term_given {
-                                unsafe {
-                                    let gid = libc::getpgid(0);
-                                    give_terminal_to(gid);
-                                }
-                            }
-
-                            _cr
-                        }
-                        Err(e) => {
-                            println_stderr!("cicada: {}", e);
-                            continue;
-                        }
-                    };
-
-                    _output = cr.stdout.trim().to_string();
-                }
-                _item = format!("{}{}{}", _item, _head, _output);
-                if _tail.is_empty() {
-                    break;
-                }
-                _token = _tail.clone();
-            }
-            new_token = _item;
+            done.push_str(&rest);
+            new_token = done;
         } else {
             idx += 1;
             continue;
@@ -1133,17 +1335,25 @@ pub fn do_expansion(sh: &mut Shell, tokens: &mut types::Tokens) {
         return;
     }
 
+    // A prompt is kept whole: its `$` sequences are the prompt's own syntax,
+    // to be read when the prompt is drawn, not names to expand now. Quote
+    // removal still has to run -- `export PROMPT="..."` is quoted like any
+    // other assignment, and the quotes are not part of the prompt.
     if tokens.len() >= 2 && tokens[0].1 == "export" && tokens[1].1.starts_with("PROMPT=") {
+        remove_quotes(tokens);
+        strip_data_marks(tokens);
         return;
     }
 
     expand_alias(sh, tokens);
     expand_home(tokens);
-    expand_env(sh, tokens);
+    expand_env_marked(sh, tokens);
     expand_brace(tokens);
     expand_glob(tokens);
     do_command_substitution(sh, tokens);
     expand_brace_range(tokens);
+    remove_quotes(tokens);
+    strip_data_marks(tokens);
 }
 
 pub fn trim_multiline_prompts(line: &str) -> String {
@@ -1174,9 +1384,11 @@ mod tests {
     use super::find_first_dollar_cmdsub;
     use super::libs;
     use super::needs_globbing;
+    use super::remove_quotes;
     use super::sep_after_expansion;
     use super::should_do_dollar_command_extension;
     use super::Shell;
+    use super::DATA_MARK;
     use super::SEP_GENERATED;
     use std::env;
 
@@ -1197,7 +1409,8 @@ mod tests {
     fn test_should_do_dollar_command_extension() {
         assert!(!should_do_dollar_command_extension("ls $HOME"));
         assert!(!should_do_dollar_command_extension("echo $[pwd]"));
-        assert!(!should_do_dollar_command_extension("='pwd is $(pwd).'"));
+        // quoted or not is decided later, by `find_sub_start`
+        assert!(should_do_dollar_command_extension("='pwd is $(pwd).'"));
         assert!(should_do_dollar_command_extension("echo $(pwd)"));
         assert!(should_do_dollar_command_extension("echo $(pwd) foo"));
         assert!(should_do_dollar_command_extension("echo $(foo bar)"));
@@ -1515,11 +1728,19 @@ mod tests {
             "preabcpost"
         );
 
-        // D10: the value of `test_eoe_dollar` is not expanded again.
-        assert_eq!(expand_one_env(&sh, "$test_eoe_dollar"), "$test_eoe_plain");
-        assert_eq!(expand_one_env(&sh, "${test_eoe_dollar}"), "$test_eoe_plain");
+        // the value of `test_eoe_dollar` is not expanded again. The `$`
+        // it brought in comes back marked as data, so that no later step reads
+        // it as syntax either; `do_expansion` drops the mark at the end.
+        assert_eq!(
+            expand_one_env(&sh, "$test_eoe_dollar"),
+            format!("{}$test_eoe_plain", DATA_MARK)
+        );
+        assert_eq!(
+            expand_one_env(&sh, "${test_eoe_dollar}"),
+            format!("{}$test_eoe_plain", DATA_MARK)
+        );
 
-        // D1/D2: a newline in a value neither hangs nor eats the prefix.
+        // a newline in a value neither hangs nor eats the prefix.
         assert_eq!(
             expand_one_env(&sh, "$test_eoe_newline$test_eoe_plain"),
             "PREFIX\nabc"
@@ -1529,7 +1750,7 @@ mod tests {
             "PREFIX\nabc"
         );
 
-        // D9: unimplemented `${...}` forms are left as they were written.
+        // unimplemented `${...}` forms are left as they were written.
         for form in &[
             "${test_eoe_plain:-d}",
             "${test_eoe_plain-d}",
@@ -1550,34 +1771,34 @@ mod tests {
     }
 
     /// `$(...)` is delimited by counting parentheses, so siblings do not merge
-    /// (D6) and a nested substitution is not cut at the first `)`.
+    /// and a nested substitution is not cut at the first `)`.
     #[test]
     fn test_find_first_dollar_cmdsub() {
-        let (cmd, start, end) = find_first_dollar_cmdsub("$(echo A)-$(echo B)").unwrap();
+        let (cmd, start, end) = find_first_dollar_cmdsub("$(echo A)-$(echo B)", true).unwrap();
         assert_eq!(cmd, "echo A");
         assert_eq!((start, end), (0, 9));
 
-        let (cmd, start, end) = find_first_dollar_cmdsub("x$(echo $(echo N))y").unwrap();
+        let (cmd, start, end) = find_first_dollar_cmdsub("x$(echo $(echo N))y", true).unwrap();
         assert_eq!(cmd, "echo $(echo N)");
         assert_eq!((start, end), (1, 18));
 
-        let (cmd, ..) = find_first_dollar_cmdsub("pre$(printf a; printf b)post").unwrap();
+        let (cmd, ..) = find_first_dollar_cmdsub("pre$(printf a; printf b)post", true).unwrap();
         assert_eq!(cmd, "printf a; printf b");
 
         // A paren inside quotes is a character, not the closing delimiter.
-        let (cmd, ..) = find_first_dollar_cmdsub("$(echo \"a)b\")").unwrap();
+        let (cmd, ..) = find_first_dollar_cmdsub("$(echo \"a)b\")", true).unwrap();
         assert_eq!(cmd, "echo \"a)b\"");
-        let (cmd, ..) = find_first_dollar_cmdsub("$(echo 'a)b')").unwrap();
+        let (cmd, ..) = find_first_dollar_cmdsub("$(echo 'a)b')", true).unwrap();
         assert_eq!(cmd, "echo 'a)b'");
-        let (cmd, ..) = find_first_dollar_cmdsub("$(echo \\))").unwrap();
+        let (cmd, ..) = find_first_dollar_cmdsub("$(echo \\))", true).unwrap();
         assert_eq!(cmd, "echo \\)");
 
-        assert!(find_first_dollar_cmdsub("echo $HOME").is_none());
+        assert!(find_first_dollar_cmdsub("echo $HOME", true).is_none());
         // Unbalanced: no match rather than a truncated command.
-        assert!(find_first_dollar_cmdsub("echo $(echo A").is_none());
+        assert!(find_first_dollar_cmdsub("echo $(echo A", true).is_none());
     }
 
-    /// D8: an operator character that expansion *introduced* must not make the
+    /// an operator character that expansion *introduced* must not make the
     /// word syntax, while one written in the source still must.
     #[test]
     fn test_sep_after_expansion() {
@@ -1599,5 +1820,63 @@ mod tests {
         assert_eq!(sep_after_expansion("'", "$V", "a>b"), "'");
         // A backtick word with no operator in its output is plain again.
         assert_eq!(sep_after_expansion("`", "uname", "Darwin"), "");
+    }
+
+    #[test]
+    fn test_remove_quotes() {
+        let mark = DATA_MARK;
+        let removed = |sep: &str, token: &str| {
+            let mut tokens = vec![(sep.to_string(), token.to_string())];
+            remove_quotes(&mut tokens);
+            tokens[0].1.clone()
+        };
+        let marker = |token: &str| {
+            let mut tokens = vec![(String::new(), token.to_string())];
+            remove_quotes(&mut tokens);
+            tokens[0].0.clone()
+        };
+
+        // The quotes an assignment value was written with come out, wherever
+        // in the value they open.
+        assert_eq!(removed("", "V=a\"x\"c"), "V=axc");
+        assert_eq!(removed("", "V=a'x'c"), "V=axc");
+        assert_eq!(removed("", "V=\"x\""), "V=x");
+        assert_eq!(removed("", "V=a\"x\"c\"y\"d"), "V=axcyd");
+        assert_eq!(removed("", "V=a\"b c\""), "V=ab c");
+        assert_eq!(removed("", "V=a\"\"b"), "V=ab");
+
+        // A quote inside a stretch the other quote opened is a character.
+        assert_eq!(removed("", "V=\"it's\""), "V=it's");
+        assert_eq!(removed("", "V='a\"b'"), "V=a\"b");
+
+        // A marked quote is a character too: it was escaped, or a value
+        // brought it in. Its mark rides along to `strip_data_marks`.
+        assert_eq!(
+            removed("", &format!("V=a{}\"b", mark)),
+            format!("V=a{}\"b", mark)
+        );
+        assert_eq!(
+            removed("", &format!("V={}'x{}'", mark, mark)),
+            format!("V={}'x{}'", mark, mark)
+        );
+
+        // A word the parser already recorded as quoted has no syntax quotes
+        // left in its text, and a word that is not an assignment never had
+        // any: neither is touched.
+        assert_eq!(removed("\"", "a\"b"), "a\"b");
+        assert_eq!(removed("'", "a'b"), "a'b");
+        assert_eq!(removed(SEP_GENERATED, "V=a\"b"), "V=a\"b");
+        assert_eq!(removed("", "echo"), "echo");
+        assert_eq!(removed("", "--opt=\"x\""), "--opt=\"x\"");
+
+        // An operator character the quotes were hiding is still text once
+        // they are gone, so the word says so the way expansion does.
+        assert_eq!(removed("", "E=' >'"), "E= >");
+        assert_eq!(marker("E=' >'"), SEP_GENERATED);
+        assert_eq!(marker("E=\"a|b\""), SEP_GENERATED);
+        assert_eq!(marker("E='a&b'"), SEP_GENERATED);
+        // ... and a value with nothing to hide keeps its plain marker.
+        assert_eq!(marker("E=\"ab\""), "");
+        assert_eq!(marker("E=ab"), "");
     }
 }

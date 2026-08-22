@@ -295,6 +295,21 @@ fn run_single_program(
         }
     }
 
+    // A heredoc body goes into a temp file rather than a pipe: bodies can be
+    // longer than a pipe holds, and writing one from here would then block
+    // until a reader that may not exist yet drains it -- or take a SIGPIPE
+    // from a child that exited early, killing the shell.
+    let mut fd_heredoc = None;
+    if let Some(body) = &cmd.heredoc {
+        match tools::create_fd_from_heredoc(body) {
+            Ok(fd) => fd_heredoc = Some(fd),
+            Err(e) => {
+                println_stderr!("cicada: heredoc: {}", e);
+                return 1;
+            }
+        }
+    }
+
     match libs::fork::fork() {
         Ok(ForkResult::Child) => {
             unsafe {
@@ -373,6 +388,11 @@ fn run_single_program(
                     libs::dup2(fds.0, 0);
                     libs::close(fds.0);
                 }
+            }
+
+            if let Some(fd) = fd_heredoc {
+                libs::dup2(fd, 0);
+                libs::close(fd);
             }
 
             let mut stdout_redirected = false;
@@ -454,6 +474,14 @@ fn run_single_program(
                 if let Some(status) = try_run_builtin_in_subprocess(sh, cl, idx_cmd, capture) {
                     process::exit(status);
                 }
+            }
+
+            // A command of pure redirection, e.g. `> foo` or a heredoc with
+            // nothing in front of it: the redirections above have been applied
+            // already (so `> foo` creates the file), and there is nothing left
+            // to run.
+            if cmd.tokens.is_empty() {
+                process::exit(0);
             }
 
             // our strings do not have '\x00' bytes in them,
@@ -560,6 +588,11 @@ fn run_single_program(
                 }
             }
 
+            // (in parent) the child has its own copy of the heredoc file
+            if let Some(fd) = fd_heredoc {
+                libs::close(fd);
+            }
+
             // (in parent) close unused pipe ends
             if idx_cmd < pipes_count {
                 let fds = pipes[idx_cmd];
@@ -608,6 +641,9 @@ fn run_single_program(
 
         Err(_) => {
             println_stderr!("Fork failed");
+            if let Some(fd) = fd_heredoc {
+                libs::close(fd);
+            }
             *cmd_result = CommandResult::error();
             0
         }
@@ -625,6 +661,12 @@ fn try_run_func(
     }
 
     let command = &cl.commands[0];
+    // a command can be all redirection and no word, as in `> foo`, `<<< foo`
+    // or a heredoc with nothing in front of it -- there is no name to look up
+    if command.tokens.is_empty() {
+        return None;
+    }
+
     if let Some(func_body) = sh.get_func(&command.tokens[0].1) {
         let mut args = vec!["cicada".to_string()];
         for token in &command.tokens {

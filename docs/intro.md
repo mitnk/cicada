@@ -35,6 +35,56 @@ $ cat <<< 'here string'
 here string
 ```
 
+### With heredocs
+
+Feed a command lines typed right after it, up to a delimiter of your choice.
+Cicada prompts with `>> ` until the delimiter shows up on a line of its own:
+
+```
+$ cat << EOF > foo.txt
+>> hello
+>> world
+>> EOF
+
+$ cat >> foo.txt << END
+>> one more line
+>> END
+```
+
+The delimiter line must be exactly the delimiter, with nothing else on it --
+a trailing space keeps the heredoc open. Bodies take the usual expansions:
+
+```
+$ cat << EOF
+>> today is $(date +%A), $USER
+>> EOF
+today is Sunday, mitnk
+```
+
+Quote the delimiter to turn expansion off and pass the body through as typed.
+Quoting any part of it will do -- `<<'EOF'`, `<<"EOF"` and `<<\EOF` all wait
+for a line reading `EOF`:
+
+```
+$ cat <<'EOF' | sed 's/l/e/g'
+>> Hello
+>> World
+>> EOF
+Heeeo
+Wored
+```
+
+With `<<-` instead of `<<`, leading tabs are stripped from the body and from
+the delimiter line, so a heredoc inside an indented block can be indented too
+(with tabs -- spaces are body text):
+
+```
+$ cat <<- EOF
+>> 	alpha
+>> 	EOF
+alpha
+```
+
 ### Command substitution
 
 ```

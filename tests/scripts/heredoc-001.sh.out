@@ -1,0 +1,34 @@
+1
+2
+a
+b
+Heeeo
+Wored
+adjacent unquoted
+value is bar
+alpha
+== expansions in an unquoted body
+name is cicada
+subs one and two
+escaped $NAME and \ backslash
+== a quoted delimiter is literal
+name is $NAME, subs $(echo one), escaped \$x
+double quoted $NAME
+== empty body
+after the empty one
+== read builtin
+read got: from a heredoc
+== same heredoc, more than once
+iter 1
+iter 2
+hello world
+hello again
+== these are not heredocs
+a << b
+c << d
+hi
+here string
+== a backslash-quoted delimiter is literal too
+literal $HOME and $(echo sub)
+== a word that only looks like a marker is just a word
+__cicada_heredoc_0
